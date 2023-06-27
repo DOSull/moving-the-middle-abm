@@ -1,0 +1,45 @@
+---
+title: "Nudges and sigmoid function"
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-06-27"
+---
+
+```{r setup, include=FALSE, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(pracma)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+```
+
+```{r}
+nudge_threshold <- Vectorize(
+  function(t, a, nudge) {
+    c <- logit(t, a = a)
+    sigmoid(c + nudge, a = a)
+  }
+)
+```
+
+```{r}
+df <- expand_grid(
+  prob = c(0.01, 0.03, 0.05, 0.1, 0.25),
+  sig_a = c(0.25, 0.5, 1, 2),
+  nudge = -10:40 / 10
+) %>%
+  as_tibble() %>%
+  mutate(nudged_prob = nudge_threshold(prob, sig_a, nudge))
+```
+
+
+```{r}
+ggplot(df) +
+  geom_line(aes(x = nudge, y = nudged_prob, group = prob)) + 
+  facet_grid(sig_a ~ prob, labeller = label_both) + 
+  theme_bw()
+```

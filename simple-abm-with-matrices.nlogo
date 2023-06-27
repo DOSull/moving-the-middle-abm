@@ -4,45 +4,43 @@ extensions [
 ]
 
 globals [
-  interventions
-  farm-types
-  input-costs
-  commodity-yields
-  ghg-yields
-  prices
-  environmental-taxes
+  interventions         ;; list of names of possible interventions
+  farm-types            ;; list of named farm types
+  input-costs           ;; matrix of mean and sd of input costs by LUC and farm-type
+  commodity-yields      ;; matrix of mean and sd of yields by LUC and farm-type
+  ghg-emissions         ;; matrix of mean and sd of GHG emissions by LUC and farm-type
+  prices                ;; 1D matrix of commodity prices
+  environmental-taxes   ;; matrix of possible additional environmental taxes/subsidies by LUC and farm-type
 ]
 
 breed [farmers farmer]
 breed [farms farm]
 
 farmers-own [
-  thresholds-matrix
-  farm-type
-  farm-yield
-  farm-input-cost
-  farm-ghg-yield
-  farm-environment-tax
-  net-revenue
-  my-farm
+  thresholds-matrix     ;; matrix of probabilities of adoption of interventions by farm-type
+  farm-type             ;; farm type
+  net-revenue           ;; net revenue of farm summed across patches
+  my-farm               ;; patch-set of the patches in this farmer's farm
 ]
 
 patches-own [
-  luc-code
-  yields
-  costs
-  ghgs
-  owner
+  luc-code              ;; LUC code where 0 = LUC1, 1 = LUC2, etc.
+  yields                ;; list of yields by farm type
+  costs                 ;; list of input costs by farm type
+  ghgs                  ;; list of GHG emissions by farm type
+  owner                 ;; the farmer who owns this patch
 ]
 
 to setup
   clear-all
 
+  random-seed 0
+
   read-farm-types-and-interventions-from-file "Farmer_threshold_matrix.csv"
 
-  setup-luc-codes
+  setup-luc-codes ;; eventually replace this with reading from GIS files
   read-production-function-parameters
-  setup-production-functions
+  setup-patch-production-functions
 
   create-farmers 100 [
     setup-farmer-from-file "Farmer_threshold_matrix.csv"
@@ -74,7 +72,7 @@ to setup-luc-codes
   ]
 end
 
-to setup-production-functions
+to setup-patch-production-functions
   ask patches [
     set-farm-production-function
   ]
@@ -110,7 +108,7 @@ end
 to read-production-function-parameters
   set commodity-yields get-parameter "CommodityYield.csv"
   set input-costs get-parameter "InputCosts.csv"
-  set ghg-yields get-parameter "GHG_Yield.csv"
+  set ghg-emissions get-parameter "GHGEmissions.csv"
   set prices get-prices "Price.csv"
   set environmental-taxes get-environmental-taxes "Price.csv"
 end
@@ -165,8 +163,8 @@ to set-farm-production-function
   let c-mean matrix:get-row input-costs (luc-code * 2)
   let c-sd matrix:get-row input-costs (1 + luc-code * 2)
   set costs (map [[m s] -> random-normal m s] c-mean c-sd)
-  let ghg-mean matrix:get-row ghg-yields (luc-code * 2)
-  let ghg-sd matrix:get-row ghg-yields (1 + luc-code * 2)
+  let ghg-mean matrix:get-row ghg-emissions (luc-code * 2)
+  let ghg-sd matrix:get-row ghg-emissions (1 + luc-code * 2)
   set ghgs (map [[m s] -> random-normal m s] ghg-mean ghg-sd)
 end
 

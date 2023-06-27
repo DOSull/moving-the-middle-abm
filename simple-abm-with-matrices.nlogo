@@ -6,6 +6,11 @@ extensions [
 globals [
   interventions
   farm-types
+  input-costs
+  commodity-yields
+  ghg-yields
+  prices
+  environmental-taxes
 ]
 
 breed [farmers farmer]
@@ -20,6 +25,7 @@ to setup
   clear-all
 
   read-farm-types-and-interventions-from-file "Farmer_threshold_matrix.csv"
+  read-production-function-parameters
 
   create-farmers 100 [
     setup-farmer-from-file "Farmer_threshold_matrix.csv"
@@ -53,6 +59,53 @@ to setup-farmer-from-file [file]
   file-close
   set thresholds-matrix matrix:from-row-list rows
 end
+
+
+to read-production-function-parameters
+  set commodity-yields get-parameter "CommodityYield.csv"
+  set input-costs get-parameter "InputCosts.csv"
+  set ghg-yields get-parameter "GHG_Yield.csv"
+  set prices get-prices "Price.csv"
+  set environmental-taxes get-environmental-taxes "Price.csv"
+end
+
+to-report get-parameter [file]
+  file-open file
+  let header file-read-line
+  let m matrix:make-constant 16 length farm-types 0
+  let rows []
+  while [not file-at-end?] [
+    set rows lput but-first csv:from-row file-read-line rows
+  ]
+  file-close
+  set m matrix:from-row-list rows
+  report m
+end
+
+
+to-report get-prices [file]
+  file-open file
+  let header file-read-line
+  let p but-first csv:from-row file-read-line
+  file-close
+  report matrix:from-row-list (list p)
+end
+
+to-report get-environmental-taxes [file]
+  file-open file
+  let header file-read-line
+  let x file-read-line ;; skip the prices too
+  let m matrix:make-constant 5 length farm-types 0 ;; hard-coded number of taxes/incentives
+  let rows []
+  while [not file-at-end?] [
+    set rows lput but-first csv:from-row file-read-line rows
+  ]
+  file-close
+  set m matrix:from-row-list rows
+  report m
+end
+
+
 
 ;; farmer reporter
 to-report get-thresholds
@@ -88,7 +141,6 @@ to-report nudged-threshold [x nudge]
   let centre logit x sigmoid-slope
   report sigmoid (centre + nudge) sigmoid-slope
 end
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 210

@@ -19,18 +19,64 @@ breed [farms farm]
 farmers-own [
   thresholds-matrix
   farm-type
+  farm-yield
+  farm-input-cost
+  farm-ghg-yield
+  farm-environment-tax
+  net-revenue
+  my-farm
+]
+
+patches-own [
+  luc-code
+  yields
+  costs
+  ghgs
+  owner
 ]
 
 to setup
   clear-all
 
   read-farm-types-and-interventions-from-file "Farmer_threshold_matrix.csv"
+
+  setup-luc-codes
   read-production-function-parameters
+  setup-production-functions
 
   create-farmers 100 [
     setup-farmer-from-file "Farmer_threshold_matrix.csv"
     set farm-type one-of farm-types
     move-to one-of patches
+  ]
+
+  ask patches [
+    set owner one-of farmers with-min [distance myself]
+  ]
+
+  ask farmers [
+    set my-farm patch-set patches with [owner = myself]
+    set net-revenue get-net-revenue-of-farm
+  ]
+end
+
+to setup-luc-codes
+  ask patches [
+    set luc-code one-of n-values 8 [i -> i]
+  ]
+  repeat 10 [
+    ask patches [
+      set luc-code [luc-code] of one-of neighbors4
+    ]
+  ]
+  ask patches [
+    set pcolor scale-color green luc-code 0 7
+  ]
+end
+
+to setup-production-functions
+  ask patches [
+    set-farm-production-function
   ]
 end
 
@@ -105,7 +151,35 @@ to-report get-environmental-taxes [file]
   report m
 end
 
+;; farmer reporter
+to-report get-net-revenue-of-farm
+  let ft farm-type
+  report sum [get-net-revenue ft] of my-farm
+end
 
+;; patch function
+to set-farm-production-function
+  let q-mean matrix:get-row commodity-yields (luc-code * 2)
+  let q-sd matrix:get-row commodity-yields (1 + luc-code * 2)
+  set yields (map [[m s] -> random-normal m s] q-mean q-sd)
+  let c-mean matrix:get-row input-costs (luc-code * 2)
+  let c-sd matrix:get-row input-costs (1 + luc-code * 2)
+  set costs (map [[m s] -> random-normal m s] c-mean c-sd)
+  let ghg-mean matrix:get-row ghg-yields (luc-code * 2)
+  let ghg-sd matrix:get-row ghg-yields (1 + luc-code * 2)
+  set ghgs (map [[m s] -> random-normal m s] ghg-mean ghg-sd)
+end
+
+;; patch-report
+to-report get-net-revenue [fm-type]
+  let farm-type-index position fm-type farm-types
+  let price matrix:get prices 0 farm-type-index
+  let yield item farm-type-index yields
+  let cost item farm-type-index costs
+  let ghg item farm-type-index ghgs
+  let ghg-tax matrix:get environmental-taxes 0 farm-type-index
+  report (price * yield) - cost - (ghg * ghg-tax)
+end
 
 ;; farmer reporter
 to-report get-thresholds
@@ -156,8 +230,8 @@ GRAPHICS-WINDOW
 1
 1
 0
-1
-1
+0
+0
 1
 -16
 16

@@ -28,9 +28,9 @@ nudge_threshold <- Vectorize(
 
 ```{r}
 df <- expand_grid(
-  prob = c(0.01, 0.03, 0.05, 0.1, 0.25),
-  sig_a = c(0.25, 0.5, 1, 2),
-  nudge = -10:40 / 10
+  prob = c(0.01, 0.03, 0.05, 0.1, 0.25, 0.5),
+  sig_a = c(0.25, 0.5, 0.75, 1),
+  nudge = -5:20 / 10
 ) %>%
   as_tibble() %>%
   mutate(nudged_prob = nudge_threshold(prob, sig_a, nudge))
@@ -40,7 +40,6 @@ df <- expand_grid(
 ```{r}
 ggplot(df) +
   geom_line(aes(x = nudge, y = nudged_prob, group = prob)) + 
-  # scale_y_log10() + 
   facet_grid(sig_a ~ prob, labeller = label_both) + 
   theme_bw()
 ```

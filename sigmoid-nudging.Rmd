@@ -40,6 +40,7 @@ df <- expand_grid(
 ```{r}
 ggplot(df) +
   geom_line(aes(x = nudge, y = nudged_prob, group = prob)) + 
+  # scale_y_log10() + 
   facet_grid(sig_a ~ prob, labeller = label_both) + 
   theme_bw()
 ```

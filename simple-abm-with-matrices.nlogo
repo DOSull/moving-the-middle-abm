@@ -34,6 +34,8 @@ patches-own [
 to setup
   clear-all
 
+  set-default-shape farmers "circle"
+
   if seed-the-rng? [ random-seed rng-seed ]
 
   read-farm-types-and-interventions-from-file "Farmer_threshold_matrix.csv"
@@ -45,6 +47,7 @@ to setup
   let the-thresholds-matrix get-thresholds-matrix-from-file "Farmer_threshold_matrix.csv"
 
   create-farmers 100 [
+    set color (sentence extract-rgb violet 192)
     set thresholds-matrix matrix:copy the-thresholds-matrix
     set farm-type one-of farm-types
     move-to one-of patches
@@ -57,6 +60,7 @@ to setup
   ask farmers [
     set my-farm patch-set patches with [owner = myself]
     set net-revenue get-net-revenue-of-farm
+    set size net-revenue / 10000
   ]
 end
 

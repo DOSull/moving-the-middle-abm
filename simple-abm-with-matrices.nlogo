@@ -15,11 +15,10 @@ globals [
 ]
 
 breed [farmers farmer]
-breed [farms farm]
 
 farmers-own [
   thresholds-matrix    ;; matrix of probabilities of adoption of interventions by farm-type
-  farm-type            ;; farm type
+  farm-type            ;; farm type of this farmer's farm
   net-revenue          ;; net revenue of farm summed across patches
   my-farm              ;; patch-set of the patches in this farmer's farm
 ]
@@ -92,6 +91,9 @@ to read-farm-types-and-interventions-from-file [file]
     set interventions lput item 0 csv:from-row file-read-line interventions
   ]
   file-close
+  foreach interventions [ i ->
+    output-print i
+  ]
 end
 
 
@@ -217,6 +219,10 @@ to-report nudged-threshold [x nudge]
 end
 
 
+to-report join-list [lst sep]
+  report reduce [ [a b] -> (word a sep b) ] lst
+end
+
 ;; The MIT License (MIT)
 ;;
 ;; Copyright (c) 2023 David O'Sullivan
@@ -327,6 +333,23 @@ TEXTBOX
 107
 241
 Integer value\nvalue for the\nRNG
+11
+0.0
+1
+
+OUTPUT
+564
+176
+698
+348
+11
+
+TEXTBOX
+571
+156
+721
+174
+Interventions
 11
 0.0
 1

@@ -4,31 +4,31 @@ extensions [
 ]
 
 globals [
-  interventions         ;; list of names of possible interventions
-  farm-types            ;; list of named farm types
-  input-costs           ;; matrix of mean and sd of input costs by LUC and farm-type
-  commodity-yields      ;; matrix of mean and sd of yields by LUC and farm-type
-  ghg-emissions         ;; matrix of mean and sd of GHG emissions by LUC and farm-type
-  prices                ;; 1D matrix of commodity prices
-  environmental-taxes   ;; matrix of possible additional environmental taxes/subsidies by LUC and farm-type
+  interventions        ;; list of names of possible interventions
+  farm-types           ;; list of named farm types
+  input-costs          ;; matrix of mean and sd of input costs by LUC and farm-type
+  commodity-yields     ;; matrix of mean and sd of yields by LUC and farm-type
+  ghg-emissions        ;; matrix of mean and sd of GHG emissions by LUC and farm-type
+  prices               ;; 1D matrix of commodity prices
+  environmental-taxes  ;; matrix of possible additional environmental taxes/subsidies by LUC and farm-type
 ]
 
 breed [farmers farmer]
 breed [farms farm]
 
 farmers-own [
-  thresholds-matrix     ;; matrix of probabilities of adoption of interventions by farm-type
-  farm-type             ;; farm type
-  net-revenue           ;; net revenue of farm summed across patches
-  my-farm               ;; patch-set of the patches in this farmer's farm
+  thresholds-matrix    ;; matrix of probabilities of adoption of interventions by farm-type
+  farm-type            ;; farm type
+  net-revenue          ;; net revenue of farm summed across patches
+  my-farm              ;; patch-set of the patches in this farmer's farm
 ]
 
 patches-own [
-  luc-code              ;; LUC code where 0 = LUC1, 1 = LUC2, etc.
-  yields                ;; list of yields by farm type
-  costs                 ;; list of input costs by farm type
-  ghgs                  ;; list of GHG emissions by farm type
-  owner                 ;; the farmer who owns this patch
+  luc-code             ;; LUC code where 0 = LUC1, 1 = LUC2, etc.
+  yields               ;; list of yields by farm type
+  costs                ;; list of input costs by farm type
+  ghgs                 ;; list of GHG emissions by farm type
+  owner                ;; the farmer who owns this patch
 ]
 
 to setup
@@ -42,8 +42,10 @@ to setup
   read-production-function-parameters
   setup-patch-production-functions
 
+  let the-thresholds-matrix get-thresholds-matrix-from-file "Farmer_threshold_matrix.csv"
+
   create-farmers 100 [
-    setup-farmer-from-file "Farmer_threshold_matrix.csv"
+    set thresholds-matrix matrix:copy the-thresholds-matrix
     set farm-type one-of farm-types
     move-to one-of patches
   ]
@@ -91,9 +93,7 @@ to read-farm-types-and-interventions-from-file [file]
 end
 
 
-to setup-farmer-from-file [file]
-  ;; make a 0 matrix of the appropriate size
-  set thresholds-matrix matrix:make-constant length interventions length farm-types 0
+to-report get-thresholds-matrix-from-file [file]
   file-open file
   let header file-read-line ;; ignore the header
   let rows []
@@ -101,7 +101,7 @@ to setup-farmer-from-file [file]
     set rows lput but-first csv:from-row file-read-line rows
   ]
   file-close
-  set thresholds-matrix matrix:from-row-list rows
+  report matrix:from-row-list rows
 end
 
 

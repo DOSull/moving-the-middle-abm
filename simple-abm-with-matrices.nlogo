@@ -34,7 +34,7 @@ patches-own [
 to setup
   clear-all
 
-  random-seed 0
+  if seed-the-rng? [ random-seed rng-seed ]
 
   read-farm-types-and-interventions-from-file "Farmer_threshold_matrix.csv"
 
@@ -60,11 +60,12 @@ to setup
   ]
 end
 
+;; use a simple voter model to set up LUC codes for now
 to setup-luc-codes
   ask patches [
     set luc-code one-of n-values 8 [i -> i]
   ]
-  repeat 10 [
+  repeat 15 [
     ask patches [
       set luc-code [luc-code] of one-of neighbors4
     ]
@@ -272,6 +273,38 @@ sigmoid-slope
 1
 NIL
 HORIZONTAL
+
+SWITCH
+31
+157
+178
+190
+seed-the-rng?
+seed-the-rng?
+1
+1
+-1000
+
+INPUTBOX
+104
+199
+178
+259
+rng-seed
+100.0
+1
+0
+Number
+
+TEXTBOX
+32
+199
+107
+241
+Integer value\nvalue for the\nRNG
+11
+0.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?

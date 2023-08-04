@@ -14,27 +14,32 @@ globals [
   environmental-taxes  ;; matrix of possible additional environmental taxes/subsidies by LUC and farm-type
 ]
 
+breed [farms farm]     ;; representative turtle for the farm
 breed [farmers farmer]
 
 farmers-own [
   thresholds-matrix    ;; matrix of probabilities of adoption of interventions by farm-type
   farm-type            ;; farm type of this farmer's farm
+  my-farm              ;; patch-set of the patches in this farmer's farm
+]
+
+farms-own [
   net-revenue          ;; net revenue of farm summed across patches
+  farm-type            ;; farm type of this farmer's farm
   my-farm              ;; patch-set of the patches in this farmer's farm
 ]
 
 patches-own [
+  farm-id              ;; who of my-farmer
   luc-code             ;; LUC code where 0 = LUC1, 1 = LUC2, etc.
   yields               ;; list of yields by farm type
   costs                ;; list of input costs by farm type
   ghgs                 ;; list of GHG emissions by farm type
-  owner                ;; the farmer who owns this patch
+  my-farmer            ;; the farmer who owns this patch
 ]
 
 to setup
   clear-all
-
-  set-default-shape farmers "circle"
 
   if seed-the-rng? [ random-seed rng-seed ]
 
@@ -47,20 +52,33 @@ to setup
   let the-thresholds-matrix get-thresholds-matrix-from-file "Farmer_threshold_matrix.csv"
 
   create-farmers 100 [
-    set color (sentence extract-rgb violet 192)
+    set size 2
+    set color orange
+    set shape "person"
     set thresholds-matrix matrix:copy the-thresholds-matrix
     set farm-type one-of farm-types
     move-to one-of patches
   ]
 
   ask patches [
-    set owner one-of farmers with-min [distance myself]
+    set my-farmer one-of farmers with-min [distance myself]
   ]
+  draw-borders grey + 1
 
   ask farmers [
-    set my-farm patch-set patches with [owner = myself]
-    set net-revenue get-net-revenue-of-farm
-    set size net-revenue / 10000
+    set my-farm patch-set patches with [my-farmer = myself]
+    let the-farmer self
+    hatch 1 [
+      set breed farms
+      create-link-with the-farmer [set color orange + 2]
+      setxy mean [pxcor] of my-farm mean [pycor] of my-farm
+      set net-revenue get-net-revenue-of-farm
+      set size sqrt (abs net-revenue / 2e3)
+      ifelse net-revenue > 0
+      [ set color [ 0 0 0 128 ] ]
+      [ set color [ 255 0 0 192 ] ]
+      set shape "circle"
+    ]
   ]
 end
 
@@ -75,7 +93,7 @@ to setup-luc-codes
     ]
   ]
   ask patches [
-    set pcolor scale-color green luc-code 0 7
+    set pcolor scale-color lime luc-code -3 7
   ]
 end
 
@@ -157,7 +175,7 @@ to-report get-environmental-taxes [file]
   report m
 end
 
-;; farmer reporter
+;; farm reporter
 to-report get-net-revenue-of-farm
   let ft farm-type
   report sum [get-net-revenue ft] of my-farm
@@ -223,9 +241,48 @@ to-report nudged-threshold [x nudge]
 end
 
 
-to-report join-list [lst sep]
-  report reduce [ [a b] -> (word a sep b) ] lst
+to draw-borders [col]
+  ;; boundary patches are those with any neighbors4 that have
+  ;; different pcolor than themselves
+  let boundaries patches with [any? neighbors4
+    with [[who] of my-farmer != [[who] of my-farmer] of myself]
+  ]
+  ask boundaries [
+    ask neighbors4 [
+      ;; only those with different my-node need to draw a line
+      if [who] of my-farmer != [[who] of my-farmer] of myself [
+        draw-line-between self myself col
+      ]
+    ]
+  ]
 end
+
+;; draw line between two patches
+;; by sprouting a turtle and having it move
+;; to halfway point and draw the edge
+to draw-line-between [p1 p2 col]
+  ;; set a visible colour
+  let pen-color col
+  ask p1 [
+    ;; make a turtle to do the drawing
+    sprout 1 [
+      set color pen-color
+      ;; move to the boundary
+      face p2
+      jump 0.5
+      ;; face the corner and move there
+      rt 90
+      jump 0.495
+      ;; turn around and draw the edge
+      rt 180
+      pd
+      jump .99
+      ;; and die...
+      die
+    ]
+  ]
+end
+
 
 ;; The MIT License (MIT)
 ;;
@@ -253,11 +310,11 @@ end
 GRAPHICS-WINDOW
 210
 10
-548
-349
+618
+419
 -1
 -1
-10.0
+8.0
 1
 10
 1
@@ -267,10 +324,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--16
-16
--16
-16
+0
+49
+0
+49
 0
 0
 1
@@ -295,10 +352,10 @@ NIL
 1
 
 SLIDER
-567
-35
-739
-68
+629
+27
+801
+60
 sigmoid-slope
 sigmoid-slope
 0.01
@@ -326,7 +383,7 @@ INPUTBOX
 178
 259
 rng-seed
-100.0
+145.0
 1
 0
 Number
@@ -342,17 +399,17 @@ Integer value\nvalue for the\nRNG
 1
 
 OUTPUT
-564
-176
-698
-348
+626
+168
+760
+340
 11
 
 TEXTBOX
-571
-156
-721
-174
+633
+148
+783
+166
 Interventions
 11
 0.0

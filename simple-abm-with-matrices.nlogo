@@ -20,7 +20,6 @@ globals [
 
 breed [farms farm]       ;; representative turtle for the farm
 breed [farmers farmer]
-breed [dicts dict]       ;; considering this for cleaner lookup - just a wrapper for a list indexed by keys
 
 farmers-own [
   my-farm                ;; the farm turtle of this farmer's farm
@@ -34,18 +33,14 @@ farms-own [
   net-revenue            ;; net revenue of farm summed across patches
 ]
 
-dicts-own [
-  keys
-  values
-]
-
 patches-own [
   farm-id                ;; who of my-farmer
+  my-owner               ;; the farmer who owns this patch
   luc-code               ;; LUC code where 0 = LUC1, 1 = LUC2, etc.
+  ;; NOTE these are patch level parameter because they are set up with mean/sd and vary at patch level
   commodity-yields       ;; list of yields by farm type
   input-costs            ;; list of input costs by farm type
   ghg-emissions          ;; list of GHG emissions by farm type
-  my-owner               ;; the farmer who owns this patch
 ]
 
 ;; -----------------------------------------
@@ -144,7 +139,7 @@ end
 ;; -----------------------------------------
 to setup-economic-parameters
   read-production-function-parameters
-  setup-patch-production-functions
+  ask patches [ set-farm-production-function ]
 end
 
 to read-production-function-parameters
@@ -199,12 +194,6 @@ to-report get-environmental-taxes [file]
   file-close
   set m matrix:from-row-list rows
   report m
-end
-
-to setup-patch-production-functions
-  ask patches [
-    set-farm-production-function
-  ]
 end
 
 

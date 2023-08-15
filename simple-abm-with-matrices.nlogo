@@ -1,110 +1,120 @@
-; for doing matrix maths and reading CSV files
 extensions [
-  matrix
-  csv
+  matrix   ;; matrix maths
+  csv      ;; easy reading of CSVs
+  palette  ;; nicer colours
 ]
 
 globals [
-  interventions        ;; list of names of possible interventions
-  farm-types           ;; list of named farm types
-  input-costs          ;; matrix of mean and sd of input costs by LUC and farm-type
-  commodity-yields     ;; matrix of mean and sd of yields by LUC and farm-type
-  ghg-emissions        ;; matrix of mean and sd of GHG emissions by LUC and farm-type
-  prices               ;; 1D matrix of commodity prices
-  environmental-taxes  ;; matrix of possible additional environmental taxes/subsidies by LUC and farm-type
+  interventions          ;; list of names of possible interventions
+  farm-types             ;; list of named farm types
+  commodity-yield-means  ;; matrix of mean yields by LUC and farm-type
+  commodity-yield-sds    ;; matrix of sd of yields by LUC and farm-type
+  input-cost-means       ;; matrix of mean input costs by LUC and farm-type
+  input-cost-sds         ;; matrix of sd of input costs by LUC and farm-type
+  ghg-emission-means     ;; matrix of mean GHG emissions by LUC and farm-type
+  ghg-emission-sds       ;; matrix of sd of GHG emissions by LUC and farm-type
+  prices                 ;; 1D matrix of commodity prices
+  environmental-taxes    ;; matrix of possible additional environmental taxes/subsidies by farm-type
+  base-thresholds-matrix ;; default farmer decision thresholds for various interventions
 ]
 
-breed [farms farm]     ;; representative turtle for the farm
+breed [farms farm]       ;; representative turtle for the farm
 breed [farmers farmer]
+breed [dicts dict]       ;; considering this for cleaner lookup - just a wrapper for a list indexed by keys
 
 farmers-own [
-  thresholds-matrix    ;; matrix of probabilities of adoption of interventions by farm-type
-  farm-type            ;; farm type of this farmer's farm
-  my-farm              ;; patch-set of the patches in this farmer's farm
+  my-farm                ;; the farm turtle of this farmer's farm
+  farm-type              ;; farm type of this farmer's farm
+  thresholds-matrix      ;; matrix of probabilities of adoption of interventions by farm-type
 ]
 
 farms-own [
-  net-revenue          ;; net revenue of farm summed across patches
-  farm-type            ;; farm type of this farmer's farm
-  my-farm              ;; patch-set of the patches in this farmer's farm
+  my-farmer              ;; the farmer who owns/runs this farm
+  the-land               ;; patch-set of the patches in this farm
+  net-revenue            ;; net revenue of farm summed across patches
+]
+
+dicts-own [
+  keys
+  values
 ]
 
 patches-own [
-  farm-id              ;; who of my-farmer
-  luc-code             ;; LUC code where 0 = LUC1, 1 = LUC2, etc.
-  yields               ;; list of yields by farm type
-  costs                ;; list of input costs by farm type
-  ghgs                 ;; list of GHG emissions by farm type
-  my-farmer            ;; the farmer who owns this patch
+  farm-id                ;; who of my-farmer
+  luc-code               ;; LUC code where 0 = LUC1, 1 = LUC2, etc.
+  commodity-yields       ;; list of yields by farm type
+  input-costs            ;; list of input costs by farm type
+  ghg-emissions          ;; list of GHG emissions by farm type
+  my-owner               ;; the farmer who owns this patch
 ]
 
+;; -----------------------------------------
+;; MAIN LOOP i.e., setup and go
+;; -----------------------------------------
 to setup
   clear-all
-
   if seed-the-rng? [ random-seed rng-seed ]
+  set setup-geography-from-files? false
 
+  setup-farmer-parameters
+
+  ifelse setup-geography-from-files?
+  [ setup-geography-from-files ]
+  [ setup-random-geography ]
+
+  setup-economic-parameters
+
+  reset-ticks
+  go
+end
+
+;; the main model loop
+to go
+  if stop-model? [
+    cleanup
+    stop
+  ]
+
+  ;; much more action to go here...
+  ask farms [
+    update-net-revenue-of-farm
+  ]
+
+  tick
+end
+
+;; put a model stop condition here
+to-report stop-model?
+  report false
+end
+
+;; put any model clean up at end here
+to cleanup
+  ;; any end of run tidying up
+end
+
+;; -----------------------------------------
+;; ALL THE SETUP STUFF
+;; -----------------------------------------
+;; farmer (behavioural) parameter setup
+;; -----------------------------------------
+
+;; we read the interventions by farm types file twice...
+to setup-farmer-parameters
+  ;; Assumes a CSV organised with farm types as column headings,
+  ;; interventions as row names, i.e.
+  ;; ,                  SNB, Dairy, Forest, Crop
+  ;; Build_Wetland,     0.7, 0.75,  0.3,    0.5
+  ;; Riparian_Planting, 0.7, 0.75,  0.2,    0.4
+  ;; Clean_Races,       0.2, 0.7,   0,0
+  ;; Farm_Plan,         0.7, 0.85,  0.4,    0.6
+  ;; Join_ETS,          0.2, 0.2,   0.9,    0.4
+  ;;
   read-farm-types-and-interventions-from-file "Farmer_threshold_matrix.csv"
-
-  setup-luc-codes ;; eventually replace this with reading from GIS files
-  read-production-function-parameters
-  setup-patch-production-functions
-
-  let the-thresholds-matrix get-thresholds-matrix-from-file "Farmer_threshold_matrix.csv"
-
-  create-farmers 100 [
-    set size 2
-    set color orange
-    set shape "person"
-    set thresholds-matrix matrix:copy the-thresholds-matrix
-    set farm-type one-of farm-types
-    move-to one-of patches
-  ]
-
-  ask patches [
-    set my-farmer one-of farmers with-min [distance myself]
-  ]
-  draw-borders grey + 1
-
-  ask farmers [
-    set my-farm patch-set patches with [my-farmer = myself]
-    let the-farmer self
-    hatch 1 [
-      set breed farms
-      create-link-with the-farmer [set color orange + 2]
-      setxy mean [pxcor] of my-farm mean [pycor] of my-farm
-      set net-revenue get-net-revenue-of-farm
-      set size sqrt (abs net-revenue / 2e3)
-      ifelse net-revenue > 0
-      [ set color [ 0 0 0 128 ] ]
-      [ set color [ 255 0 0 192 ] ]
-      set shape "circle"
-    ]
-  ]
+  read-thresholds-matrix-from-file "Farmer_threshold_matrix.csv"
 end
 
-;; use a simple voter model to set up LUC codes for now
-to setup-luc-codes
-  ask patches [
-    set luc-code one-of n-values 8 [i -> i]
-  ]
-  repeat 15 [
-    ask patches [
-      set luc-code [luc-code] of one-of neighbors4
-    ]
-  ]
-  ask patches [
-    set pcolor scale-color lime luc-code -3 7
-  ]
-end
-
-to setup-patch-production-functions
-  ask patches [
-    set-farm-production-function
-  ]
-end
-
-
-;; assume farm types are column headings
+;; setup farm types and list of possible interventions
 to read-farm-types-and-interventions-from-file [file]
   file-open file
   set farm-types but-first csv:from-row file-read-line
@@ -113,29 +123,44 @@ to read-farm-types-and-interventions-from-file [file]
     set interventions lput item 0 csv:from-row file-read-line interventions
   ]
   file-close
-  foreach interventions [ i ->
-    output-print i
-  ]
+  foreach interventions [ i -> output-print i ]
 end
 
-
-to-report get-thresholds-matrix-from-file [file]
+;; setup baseline probability of adoption of interventions by farm type
+to read-thresholds-matrix-from-file [file]
   file-open file
-  let header file-read-line ;; ignore the header
+  let header file-read-line ;; ignore the header this time
   let rows []
   while [not file-at-end?] [
     set rows lput but-first csv:from-row file-read-line rows
   ]
   file-close
-  report matrix:from-row-list rows
+  set base-thresholds-matrix matrix:from-row-list rows
 end
 
 
+;; -----------------------------------------
+;; economic setup procedures
+;; -----------------------------------------
+to setup-economic-parameters
+  read-production-function-parameters
+  setup-patch-production-functions
+end
+
 to read-production-function-parameters
-  set commodity-yields get-parameter "CommodityYield.csv"
-  set input-costs get-parameter "InputCosts.csv"
-  set ghg-emissions get-parameter "GHGEmissions.csv"
-  set prices get-prices "Price.csv"
+  let yields get-parameter "CommodityYield.csv"
+  set commodity-yield-means item 0 yields
+  set commodity-yield-sds item 1 yields
+
+  let costs get-parameter "InputCosts.csv"
+  set input-cost-means item 0 costs
+  set input-cost-sds item 1 costs
+
+  let emissions get-parameter "GHGEmissions.csv"
+  set ghg-emission-means item 0 emissions
+  set ghg-emission-sds item 1 emissions
+
+  set prices              get-prices "Price.csv"
   set environmental-taxes get-environmental-taxes "Price.csv"
 end
 
@@ -143,15 +168,16 @@ to-report get-parameter [file]
   file-open file
   let header file-read-line
   let m matrix:make-constant 16 length farm-types 0
-  let rows []
+  let rows0 []
+  let rows1 []
   while [not file-at-end?] [
-    set rows lput but-first csv:from-row file-read-line rows
+    set rows0 lput but-first csv:from-row file-read-line rows0
+    set rows1 lput but-first csv:from-row file-read-line rows1
   ]
   file-close
-  set m matrix:from-row-list rows
-  report m
+  report (list matrix:from-row-list rows0
+               matrix:from-row-list rows1)
 end
-
 
 to-report get-prices [file]
   file-open file
@@ -175,41 +201,136 @@ to-report get-environmental-taxes [file]
   report m
 end
 
-;; farm reporter
-to-report get-net-revenue-of-farm
-  let ft farm-type
-  report sum [get-net-revenue ft] of my-farm
+to setup-patch-production-functions
+  ask patches [
+    set-farm-production-function
+  ]
 end
 
-;; patch function
+
+;; -----------------------------------------
+;; landscape setup
+;; NOTE: this includes the farmers not just
+;;       LUC codes
+;; -----------------------------------------
+to setup-geography-from-files
+  ;; TODO
+end
+
+to setup-random-geography
+  setup-luc-codes
+  create-farmers 100 [ initialise-farmer ]
+
+  ;; when model is initialised from spatial data including ownership
+  ;; and farm boundaries, etc. this code will change
+  ;; for now make the farms proximity polygons based on farmer locations
+  ask patches [ set my-owner one-of farmers with-min [distance myself] ]
+  draw-borders magenta ;; this is purely for visualization
+
+  ;; and then we can initialise the farms
+  ask farmers [
+    set my-farm patch-set patches with [my-owner = myself]
+    hatch-farms 1 [ initialise-farm ]
+  ]
+end
+
+;; use a simple voter model to set up LUC codes for now
+;; eventually replace this with reading from GIS files
+to setup-luc-codes
+  ask patches [
+    set luc-code one-of n-values 8 [i -> i]
+  ]
+  repeat 15 [
+    ask patches [
+      set luc-code [luc-code] of one-of neighbors4
+    ]
+  ]
+  ask patches [
+    set pcolor palette:scale-scheme "Sequential" "BuGn" 9 luc-code 0 8
+  ]
+end
+
+
+;; -----------------------------------------
+;; patch specific functions
+;; -----------------------------------------
+
+;; patch procedure
 to set-farm-production-function
-  let q-mean matrix:get-row commodity-yields (luc-code * 2)
-  let q-sd matrix:get-row commodity-yields (1 + luc-code * 2)
-  set yields (map [[m s] -> random-normal m s] q-mean q-sd)
-  let c-mean matrix:get-row input-costs (luc-code * 2)
-  let c-sd matrix:get-row input-costs (1 + luc-code * 2)
-  set costs (map [[m s] -> random-normal m s] c-mean c-sd)
-  let ghg-mean matrix:get-row ghg-emissions (luc-code * 2)
-  let ghg-sd matrix:get-row ghg-emissions (1 + luc-code * 2)
-  set ghgs (map [[m s] -> random-normal m s] ghg-mean ghg-sd)
+  let yield-mean       matrix:get-row commodity-yield-means luc-code
+  let yield-sd         matrix:get-row commodity-yield-sds luc-code
+  set commodity-yields (map [[m s] -> random-normal m s] yield-mean yield-sd)
+
+  let costs-mean       matrix:get-row input-cost-means luc-code
+  let costs-sd         matrix:get-row input-cost-sds luc-code
+  set input-costs      (map [[m s] -> random-normal m s] costs-mean costs-sd)
+
+  let ghg-mean         matrix:get-row ghg-emission-means luc-code
+  let ghg-sd           matrix:get-row ghg-emission-sds luc-code
+  set ghg-emissions    (map [[m s] -> random-normal m s] ghg-mean ghg-sd)
 end
 
 ;; patch-report
 to-report get-net-revenue [fm-type]
-  let farm-type-index position fm-type farm-types
-  let price matrix:get prices 0 farm-type-index
-  let yield item farm-type-index yields
-  let cost item farm-type-index costs
-  let ghg item farm-type-index ghgs
-  let ghg-tax matrix:get environmental-taxes 0 farm-type-index
+  let ft-index         position fm-type farm-types
+  let price            matrix:get prices 0 ft-index
+  let yield            item ft-index commodity-yields
+  let cost             item ft-index input-costs
+  let ghg              item ft-index ghg-emissions
+  let ghg-tax          matrix:get environmental-taxes 0 ft-index
   report (price * yield) - cost - (ghg * ghg-tax)
+end
+
+
+;; -----------------------------------------
+;; farm specific functions
+;; -----------------------------------------
+
+;; farm 'constuctor'
+to initialise-farm
+  ;; will be called by the farmer who is 'myself' in this context
+  set my-farmer myself
+  create-link-with my-farmer [set color orange + 2]
+  set the-land [my-farm] of my-farmer
+  setxy mean [pxcor] of the-land mean [pycor] of the-land
+  set shape "circle"
+end
+
+;; farm reporter
+to-report get-net-revenue-of-farm
+  let ft [farm-type] of my-owner
+  report sum [get-net-revenue ft] of the-land
+end
+
+to update-net-revenue-of-farm
+  set net-revenue get-net-revenue-of-farm
+  set size sqrt (abs net-revenue / 2e3)
+  ifelse net-revenue > 0
+  [ set color [ 0 32 64 96 ] ]
+  [ set color [ 255 0 0 160 ] ]
+end
+
+;; -----------------------------------------
+;; farmer specific functions
+;; -----------------------------------------
+
+;; farmer 'constructor'
+to initialise-farmer
+  set size 1.5
+  set color violet
+  set shape "person"
+  ;; give everyone the default threshold matrix
+  ;; perhaps subject to modification later by sigmoid function
+  ;; contingent on farmer dispositions (pro-social, pro-environmental, etc.)
+  set thresholds-matrix matrix:copy base-thresholds-matrix
+  set farm-type one-of farm-types
+  move-to one-of patches
 end
 
 ;; farmer reporter
 to-report get-thresholds
   report matrix:get-column thresholds-matrix position farm-type farm-types
 end
-
 
 ;; farmer command
 ;; can use this
@@ -223,6 +344,10 @@ to boost-thresholds [nudge]
   ]
 end
 
+
+;; -----------------------------------------
+;; utilility functions
+;; -----------------------------------------
 
 to-report sigmoid [x a]
   report 1 / (1 + exp (a * (- x)))
@@ -241,16 +366,19 @@ to-report nudged-threshold [x nudge]
 end
 
 
+;; ------------------------------------------
+;; drawing utilities (see netlogo-utils repo)
+;; ------------------------------------------
 to draw-borders [col]
   ;; boundary patches are those with any neighbors4 that have
   ;; different pcolor than themselves
   let boundaries patches with [any? neighbors4
-    with [[who] of my-farmer != [[who] of my-farmer] of myself]
+    with [[who] of my-owner != [[who] of my-owner] of myself]
   ]
   ask boundaries [
     ask neighbors4 [
       ;; only those with different my-node need to draw a line
-      if [who] of my-farmer != [[who] of my-farmer] of myself [
+      if [who] of my-owner != [[who] of my-owner] of myself [
         draw-line-between self myself col
       ]
     ]
@@ -308,9 +436,9 @@ end
 ;; DEALINGS IN THE SOFTWARE.
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
+184
 10
-618
+592
 419
 -1
 -1
@@ -328,16 +456,16 @@ GRAPHICS-WINDOW
 49
 0
 49
-0
-0
+1
+1
 1
 ticks
 30.0
 
 BUTTON
-80
+54
 35
-146
+120
 68
 NIL
 setup
@@ -352,10 +480,10 @@ NIL
 1
 
 SLIDER
-629
-27
-801
-60
+604
+17
+776
+50
 sigmoid-slope
 sigmoid-slope
 0.01
@@ -367,9 +495,9 @@ NIL
 HORIZONTAL
 
 SWITCH
-31
+5
 157
-178
+152
 190
 seed-the-rng?
 seed-the-rng?
@@ -378,9 +506,9 @@ seed-the-rng?
 -1000
 
 INPUTBOX
-104
+78
 199
-178
+152
 259
 rng-seed
 145.0
@@ -389,9 +517,9 @@ rng-seed
 Number
 
 TEXTBOX
-32
+6
 199
-107
+81
 241
 Integer value\nvalue for the\nRNG
 11
@@ -399,21 +527,32 @@ Integer value\nvalue for the\nRNG
 1
 
 OUTPUT
-626
-168
-760
-340
+601
+158
+735
+330
 11
 
 TEXTBOX
-633
-148
-783
-166
-Interventions
+608
+125
+758
+153
+Interventions\n(for information)
 11
 0.0
 1
+
+SWITCH
+600
+386
+840
+419
+setup-geography-from-files?
+setup-geography-from-files?
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?

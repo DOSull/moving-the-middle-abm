@@ -5,7 +5,7 @@ extensions [
 ]
 
 globals [
-  interventions          ;; list of names of possible interventions
+  the-interventions      ;; list of names of possible interventions
   farm-types             ;; list of named farm types
   commodity-yield-means  ;; matrix of mean yields by LUC and farm-type
   commodity-yield-sds    ;; matrix of sd of yields by LUC and farm-type
@@ -20,6 +20,7 @@ globals [
 
 breed [farms farm]       ;; representative turtle for the farm
 breed [farmers farmer]
+breed [interventions intervention]
 
 farmers-own [
   my-farm                ;; the farm turtle of this farmer's farm
@@ -31,6 +32,15 @@ farms-own [
   my-farmer              ;; the farmer who owns/runs this farm
   the-land               ;; patch-set of the patches in this farm
   net-revenue            ;; net revenue of farm summed across patches
+  my-interventions
+]
+
+;; guessing here what this might look like
+interventions-own [
+  intervention-type      ;; this would be one of the named types
+  cost-to-implement
+  incentive-payments
+  emissions-reductions
 ]
 
 patches-own [
@@ -113,12 +123,12 @@ end
 to read-farm-types-and-interventions-from-file [file]
   file-open file
   set farm-types but-first csv:from-row file-read-line
-  set interventions []
+  set the-interventions []
   while [not file-at-end?] [
-    set interventions lput item 0 csv:from-row file-read-line interventions
+    set the-interventions lput item 0 csv:from-row file-read-line the-interventions
   ]
   file-close
-  foreach interventions [ i -> output-print i ]
+  foreach the-interventions [ i -> output-print i ]
 end
 
 ;; setup baseline probability of adoption of interventions by farm type
@@ -288,7 +298,7 @@ end
 ;; farm reporter
 to-report get-net-revenue-of-farm
   let ft [farm-type] of my-owner
-  report sum [get-net-revenue ft] of the-land
+  report sum [get-net-revenue ft] of the-land ;; include here the benefits of my-interventions
 end
 
 to update-net-revenue-of-farm
@@ -324,7 +334,7 @@ end
 ;; farmer command
 ;; can use this
 to boost-thresholds [nudge]
-  let row-indices n-values length interventions [i -> i]
+  let row-indices n-values length the-interventions [i -> i]
   let col-indices n-values length farm-types [i -> i]
   foreach row-indices [ r ->
     foreach col-indices [ c ->

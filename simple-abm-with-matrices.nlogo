@@ -5,7 +5,6 @@ extensions [
 ]
 
 globals [
-  the-interventions      ;; list of names of possible interventions
   farm-types             ;; list of named farm types
   commodity-yield-means  ;; matrix of mean yields by LUC and farm-type
   commodity-yield-sds    ;; matrix of sd of yields by LUC and farm-type
@@ -22,12 +21,6 @@ breed [farms farm]       ;; representative turtle for the farm
 breed [farmers farmer]
 breed [interventions intervention]
 
-farmers-own [
-  my-farm                ;; the farm turtle of this farmer's farm
-  farm-type              ;; farm type of this farmer's farm
-  thresholds-matrix      ;; matrix of probabilities of adoption of interventions by farm-type
-]
-
 farms-own [
   my-farmer              ;; the farmer who owns/runs this farm
   the-land               ;; patch-set of the patches in this farm
@@ -35,17 +28,23 @@ farms-own [
   my-interventions
 ]
 
+farmers-own [
+  my-farm                ;; the farm turtle of this farmer's farm
+  farm-type              ;; farm type of this farmer's farm
+  thresholds-matrix      ;; matrix of probabilities of adoption of interventions by farm-type
+]
+
 ;; guessing here what this might look like
 interventions-own [
   intervention-type      ;; this would be one of the named types
-  cost-to-implement
-  incentive-payments
-  emissions-reductions
+  cost-to-implement      ;; one-off cost to implement (per patch?)
+  effect-on-costs        ;; ongoing impact on input-costs per patch
+  effect-on-yields       ;; ongoing impact on commodity-yield per patch
+  effect-on-emissions    ;; ongoing impact on ghg-emissions per patch
 ]
 
 patches-own [
-  farm-id                ;; who of my-farmer
-  my-owner               ;; the farmer who owns this patch
+  the-owner              ;; the farmer who owns this patch
   luc-code               ;; LUC code where 0 = LUC1, 1 = LUC2, etc.
   ;; NOTE these are patch level parameter because they are set up with mean/sd and vary at patch level
   commodity-yields       ;; list of yields by farm type
@@ -58,6 +57,8 @@ patches-own [
 ;; -----------------------------------------
 to setup
   clear-all
+  reset-ticks
+
   if seed-the-rng? [ random-seed rng-seed ]
   set setup-geography-from-files? false
 
@@ -68,9 +69,7 @@ to setup
   [ setup-random-geography ]
 
   setup-economic-parameters
-
-  reset-ticks
-  go
+  go ;; this initialises the farms with current net revenue
 end
 
 ;; the main model loop
@@ -123,12 +122,22 @@ end
 to read-farm-types-and-interventions-from-file [file]
   file-open file
   set farm-types but-first csv:from-row file-read-line
-  set the-interventions []
   while [not file-at-end?] [
-    set the-interventions lput item 0 csv:from-row file-read-line the-interventions
+    create-interventions 1 [
+      initialise-intervention item 0 csv:from-row file-read-line
+    ]
+;    set the-interventions lput item 0 csv:from-row file-read-line the-interventions
   ]
   file-close
-  foreach the-interventions [ i -> output-print i ]
+end
+
+to initialise-intervention [name]
+  set intervention-type name
+  set effect-on-costs n-values 8 [ i -> 0 ]
+  set effect-on-yields n-values 8 [ i -> 0 ]
+  set effect-on-emissions n-values 8 [ i -> 0 ]
+  set hidden? true
+  output-print name
 end
 
 ;; setup baseline probability of adoption of interventions by farm type
@@ -223,13 +232,17 @@ to setup-random-geography
   ;; when model is initialised from spatial data including ownership
   ;; and farm boundaries, etc. this code will change
   ;; for now make the farms proximity polygons based on farmer locations
-  ask patches [ set my-owner one-of farmers with-min [distance myself] ]
+  ask patches [ set the-owner min-one-of farmers [distance myself] ]
   draw-borders magenta ;; this is purely for visualization
 
   ;; and then we can initialise the farms
   ask farmers [
-    set my-farm patch-set patches with [my-owner = myself]
-    hatch-farms 1 [ initialise-farm ]
+    let the-farm nobody
+    hatch-farms 1 [
+      initialise-farm
+      set the-farm self
+    ]
+    set my-farm the-farm
   ]
 end
 
@@ -272,10 +285,16 @@ end
 ;; patch-report
 to-report get-net-revenue [fm-type]
   let ft-index         position fm-type farm-types
+  let the-interventions [my-interventions] of ([my-farm] of the-owner)
   let price            matrix:get prices 0 ft-index
+  ;; yield, costs and emissions are all subject to modification by the interventions
+  ;; made on this farm
   let yield            item ft-index commodity-yields
+  set yield    yield + sum [item ft-index effect-on-yields] of the-interventions
   let cost             item ft-index input-costs
+  set cost      cost + sum [item ft-index effect-on-costs] of the-interventions
   let ghg              item ft-index ghg-emissions
+  set ghg        ghg + sum [item ft-index effect-on-emissions] of the-interventions
   let ghg-tax          matrix:get environmental-taxes 0 ft-index
   report (price * yield) - cost - (ghg * ghg-tax)
 end
@@ -290,14 +309,16 @@ to initialise-farm
   ;; will be called by the farmer who is 'myself' in this context
   set my-farmer myself
   create-link-with my-farmer [set color orange + 2]
-  set the-land [my-farm] of my-farmer
+  let the-farmer my-farmer
+  set the-land patches with [the-owner = the-farmer]
   setxy mean [pxcor] of the-land mean [pycor] of the-land
   set shape "circle"
+  set my-interventions n-of random (count interventions) interventions
 end
 
 ;; farm reporter
 to-report get-net-revenue-of-farm
-  let ft [farm-type] of my-owner
+  let ft [farm-type] of my-farmer
   report sum [get-net-revenue ft] of the-land ;; include here the benefits of my-interventions
 end
 
@@ -315,15 +336,15 @@ end
 
 ;; farmer 'constructor'
 to initialise-farmer
-  set size 1.5
-  set color violet
+  set size 3
+  set color magenta
   set shape "person"
   ;; give everyone the default threshold matrix
   ;; perhaps subject to modification later by sigmoid function
   ;; contingent on farmer dispositions (pro-social, pro-environmental, etc.)
   set thresholds-matrix matrix:copy base-thresholds-matrix
   set farm-type one-of farm-types
-  move-to one-of patches
+  setxy random-xcor random-ycor
 end
 
 ;; farmer reporter
@@ -334,7 +355,7 @@ end
 ;; farmer command
 ;; can use this
 to boost-thresholds [nudge]
-  let row-indices n-values length the-interventions [i -> i]
+  let row-indices n-values count interventions [i -> i]
   let col-indices n-values length farm-types [i -> i]
   foreach row-indices [ r ->
     foreach col-indices [ c ->
@@ -372,12 +393,12 @@ to draw-borders [col]
   ;; boundary patches are those with any neighbors4 that have
   ;; different pcolor than themselves
   let boundaries patches with [any? neighbors4
-    with [[who] of my-owner != [[who] of my-owner] of myself]
+    with [[who] of the-owner != [[who] of the-owner] of myself]
   ]
   ask boundaries [
     ask neighbors4 [
       ;; only those with different my-node need to draw a line
-      if [who] of my-owner != [[who] of my-owner] of myself [
+      if [who] of the-owner != [[who] of the-owner] of myself [
         draw-line-between self myself col
       ]
     ]
@@ -441,7 +462,7 @@ GRAPHICS-WINDOW
 419
 -1
 -1
-8.0
+4.0
 1
 10
 1
@@ -452,9 +473,9 @@ GRAPHICS-WINDOW
 0
 1
 0
-49
+99
 0
-49
+99
 1
 1
 1
@@ -528,7 +549,7 @@ Integer value\nvalue for the\nRNG
 OUTPUT
 601
 158
-735
+759
 330
 11
 
@@ -731,6 +752,11 @@ Circle -7500403 true true 96 51 108
 Circle -16777216 true false 113 68 74
 Polygon -10899396 true false 189 233 219 188 249 173 279 188 234 218
 Polygon -10899396 true false 180 255 150 210 105 210 75 240 135 240
+
+hex
+false
+0
+Polygon -7500403 true true 0 150 75 20 225 20 300 150 225 280 75 280
 
 house
 false

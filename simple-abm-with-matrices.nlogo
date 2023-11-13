@@ -324,7 +324,7 @@ end
 
 to update-net-revenue-of-farm
   set net-revenue get-net-revenue-of-farm
-  set size sqrt (abs net-revenue / 2e3)
+  set size sqrt (abs net-revenue / 2e3) ;; scaling size of net revenue circle
   ifelse net-revenue > 0
   [ set color [ 0 32 64 96 ] ]
   [ set color [ 255 0 0 160 ] ]

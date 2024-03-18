@@ -3,6 +3,7 @@ extensions [
   csv      ;; easy reading of CSVs
   palette  ;; nicer colours
   table    ;; dictionary like tables for storing lots of the input parameters
+  rnd
 ]
 
 globals [
@@ -90,6 +91,17 @@ to go
   ]
 
   ;; much more action to go here...
+  ask farmers [
+    if any? [available-interventions] of my-farm [
+      let potential-change consider-interventions
+      if random-float 1 < last potential-change [
+        print (word "farmer " who " implementing " first potential-change " on " [farm-type] of my-farm " " [who] of my-farm)
+        ask my-farm [
+          implement-intervention first potential-change
+        ]
+      ]
+    ]
+  ]
   ask farms [
     update-net-revenue-of-farm
   ]
@@ -436,10 +448,18 @@ to initialise-farm
     set farm-type ft
     ask my-farmer [ set label ft set label-color black ]
     let my-possible-interventions possible-interventions
-    set my-interventions n-of (random (count my-possible-interventions + 1)) my-possible-interventions
+    set my-interventions turtle-set nobody
+;    set my-interventions possible-interventions
+;    set my-interventions n-of (random (count my-possible-interventions + 1)) my-possible-interventions
     set available-interventions possible-interventions with [not member? self [my-interventions] of myself]
     set label-color key-label-colour
   ]
+end
+
+to implement-intervention [i]
+  let the-intervention one-of interventions with [intervention-type = i]
+  set my-interventions (turtle-set my-interventions the-intervention)
+  set available-interventions available-interventions with [self != the-intervention]
 end
 
 ;; farm reporter
@@ -459,9 +479,6 @@ to-report get-costs
 end
 
 to update-net-revenue-of-farm
-  ask my-farmer [
-    let intervention-options consider-interventions
-  ]
   set net-revenue get-net-revenue
   set size sqrt (abs net-revenue / 2e3) ;; scaling size of net revenue circle
   ifelse net-revenue > 0
@@ -541,23 +558,28 @@ end
 
 to-report consider-interventions
   let current-costs [get-costs] of my-farm
+  let current-income [get-income] of my-farm
   let current-interventions [my-interventions] of my-farm
-  let cost-changes []
+  let changes []
   let to-consider [available-interventions] of my-farm
-  if any? to-consider [
+  ifelse any? to-consider [
     foreach sort to-consider [ i ->
       let i-type [intervention-type] of i
       let base-probability get-threshold i-type
       ask my-farm [
         set my-interventions (turtle-set current-interventions i)
         let new-costs get-costs
+        let new-income get-income
         let change-in-costs precision (100 * (new-costs - current-costs) / current-costs) 1
-        set cost-changes lput (list i-type change-in-costs base-probability) cost-changes
+        let change-in-income precision (100 * (new-income - current-income) / current-income) 1
+        let new-prob precision nudged-threshold base-probability (change-in-income - change-in-costs) 3
+        set changes lput (list i-type change-in-costs change-in-income new-prob) changes
         set my-interventions current-interventions
       ]
     ]
+    report rnd:weighted-one-of-list changes [ [p] -> last p ]
   ]
-  report cost-changes
+  [ report nobody ]
 end
 
 
@@ -873,6 +895,40 @@ BUTTON
 redraw
 colour-patches\ndisplay
 NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+56
+92
+119
+125
+step
+go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+58
+136
+121
+169
+NIL
+go
+T
 1
 T
 OBSERVER

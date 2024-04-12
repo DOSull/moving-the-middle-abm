@@ -95,7 +95,7 @@ to go
     if any? [available-interventions] of my-farm [
       let potential-change consider-interventions
       if random-float 1 < last potential-change [
-        print (word "farmer " who " implementing " first potential-change " on " [farm-type] of my-farm " " [who] of my-farm)
+        print (word "Farmer " who " implementing " first potential-change " on " [farm-type] of my-farm " " [who] of my-farm)
         ask my-farm [
           implement-intervention first potential-change
         ]
@@ -186,7 +186,7 @@ to read-interventions-from-file [file]
         let data csv:from-row file-read-line
         let i-type item 0 data
         if i = 0 [
-          set the-intervention one-of interventions with [intervention-type = i-type]
+          set the-intervention get-intervention i-type
         ]
         set data but-first data
         let the-effect-type item 0 data
@@ -457,7 +457,7 @@ to initialise-farm
 end
 
 to implement-intervention [i]
-  let the-intervention one-of interventions with [intervention-type = i]
+  let the-intervention get-intervention i
   set my-interventions (turtle-set my-interventions the-intervention)
   set available-interventions available-interventions with [self != the-intervention]
 end
@@ -492,27 +492,33 @@ to-report possible-interventions
 end
 
 to-report revenue-summary [is]
-  let result (list who farm-type count the-land)
+  let result (list who farm-type table:get prices farm-type count the-land)
   let current-interventions my-interventions
   set my-interventions turtle-set nobody
+  set result lput precision get-costs 1 result
+  set result lput precision get-income 1 result
   set result lput precision get-net-revenue 1 result
-  foreach is [ i ->
-    let the-intervention one-of interventions with [intervention-type = i]
+  foreach but-first is [ i ->
+    let the-intervention get-intervention i
     ifelse member? the-intervention possible-interventions [
       set my-interventions turtle-set the-intervention
+      set result lput precision get-costs 1 result
+      set result lput precision get-income 1 result
       set result lput precision get-net-revenue 1 result
       set my-interventions turtle-set nobody
     ]
-    [ set result lput "NA" result ]
+    [ set result sentence result ["NA" "NA" "NA"] ]
   ]
   set my-interventions current-interventions
   report result
 end
 
 to save-farm-revenue-under-various-interventions [file]
-  let sorted-interventions sort [intervention-type] of interventions
-  let header sentence ["" "Type" "Area" "None"] sorted-interventions
-  let result (list header)
+  let sorted-interventions fput "None" sort [intervention-type] of interventions
+  let interventions-header sentence ["" "" "" "Interventions"] reduce [ [a b] -> sentence a b ] map [ a -> sentence a ["" ""] ] sorted-interventions
+  let cir ["Cost" "Income" "Revenue"]
+  let header (sentence ["" "Type" "Price" "Area"] cir cir cir cir cir cir)
+  let result (list interventions-header header)
   foreach sort farms [ f ->
     set result lput [revenue-summary sorted-interventions] of f result
   ]
@@ -586,6 +592,10 @@ end
 ;; -----------------------------------------
 ;; intervention specific
 ;; -----------------------------------------
+to-report get-intervention [name]
+  report one-of interventions with [intervention-type = name]
+end
+
 to-report get-intervention-impact [ft effect]
   report table:get-or-default (table:get intervention-effects effect) ft 0
 end

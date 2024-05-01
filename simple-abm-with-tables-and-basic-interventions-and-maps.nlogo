@@ -94,6 +94,9 @@ to setup
   setup-farmer-parameters
   setup-key-colours
 
+  ask patches [ set pcolor key-background-colour ]
+  display
+
   ifelse setup-geography-from-files?
   [ setup-geography-from-files ]
   [ setup-random-geography ]
@@ -343,20 +346,20 @@ end
 ;;       LUC codes
 ;; -----------------------------------------
 to setup-geography-from-files
-  gis:load-coordinate-system word spatial-data-folder "nztm-ogc.prj"
   set luc-data gis:load-dataset word spatial-data-folder "luc.asc"
   set parcels-data gis:load-dataset word spatial-data-folder "parcels.shp"
 
   gis:apply-raster luc-data luc-code
   set farm-land patches with [not is-nan? luc-code and luc-code != 0]
   colour-patches
+  display
 
   gis:apply-coverage parcels-data "ID" temp-ID
   foreach remove-duplicates [temp-ID] of patches [ id ->
     let this-farms-land farm-land with [temp-ID = id]
     if any? this-farms-land [
       let this-farmer nobody
-      ask point-on-polygon this-farms-land [
+      ask approximate-centroid this-farms-land [
         sprout-farmers 1 [
           initialise-farmer
           set this-farmer self
@@ -375,6 +378,7 @@ to setup-geography-from-files
       ]
     ]
   ]
+  display
   draw-borders key-border-colour
 end
 
@@ -416,14 +420,8 @@ end
 
 to colour-patches
   ifelse show-luc-codes?
-  [ ask farm-land [
-      ifelse not is-nan? luc-code
-      [ set pcolor palette:scale-scheme "Sequential" key-LUC-palette 9 luc-code 1 12 ]
-      [ set pcolor key-background-colour ]
-    ]
-  ]
-  [ ask farm-land [ set pcolor green + 4 ]
-  ]
+  [ ask farm-land [ set pcolor palette:scale-scheme "Sequential" key-LUC-palette 9 luc-code 1 12 ] ]
+  [ ask farm-land [ set pcolor green + 4 ] ]
 end
 
 
@@ -701,7 +699,7 @@ to-report nudged-threshold [x nudge]
   report sigmoid (centre + nudge) sigmoid-slope
 end
 
-to-report point-on-polygon [poly]
+to-report approximate-centroid [poly]
   let mean-x mean [pxcor] of poly
   let mean-y mean [pycor] of poly
   report one-of poly with-min [distancexy mean-x mean-y]

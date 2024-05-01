@@ -4,11 +4,19 @@ extensions [
   palette  ;; nicer colours
   table    ;; dictionary like tables for storing lots of the input parameters
   rnd
+  gis
 ]
 
 globals [
   output-data-folder
   market-data-folder
+  spatial-data-folder
+
+  parcels-data
+  luc-data
+
+  farm-land
+  show-labels?
 
   farm-types             ;; list of named farm types
   commodity-yield-means  ;; table of mean yields by LUC and farm-type
@@ -30,6 +38,7 @@ globals [
   key-profit-colour
   key-loss-colour
   key-label-colour
+  key-background-colour
 ]
 
 breed [farmers farmer]
@@ -57,6 +66,7 @@ interventions-own [
 ]
 
 patches-own [
+  temp-ID
   the-owner              ;; the farmer who owns this patch
   luc-code               ;; LUC code where 1 = LUC1, 2 = LUC2, etc.
   ;; NOTE these are patch level parameter because they are set up with mean/sd and vary at patch level
@@ -75,9 +85,11 @@ to setup
   let base-data-folder "data/"
   set output-data-folder word base-data-folder "output/"
   set market-data-folder word base-data-folder "market/"
+  set spatial-data-folder (word base-data-folder "spatial/" region "/")
+
+  set show-labels? true
 
   if seed-the-rng? [ random-seed rng-seed ]
-  set setup-geography-from-files? false
 
   setup-farmer-parameters
   setup-key-colours
@@ -331,11 +343,43 @@ end
 ;;       LUC codes
 ;; -----------------------------------------
 to setup-geography-from-files
-  ;; TODO
+  gis:load-coordinate-system word spatial-data-folder "nztm-ogc.prj"
+  set luc-data gis:load-dataset word spatial-data-folder "luc.asc"
+  set parcels-data gis:load-dataset word spatial-data-folder "parcels.shp"
+
+  gis:apply-raster luc-data luc-code
+  set farm-land patches with [not is-nan? luc-code and luc-code != 0]
+  colour-patches
+
+  gis:apply-coverage parcels-data "ID" temp-ID
+  foreach remove-duplicates [temp-ID] of patches [ id ->
+    let this-farms-land farm-land with [temp-ID = id]
+    if any? this-farms-land [
+      let this-farmer nobody
+      ask point-on-polygon this-farms-land [
+        sprout-farmers 1 [
+          initialise-farmer
+          set this-farmer self
+        ]
+      ]
+      ask this-farms-land [
+        set the-owner this-farmer
+      ]
+      let this-farm nobody
+      ask this-farmer [
+        hatch-farms 1 [
+          initialise-farm
+          set this-farm self
+        ]
+        set my-farm this-farm
+      ]
+    ]
+  ]
+  draw-borders key-border-colour
 end
 
 to setup-random-geography
-  setup-luc-codes
+  setup-random-luc-codes
   create-farmers 100 [ initialise-farmer ]
 
   ;; when model is initialised from spatial data including ownership
@@ -357,10 +401,11 @@ end
 
 ;; use a simple voter model to set up LUC codes for now
 ;; eventually replace this with reading from GIS files
-to setup-luc-codes
+to setup-random-luc-codes
   ask patches [
     set luc-code one-of n-values 8 [i -> i + 1]
   ]
+  set farm-land patches
   repeat luc-aggregation-steps [
     ask patches [
       set luc-code [luc-code] of one-of neighbors4
@@ -371,11 +416,13 @@ end
 
 to colour-patches
   ifelse show-luc-codes?
-  [ ask patches [
-      set pcolor palette:scale-scheme "Sequential" key-LUC-palette 9 luc-code 1 12
+  [ ask farm-land [
+      ifelse not is-nan? luc-code
+      [ set pcolor palette:scale-scheme "Sequential" key-LUC-palette 9 luc-code 1 12 ]
+      [ set pcolor key-background-colour ]
     ]
   ]
-  [ ask patches [ set pcolor green + 4 ]
+  [ ask farm-land [ set pcolor green + 4 ]
   ]
 end
 
@@ -386,17 +433,20 @@ end
 
 ;; patch procedure
 to set-farm-production-function
-  let yield-mean        table:to-list table:get commodity-yield-means luc-code
-  let yield-sd          table:to-list table:get commodity-yield-sds luc-code
-  set commodity-yields  table:from-list (map [[m s] -> (list item 0 m random-normal item 1 m item 1 s)] yield-mean yield-sd)
+  ;; this test might need to change depending on how the spatial data files are finally specified
+  if not is-nan? luc-code and luc-code != 0 [
+    let yield-mean        table:to-list table:get commodity-yield-means luc-code
+    let yield-sd          table:to-list table:get commodity-yield-sds luc-code
+    set commodity-yields  table:from-list (map [[m s] -> (list item 0 m random-normal item 1 m item 1 s)] yield-mean yield-sd)
 
-  let costs-mean        table:to-list table:get input-cost-means luc-code
-  let costs-sd          table:to-list table:get input-cost-sds luc-code
-  set input-costs       table:from-list (map [[m s] -> (list item 0 m random-normal item 1 m item 1 s)] costs-mean costs-sd)
+    let costs-mean        table:to-list table:get input-cost-means luc-code
+    let costs-sd          table:to-list table:get input-cost-sds luc-code
+    set input-costs       table:from-list (map [[m s] -> (list item 0 m random-normal item 1 m item 1 s)] costs-mean costs-sd)
 
-  let ghg-mean          table:to-list table:get ghg-emission-means luc-code
-  let ghg-sd            table:to-list table:get ghg-emission-sds luc-code
-  set ghg-emissions     table:from-list (map [[m s] -> (list item 0 m random-normal item 1 m item 1 s)] ghg-mean ghg-sd)
+    let ghg-mean          table:to-list table:get ghg-emission-means luc-code
+    let ghg-sd            table:to-list table:get ghg-emission-sds luc-code
+    set ghg-emissions     table:from-list (map [[m s] -> (list item 0 m random-normal item 1 m item 1 s)] ghg-mean ghg-sd)
+  ]
 end
 
 ;; patch-report
@@ -511,8 +561,8 @@ to initialise-farmer
   ;; give everyone the default threshold matrix
   ;; perhaps subject to modification later by sigmoid function
   ;; contingent on farmer dispositions (pro-social, pro-environmental, etc.)
-;  set thresholds-table table:from-json table:to-json base-thresholds-table
-  place-farmer
+  ;  set thresholds-table table:from-json table:to-json base-thresholds-table
+  if not setup-geography-from-files? [ place-farmer ]
   ;; setxy random-xcor random-ycor
 end
 
@@ -620,6 +670,10 @@ end
 ;; utilility functions
 ;; -----------------------------------------
 
+to-report is-nan? [x]
+  report not (x <= 0 or x >= 0)
+end
+
 ;; zip two lists into a list of tuples (cf. python function)
 to-report zip [l1 l2]
   report (map list l1 l2)
@@ -647,6 +701,11 @@ to-report nudged-threshold [x nudge]
   report sigmoid (centre + nudge) sigmoid-slope
 end
 
+to-report point-on-polygon [poly]
+  let mean-x mean [pxcor] of poly
+  let mean-y mean [pycor] of poly
+  report one-of poly with-min [distancexy mean-x mean-y]
+end
 
 ;; ------------------------------------------
 ;; drawing utilities (see netlogo-utils repo)
@@ -660,19 +719,27 @@ to setup-key-colours
   set key-profit-colour [ 0 64 160 96 ]
   set key-loss-colour [ 255 0 0 160 ]
   set key-label-colour violet - 2
+  set key-background-colour grey - 2
 end
 
 to draw-borders [col]
-  ;; boundary patches are those with any neighbors4 that have
-  ;; different pcolor than themselves
-  let boundaries patches with [any? neighbors4
-    with [[who] of the-owner != [[who] of the-owner] of myself]
+  ifelse setup-geography-from-files?
+  [
+    gis:set-drawing-color key-border-colour
+    gis:draw parcels-data 0.5
   ]
-  ask boundaries [
-    ask neighbors4 [
-      ;; only those with different my-node need to draw a line
-      if [who] of the-owner != [[who] of the-owner] of myself [
-        draw-line-between self myself col
+  [
+    ;; boundary patches are those with any neighbors4 that have
+    ;; different pcolor than themselves
+    let boundaries farm-land with [any? neighbors4
+      with [[who] of the-owner != [[who] of the-owner] of myself]
+    ]
+    ask boundaries [
+      ask neighbors4 [
+        ;; only those with different my-node need to draw a line
+        if [who] of the-owner != [[who] of the-owner] of myself [
+          draw-line-between self myself col
+        ]
       ]
     ]
   ]
@@ -735,20 +802,20 @@ GRAPHICS-WINDOW
 619
 -1
 -1
-6.0
+2.0
 1
-11
+8
 1
 1
-1
-0
-0
-0
 1
 0
-99
 0
-99
+0
+1
+0
+299
+0
+299
 1
 1
 1
@@ -788,10 +855,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-808
-494
-955
-527
+807
+523
+954
+556
 seed-the-rng?
 seed-the-rng?
 1
@@ -799,10 +866,10 @@ seed-the-rng?
 -1000
 
 INPUTBOX
-961
-494
-1035
-554
+960
+523
+1034
+583
 rng-seed
 145.0
 1
@@ -810,27 +877,27 @@ rng-seed
 Number
 
 TEXTBOX
-962
-560
-1045
-607
+961
+589
+1044
+636
 Integer value value for RNG seed
 11
 0.0
 1
 
 OUTPUT
-806
-156
-1014
-278
+805
+118
+1013
+240
 11
 
 TEXTBOX
-813
-123
-963
-151
+812
+85
+962
+113
 Interventions\n(for information)
 11
 0.0
@@ -838,20 +905,20 @@ Interventions\n(for information)
 
 SWITCH
 801
-326
+283
 1041
-359
+316
 setup-geography-from-files?
 setup-geography-from-files?
-1
+0
 1
 -1000
 
 SLIDER
-806
-393
-1033
-426
+805
+422
+1032
+455
 luc-aggregation-steps
 luc-aggregation-steps
 0
@@ -864,19 +931,19 @@ HORIZONTAL
 
 TEXTBOX
 801
-375
+399
 951
-393
+417
 Random landscape
 12
 0.0
 1
 
 SLIDER
-805
-432
-1034
-465
+804
+461
+1033
+494
 farm-centroid-inhibition-distance
 farm-centroid-inhibition-distance
 0
@@ -899,10 +966,10 @@ show-luc-codes?
 -1000
 
 TEXTBOX
-805
-477
-845
-495
+804
+506
+844
+524
 RNGs
 12
 0.0
@@ -950,6 +1017,50 @@ BUTTON
 NIL
 go
 T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+CHOOSER
+807
+326
+945
+371
+region
+region
+"Rangitaiki"
+0
+
+BUTTON
+20
+488
+169
+521
+toggle-labels
+set show-labels? not show-labels?\nask turtles [\n  set label-color ifelse-value show-labels? [key-label-colour] [[0 0 0 0]]\n]\n
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+20
+445
+168
+478
+toggle-farmers
+ask farmers [\n  set hidden? not hidden?\n]
+NIL
 1
 T
 OBSERVER

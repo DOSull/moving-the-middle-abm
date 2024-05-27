@@ -5,6 +5,7 @@ extensions [
   table    ;; dictionary like tables for storing lots of the input parameters
   rnd
   gis
+  profiler
 ]
 
 globals [
@@ -88,18 +89,16 @@ to setup
   set spatial-data-folder (word base-data-folder "spatial/" region "/")
 
   set show-labels? true
-
   if seed-the-rng? [ random-seed rng-seed ]
 
   setup-farmer-parameters
-  setup-key-colours
 
-  ask patches [ set pcolor key-background-colour ]
-  display
+  setup-key-colours
 
   ifelse setup-geography-from-files?
   [ setup-geography-from-files ]
   [ setup-random-geography ]
+  display
 
   setup-economic-parameters
   go ;; this initialises the farms with current net revenue
@@ -346,6 +345,7 @@ end
 ;;       LUC codes
 ;; -----------------------------------------
 to setup-geography-from-files
+  setup-world-dimensions
   set luc-data gis:load-dataset word spatial-data-folder "luc.asc"
   set parcels-data gis:load-dataset word spatial-data-folder "parcels.shp"
 
@@ -383,6 +383,7 @@ to setup-geography-from-files
 end
 
 to setup-random-geography
+  setup-world-dimensions
   setup-random-luc-codes
   create-farmers 100 [ initialise-farmer ]
 
@@ -416,6 +417,37 @@ to setup-random-luc-codes
     ]
   ]
   colour-patches
+end
+
+to setup-world-dimensions
+  let max-dimension 300
+  let cell-size 3
+  let ncols 270
+  let nrows 400
+  let cellsize 100
+  if setup-geography-from-files? [
+    carefully [
+      file-open word spatial-data-folder "luc.asc"
+      set ncols read-from-string item 1 split-string file-read-line " "
+      set nrows read-from-string item 1 split-string file-read-line " "
+      let skip file-read-line
+      set skip file-read-line
+      set cellsize read-from-string item 1 split-string file-read-line " "
+      file-close
+    ]
+    [ file-close
+      print "luc.asc not found"
+    ]
+  ]
+  let x-extent ncols * cellsize
+  let y-extent nrows * cellsize
+  let x-scale x-extent / max-dimension
+  let y-scale y-extent / max-dimension
+  let sf ceiling max (list x-scale y-scale) ; 400.333
+  resize-world 0 x-extent / sf 0 y-extent / sf ;
+  set-patch-size cell-size * max-dimension / max (list world-width world-height)
+  ask patches [ set pcolor key-background-colour ]
+  display
 end
 
 to colour-patches
@@ -492,7 +524,7 @@ to initialise-farm
   ;; will be called by the farmer who is 'myself' in this context
   set my-farmer myself
   let the-farmer my-farmer
-  set the-land patches with [the-owner = the-farmer]
+  set the-land farm-land with [the-owner = the-farmer]
   ifelse not any? the-land
   [ ask my-farmer [ die ]
     die ]
@@ -717,7 +749,7 @@ to setup-key-colours
   set key-profit-colour [ 0 64 160 96 ]
   set key-loss-colour [ 255 0 0 160 ]
   set key-label-colour violet - 2
-  set key-background-colour grey - 2
+  set key-background-colour grey
 end
 
 to draw-borders [col]
@@ -741,6 +773,27 @@ to draw-borders [col]
       ]
     ]
   ]
+end
+
+to-report string-as-list [str]
+  report n-values length str [i -> item i str]
+end
+
+to-report split-string [str sep]
+  let words []
+  let this-word ""
+  foreach (string-as-list str) [ c ->
+    ifelse c = sep
+    [ if this-word != ""
+      [ set words sentence words this-word
+        set this-word ""
+      ]
+    ]
+    [ set this-word word this-word c ]
+  ]
+  ifelse this-word = ""
+  [ report words ]
+  [ report sentence words this-word ]
 end
 
 ;; draw line between two patches
@@ -770,6 +823,14 @@ to draw-line-between [p1 p2 col]
 end
 
 
+to profile
+  profiler:start         ;; start profiling
+  setup                  ;; set up the model
+  profiler:stop          ;; stop profiling
+  print profiler:report  ;; view the results
+  profiler:reset         ;; clear the data
+end
+
 ;; The MIT License (MIT)
 ;;
 ;; Copyright (c) 2023 David O'Sullivan
@@ -796,11 +857,11 @@ end
 GRAPHICS-WINDOW
 184
 10
-792
-619
+654
+908
 -1
 -1
-2.0
+3.0
 1
 8
 1
@@ -811,7 +872,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-299
+155
 0
 299
 1

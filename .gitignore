@@ -4,4 +4,5 @@
 .Rhistory
 New_ARLUNZ/
 aag/
-data/spatial/
+data/spatial/*
+!data/spatial/Rangitaiki

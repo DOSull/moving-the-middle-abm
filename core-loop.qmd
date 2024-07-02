@@ -8,6 +8,7 @@ format:
     toc: true
     toc-depth: 4
     toc-title: "Contents"
+    code-fold: true
     html-math-method: katex
     css: styles.css
     embed-resources: true
@@ -15,7 +16,7 @@ knitr:
   opts_chunk: 
     warning: false
     message: false
-    echo: false
+    # echo: false
     R.options: 
       knitr.table.html.attr: "quarto-disable-processing=true"
 ---
@@ -70,8 +71,7 @@ prices <- read.csv("data/market/prices.csv",
   slice(1:2) # only rows 1 & 2 relevant
 prices |> 
   kable() |> 
-  kable_styling("striped", full_width = F) |>
-  scroll_box(height = "300px")
+  kable_styling("striped", full_width = F)
 ```
 
 #### Yields 
@@ -82,7 +82,8 @@ yields <- read.csv("data/market/commodity-yields.csv",
                    header = T, row.names = 1)
 yields |> 
   kable() |> 
-  kable_styling("striped", full_width = F)
+  kable_styling("striped", full_width = F) |>
+  scroll_box(height = "250px")
 ```
 
 #### Costs 
@@ -94,7 +95,7 @@ costs <- read.csv("data/market/input-costs.csv",
 costs |> 
   kable() |> 
   kable_styling("striped", full_width = F) |>
-  scroll_box(height = "300px")
+  scroll_box(height = "250px")
 ```
 
 #### Emissions
@@ -106,7 +107,7 @@ emissions <- read.csv("data/market/ghg-emissions.csv",
 emissions |> 
   kable() |> 
   kable_styling("striped", full_width = F) |>
-  scroll_box(height = "300px")
+  scroll_box(height = "250px")
 ```
 
 Note that both yields, costs, and emissions are stored as a mean and a standard deviation and that individual hectare sites will see these numbers vary every model time period by drawing from the normal distribution.
@@ -162,7 +163,7 @@ combined_data <- prices |>
 combined_data |> 
   kable() |> 
   kable_styling("striped", full_width = F) |>
-  scroll_box(height = "300px")
+  scroll_box(height = "250px")
 ```
 
 ## The effect of interventions

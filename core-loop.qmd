@@ -155,7 +155,7 @@ combined_data <- prices |>
   left_join(yields) |>
   left_join(costs) |>
   left_join(emissions) |>
-  mutate(income = price * yield,
+  mutate(income = price * yield, # LUC = as.factor(LUC),
          total_costs = costs + carbon_tax * emissions,
          revenue = income - total_costs) |>
   select(farm_type, LUC, revenue, price, yield, income, costs,
@@ -169,20 +169,26 @@ combined_data |>
 ```
 
 ### Or visually...
+Below are shown the income, costs, and net revenue per hectare for each farm type across the eight landuse capability classes.
 
 ```{r}
 plot_data <- combined_data |> 
   pivot_longer(cols = c("Income", "Revenue", "Total costs"))
+
 ggplot(plot_data |> filter(name %in% c("Income", "Total costs"))) +
   geom_col(aes(x = LUC, y = value, group = name, fill = name),
            position = "dodge") + 
   scale_fill_manual(values = c("#999999", "#ff6666"), name = "Income vs. Costs") +
-  geom_line(data = plot_data |> filter(name == "Revenue"), 
-            aes(x = LUC, y = value, color = name), lwd = 1) +
-  scale_colour_manual(values = c("black"), name = "") +
+  geom_point(data = plot_data |> filter(name == "Revenue"), 
+            aes(x = LUC, y = value, shape = name), size = 7) +
+  scale_shape_manual(values = "\u2014", name = "") + # \u2014 is an em-dash
+  # The below more correct, but doesn't extend the lines to the full width of the plot
+  # geom_step(data = plot_data |> filter(name == "Revenue"), 
+  #           aes(x = LUC, y = value, group = farm_type, colour = name), 
+  #           direction = "mid", lwd = 0.65) +
+  # scale_colour_manual(values = c("black"), name = "") +
   xlab("Landuse Capability (LUC)") +
-  ylab("Net Revenue per ha.") +
-  ggtitle("Revenue by farm type and LUC") +
+  ylab("Net Revenue, $ per ha.") +
   facet_wrap(~ farm_type) +
   theme_minimal()
 ```

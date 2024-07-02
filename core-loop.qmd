@@ -59,7 +59,7 @@ Each of these parameters may depend on the _farm type_ $F$ (one of Crops, Dairy,
 
 $$R_{FL}=p_Fq_{FL}-x_{FL}-te_{FL}$$
 
-and total farm revenue is obtaining by summing this quantity across all hectares of the farm (which my be of varying landuse capability $L$).
+and total farm revenue is obtaining by summing this quantity across all hectares of the farm (which may be of varying landuse capability $L$).
 
 ### Parameter values
 The parameter values are stored in a number of CSV files which are read in by the model at start up.
@@ -112,7 +112,7 @@ emissions |>
   scroll_box(height = "250px")
 ```
 
-Note that both yields, costs, and emissions are stored as a mean and a standard deviation and that individual hectare sites will see these numbers vary every model time period by drawing from the normal distribution.
+Note that all of yields, costs, and emissions are stored as a mean and a standard deviation, and that individual hectare sites will see these numbers vary every model time period by drawing from a normal distribution.
 
 We can use these data to show the revenue and costs for each farm type across different landuse capability classes. We'll throw away the standard deviations for simplicity and consider only mean outcomes.
 
@@ -160,12 +160,32 @@ combined_data <- prices |>
          total_costs = costs + carbon_tax * emissions,
          revenue = income - total_costs) |>
   select(farm_type, LUC, revenue, price, yield, income, costs,
-         emissions, carbon_tax, total_costs)
+         emissions, carbon_tax, total_costs) |>
+  rename(Revenue = revenue, Income = income, `Total costs` = total_costs)
 
 combined_data |> 
   kable() |> 
   kable_styling("striped", full_width = F) |>
   scroll_box(height = "250px")
+```
+
+Or visually
+
+```{r}
+plot_data <- combined_data |> 
+  pivot_longer(cols = c("Income", "Revenue", "Total costs"))
+ggplot(plot_data |> filter(name %in% c("Income", "Total costs"))) +
+  geom_col(aes(x = LUC, y = value, group = name, fill = name),
+           position = "dodge") + 
+  scale_fill_manual(values = c("#999999", "#ff6666"), name = "Income vs. Costs") +
+  geom_line(data = plot_data |> filter(name == "Revenue"), 
+            aes(x = LUC, y = value, color = name), lwd = 1) +
+  scale_colour_manual(values = c("black"), name = "") +
+  xlab("Landuse Capability (LUC)") +
+  ylab("Net Revenue per ha.") +
+  ggtitle("Revenue by farm type and LUC") +
+  facet_wrap(~ farm_type) +
+  theme_minimal()
 ```
 
 ## The effect of interventions

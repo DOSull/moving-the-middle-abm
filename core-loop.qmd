@@ -169,7 +169,7 @@ combined_data |>
   scroll_box(height = "250px")
 ```
 
-Or visually
+### Or visually...
 
 ```{r}
 plot_data <- combined_data |> 

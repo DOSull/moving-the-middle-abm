@@ -6,3 +6,6 @@ New_ARLUNZ/
 aag/
 data/spatial/*
 !data/spatial/Rangitaiki
+*_cache/
+
+/.quarto/

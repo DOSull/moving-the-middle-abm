@@ -3,9 +3,9 @@ extensions [
   csv      ;; easy reading of CSVs
   palette  ;; nicer colours
   table    ;; dictionary like tables for storing lots of the input parameters
-  rnd
-  gis
-  profiler
+  rnd      ;; weighted random draws
+  gis      ;; spatial data
+  profiler ;; in case we need to figure out why things are slow
 ]
 
 globals [
@@ -13,67 +13,58 @@ globals [
   market-data-folder
   spatial-data-folder
 
-  parcels-data
-  luc-data
+  parcels-data            ;; GIS functionality depends on reading the data into an object
+  luc-data                ;; then acccesing it again later
 
-  farm-land
-  show-labels?
+  farm-land               ;; patches that are on farms
+  show-labels?            ;; display labels on farms, farmers, etc. or not
 
-  farm-types             ;; list of named farm types
-  commodity-yield-means  ;; table of mean yields by LUC and farm-type
-  commodity-yield-sds    ;; table of sd of yields by LUC and farm-type
-  input-cost-means       ;; table of mean input costs by LUC and farm-type
-  input-cost-sds         ;; table of sd of input costs by LUC and farm-type
-  ghg-emission-means     ;; table of mean GHG emissions by LUC and farm-type
-  ghg-emission-sds       ;; table of sd of GHG emissions by LUC and farm-type
-  prices                 ;; table of commodity prices
-  environmental-taxes    ;; table of additional environmental taxes/subsidies by farm-type
-  base-thresholds-table  ;; table of default farmer decision thresholds for various interventions
+  farm-types              ;; list of named farm types
+  commodity-yield-means   ;; table of mean yields by LUC and farm-type
+  commodity-yield-sds     ;; table of sd of yields by LUC and farm-type
+  input-cost-means        ;; table of mean input costs by LUC and farm-type
+  input-cost-sds          ;; table of sd of input costs by LUC and farm-type
+  ghg-emission-means      ;; table of mean GHG emissions by LUC and farm-type
+  ghg-emission-sds        ;; table of sd of GHG emissions by LUC and farm-type
+  prices                  ;; table of commodity prices
+  environmental-taxes     ;; table of additional environmental taxes/subsidies by farm-type
+  base-thresholds-table   ;; table of default farmer decision thresholds for various interventions
 
   ;; colour settings - these can be changed in one place, see setup-key-colours procedure
-  key-farmer-colour
-  key-border-colour
-  key-owner-link-colour
-  key-LUC-palette
-  key-LUC-palettes
-  key-profit-colour
-  key-loss-colour
-  key-label-colour
-  key-background-colour
+  colour-key              ;; table of colour settings
 ]
 
 breed [farmers farmer]
-breed [farms farm]       ;; representative turtle for the farm
-breed [interventions intervention]
+breed [farms farm]        ;; representative turtle for the farm - for data storage...
+breed [interventions
+       intervention]      ;; place to keep relevant data about each intervention type
 
 farms-own [
-  my-farmer              ;; the farmer who owns/runs this farm
-  farm-type              ;; farm type of this farmer's farm
-  the-land               ;; patch-set of the patches in this farm
-  net-revenue            ;; net revenue of farm summed across patches
-  my-interventions
-  available-interventions
+  my-farmer               ;; the farmer who owns/runs this farm
+  farm-type               ;; farm type of this farm
+  the-land                ;; patch-set of the patches in this farm
+  net-revenue             ;; net revenue of farm summed across patches
+  my-interventions        ;; interventions already implemented
+  available-interventions ;; interventions that could be implemented
 ]
 
 farmers-own [
-  my-farm                ;; the farm turtle of this farmer's farm
-;  thresholds-table       ;; lookup of probabilities of adoption of interventions by farm-type
+  my-farm                 ;; the farm turtle of this farmer's farm
 ]
 
-;; guessing here what this might look like
 interventions-own [
-  intervention-type      ;; this would be one of the named types
-  intervention-effects   ;; table of effects by farm-type for this intervention
+  intervention-type       ;; this would be one of the named types
+  intervention-effects    ;; table of effects by farm-type for this intervention
 ]
 
 patches-own [
   temp-ID
-  the-owner              ;; the farmer who owns this patch
-  luc-code               ;; LUC code where 1 = LUC1, 2 = LUC2, etc.
+  the-owner               ;; the farmer who owns this patch
+  luc-code                ;; LUC code where 1 = LUC1, 2 = LUC2, etc.
   ;; NOTE these are patch level parameter because they are set up with mean/sd and vary at patch level
-  commodity-yields       ;; list of yields by farm type
-  input-costs            ;; list of input costs by farm type
-  ghg-emissions          ;; list of GHG emissions by farm type
+  commodity-yield-per-ha
+  input-cost-per-ha
+  ghg-emissions-per-ha
 ]
 
 ;; -----------------------------------------
@@ -84,24 +75,20 @@ to setup
   reset-ticks
 
   let base-data-folder "data/"
-  set output-data-folder word base-data-folder "output/"
-  set market-data-folder word base-data-folder "market/"
-  set spatial-data-folder (word base-data-folder "spatial/" region "/")
+  set output-data-folder word base-data-folder "output/"                ;; 'data/output/'
+  set market-data-folder word base-data-folder "market/"                ;; 'data/market/'
+  set spatial-data-folder (word base-data-folder "spatial/" region "/") ;; 'data/spatial/REGION-NAME/'
 
   set show-labels? true
   if seed-the-rng? [ random-seed rng-seed ]
 
   setup-farmer-parameters
-
-  setup-key-colours
-
-  ifelse setup-geography-from-files?
-  [ setup-geography-from-files ]
-  [ setup-random-geography ]
+  setup-colours
+  setup-geography
   display
 
   setup-economic-parameters
-  go ;; this initialises the farms with current net revenue
+  go ;; this initialises the farms with current net revenue and some interventions
 end
 
 ;; the main model loop
@@ -110,7 +97,6 @@ to go
     cleanup
     stop
   ]
-
   ;; much more action to go here...
   ask farmers [
     if any? [available-interventions] of my-farm [
@@ -126,7 +112,6 @@ to go
   ask farms [
     update-net-revenue-of-farm
   ]
-
   tick
 end
 
@@ -149,7 +134,8 @@ end
 ;; we read the interventions by farm types file twice...
 to setup-farmer-parameters
   ;; Assumes a CSV organised with farm types as column headings,
-  ;; interventions as row names, i.e.
+  ;; interventions as row names, i.e, (spaces added for clarity)
+  ;;
   ;;                  , SNB, Dairy, Forest, Crop
   ;; Build_Wetland    , 0.7, 0.75,  0.3,    0.5
   ;; Riparian_Planting, 0.7, 0.75,  0.2,    0.4
@@ -162,7 +148,7 @@ to setup-farmer-parameters
   read-thresholds-table-from-file word market-data-folder "farmer-threshold-matrix.csv"
 end
 
-;; setup farm types and list of possible interventions
+;; setup farm types and interventions
 to read-farm-types-and-interventions-from-file [file]
   file-open file
   set farm-types but-first csv:from-row file-read-line
@@ -179,8 +165,8 @@ end
 to read-interventions-from-file [file]
   ;; CSV file format like this - note that each intervention should be
   ;; 3 consecutive lines with its effects (these can be in any order)
-  ;; farm types must be in the order shown (which is the same as the
-  ;; order in the farmer thresholds file
+  ;; farm types can also be in any order. Spaces added for clarity
+  ;;
   ;;                  ,                    ,   SNB, Dairy, Forest,  Crop
   ;; Build_Wetland    , effect-on-costs    ,    25,    68,     NA,    34
   ;; Build_Wetland    , effect-on-yields   ,  -0.2, -0.02,     NA,  -0.1
@@ -188,31 +174,24 @@ to read-interventions-from-file [file]
   ;; Riparian_Planting, effect-on-costs    ,    26,    71,     NA,    11
   ;; Riparian_Planting, effect-on-yields   ,  -0.2, -0.02,     NA, -0.01
   ;; Riparian_Planting, effect-on-emissions,  -0.1, -0.03,     NA, -0.04
-  ;; Clean_Races      , effect-on-costs    ,    NA,    75,     NA,    NA
-  ;; Clean_Races      , effect-on-yields   ,    NA,     0,     NA,    NA
-  ;; Clean_Races      , effect-on-emissions,    NA, -0.01,     NA,    NA
-  ;; Farm_Plan        , effect-on-costs    ,     6,    34,     NA,    NA
-  ;; Farm_Plan        , effect-on-yields   , -0.05, -0.01,     NA,    NA
-  ;; Farm_Plan        , effect-on-emissions, -0.06, -0.05,     NA,    NA
-  ;; Join_ETS         , effect-on-costs    ,     1,    25,     50,   100
-  ;; Join_ETS         , effect-on-yields   , -0.25, -0.25,    0.1,  -0.1
-  ;; Join_ETS         , effect-on-emissions,  -0.5,  -0.5,    0.1, -0.25
+  ;;  ... and so on ...
+  ;;
   carefully [
     file-open file
     let the-farm-types but-first but-first csv:from-row file-read-line
     while [not file-at-end?] [
       let i 0
-      let the-intervention nobody
-      while [i < 3] [
+      let this-intervention nobody
+      while [i < 3] [ ;; read the table in 3s
         let data csv:from-row file-read-line
         let i-type item 0 data
-        if i = 0 [
-          set the-intervention get-intervention i-type
+        if i = 0 [ ;; first line of the three
+          set this-intervention get-intervention i-type
         ]
         set data but-first data
         let the-effect-type item 0 data
         let the-effect-impacts table:from-list zip the-farm-types (but-first data)
-        ask the-intervention [
+        ask this-intervention [
           table:put intervention-effects the-effect-type the-effect-impacts
         ]
         set i i + 1
@@ -226,8 +205,10 @@ to read-interventions-from-file [file]
   ]
 end
 
+;; initialises an intervention with a name and blank table for effects
 to initialise-intervention [name]
   set intervention-type name
+  ;; make an empty table for the effect data
   set intervention-effects table:make
   set hidden? true
   output-print name
@@ -235,11 +216,21 @@ end
 
 ;; setup baseline probability of adoption of interventions by farm type
 to read-thresholds-table-from-file [file]
+  ;; CSV file looks like this (spacing added for clarity)
+  ;;
+  ;;                   , SNB, Dairy, Forest, Crop
+  ;;  Build_Wetland    , 0.7,  0.75,    0.3,  0.5
+  ;;  Riparian_Planting, 0.7,  0.75,    0.2,  0.4
+  ;;  Clean_Races      , 0.2,  0.7 ,    0  ,  0
+  ;;  Farm_Plan        , 0.7,  0.85,    0.4,  0.6
+  ;;  Join_ETS         , 0.2,  0.2 ,    0.9,  0.4
+  ;;
+  ;; resulting table is read by
+  ;;   table-get (table:get base-thresholds-table INTERVENTION-NAME) FARM-TYPE
   set base-thresholds-table table:make
   carefully [
     file-open file
     let the-farm-types but-first csv:from-row file-read-line
-    let rows []
     while [not file-at-end?] [
       let data csv:from-row file-read-line
       let the-intervention item 0 data
@@ -260,27 +251,45 @@ end
 ;; -----------------------------------------
 to setup-economic-parameters
   read-production-function-parameters
-  ask patches [ set-farm-production-function ]
+  ask farm-land [ set-farm-production-function ]
 end
 
 to read-production-function-parameters
-  let yields get-parameter word market-data-folder "commodity-yields.csv"
+  let yields get-parameter-from-file word market-data-folder "commodity-yields.csv"
   set commodity-yield-means item 0 yields
-  set commodity-yield-sds item 1 yields
+  set commodity-yield-sds   item 1 yields
 
-  let costs get-parameter word market-data-folder "input-costs.csv"
-  set input-cost-means item 0 costs
-  set input-cost-sds item 1 costs
+  let costs get-parameter-from-file word market-data-folder "input-costs.csv"
+  set input-cost-means      item 0 costs
+  set input-cost-sds        item 1 costs
 
-  let emissions get-parameter word market-data-folder "ghg-emissions.csv"
-  set ghg-emission-means item 0 emissions
-  set ghg-emission-sds item 1 emissions
+  let emissions get-parameter-from-file word market-data-folder "ghg-emissions.csv"
+  set ghg-emission-means    item 0 emissions
+  set ghg-emission-sds      item 1 emissions
 
-  set prices              get-prices word market-data-folder "prices.csv"
-  set environmental-taxes get-environmental-taxes word market-data-folder "prices.csv"
+  let prices-data           get-prices word market-data-folder "prices.csv"
+  set prices                item 0 prices-data
+  set environmental-taxes   item 1 prices-data
 end
 
-to-report get-parameter [file]
+;; return mean and sd tables for a parameter from a file
+to-report get-parameter-from-file [file]
+  ;; each parameter CSV file has the same format
+  ;; shown here with spaces added for clarity, and
+  ;; extending to 8 LUC levels. Cols can be in any order
+  ;; BUT LUC mean/sd rows MUST be as shown.
+  ;;
+  ;;          , SNB , Dairy, Forest, Crop
+  ;; LUC1_Mean, 3500,  9500,   4000, 3000
+  ;; LUC1_SD  ,  700,  1900,    800,  600
+  ;; LUC2_Mean, 2650,  8050,   4000, 2850
+  ;; LUC2_SD  ,  530,  1610,    800,  570
+  ;; LUC3_Mean, 1625,  7350,   3850, 2675
+  ;; LUC3_SD  ,  325,  1470,    770,  535
+  ;;   ... and so on to LUC8 ...
+  ;;
+  ;; Returned tables are readable as
+  ;;   table:get (table:get TABLE LUC-CODE) FARM-TYPE
   let means-table table:make
   let sds-table table:make
   carefully [
@@ -288,9 +297,11 @@ to-report get-parameter [file]
     let the-farm-types but-first csv:from-row file-read-line
     let luc 1
     while [not file-at-end?] [
+      ;; read the LUCx_Mean line
       let means-data but-first csv:from-row file-read-line
       let means table:from-list zip the-farm-types means-data
       table:put means-table luc means
+      ;; read the LUCx_SD line
       let sds-data but-first csv:from-row file-read-line
       let sds table:from-list zip the-farm-types sds-data
       table:put sds-table luc sds
@@ -299,43 +310,40 @@ to-report get-parameter [file]
     file-close
   ]
   [
-    print "failed while reading parameter file"
+    print word "failed while reading parameter file " file
     file-close
   ]
   report (list means-table sds-table)
 end
 
+
 to-report get-prices [file]
-  let result nobody
+  ;; the CSV for prices and emissions taxes looks like this
+  ;; (spacing addded for clarity). No checking that the rows
+  ;; are in this order
+  ;;
+  ;;               ,SNB,Dairy, Forest, Crop
+  ;;Price_Commodity,  5,  7.5,   157,   0.5
+  ;;Price_GhG      , 25, 25  ,    25,  25
+  ;;Price_Nleach   ,  0,  0  ,     0,   0
+  ;; ... other redundant lines ...
+  ;;
+  let prices-table nobody
+  let taxes-table nobody
   carefully [
     file-open file
     let the-farm-types but-first csv:from-row file-read-line
     let price-data but-first csv:from-row file-read-line
-    set result table:from-list zip the-farm-types price-data
+    set prices-table table:from-list zip the-farm-types price-data
+    let taxes-data but-first csv:from-row file-read-line
+    set taxes-table table:from-list zip the-farm-types taxes-data
     file-close
   ]
   [
     print "problem reading prices file"
     file-close
   ]
-  report result
-end
-
-to-report get-environmental-taxes [file]
-  let result nobody
-  carefully [
-    file-open file
-    let the-farm-types but-first csv:from-row file-read-line
-    let x file-read-line ;; skip the prices data
-    let tax-data but-first csv:from-row file-read-line
-    set result table:from-list zip the-farm-types tax-data
-    file-close
-  ]
-  [
-    print "problem reading taxes (prices) file"
-    file-close
-  ]
-  report result
+  report list prices-table taxes-table
 end
 
 
@@ -344,16 +352,37 @@ end
 ;; NOTE: this includes the farmers not just
 ;;       LUC codes
 ;; -----------------------------------------
-to setup-geography-from-files
+to setup-geography
   setup-world-dimensions
+  ;; first initialise patch LUC codes and
+  ;; assign patches to farmers to make farms
+  ifelse setup-geography-from-files?
+  [ setup-geography-from-files ]
+  [ setup-random-geography ]
+  draw-borders table:get colour-key "border"
+  ;; then we can initialise the farms
+  ask farmers [
+    let this-farm nobody
+    hatch-farms 1 [
+      initialise-farm
+      set this-farm self
+    ]
+    set my-farm this-farm
+    set label [farm-type] of my-farm
+    set label-color table:get colour-key "farmer-label"
+  ]
+end
+
+to setup-geography-from-files
   set luc-data gis:load-dataset word spatial-data-folder "luc.asc"
   set parcels-data gis:load-dataset word spatial-data-folder "parcels.shp"
 
   gis:apply-raster luc-data luc-code
   set farm-land patches with [not is-nan? luc-code and luc-code != 0]
   colour-patches
-  display
+  display ;; do this early for reassurance...
 
+  ;; setup farms based on distinct parcels identified by ID in the parcels data
   gis:apply-coverage parcels-data "ID" temp-ID
   foreach remove-duplicates [temp-ID] of patches [ id ->
     let this-farms-land farm-land with [temp-ID = id]
@@ -368,64 +397,53 @@ to setup-geography-from-files
       ask this-farms-land [
         set the-owner this-farmer
       ]
-      let this-farm nobody
-      ask this-farmer [
-        hatch-farms 1 [
-          initialise-farm
-          set this-farm self
-        ]
-        set my-farm this-farm
-      ]
     ]
   ]
   display
-  draw-borders key-border-colour
 end
 
 to setup-random-geography
-  setup-world-dimensions
   setup-random-luc-codes
   create-farmers 100 [ initialise-farmer ]
-
-  ;; when model is initialised from spatial data including ownership
-  ;; and farm boundaries, etc. this code will change
-  ;; for now make the farms proximity polygons based on farmer locations
+  ;; make the farms proximity polygons based on farmer locations
   ask patches [ set the-owner min-one-of farmers [distance myself] ]
-  draw-borders key-border-colour ;; this is purely for visualization
-
-  ;; and then we can initialise the farms
-  ask farmers [
-    let the-farm nobody
-    hatch-farms 1 [
-      initialise-farm
-      set the-farm self
-    ]
-    set my-farm the-farm
-  ]
 end
 
-;; use a simple voter model to set up LUC codes for now
-;; eventually replace this with reading from GIS files
+;; use a simple voter model to set up LUC codes for now eventually
+;; replace this with reading from GIS files or perhaps use a different
+;; method (hence it is separate function)
 to setup-random-luc-codes
+  set farm-land patches
   ask patches [
     set luc-code one-of n-values 8 [i -> i + 1]
   ]
-  set farm-land patches
   repeat luc-aggregation-steps [
     ask patches [
       set luc-code [luc-code] of one-of neighbors4
     ]
   ]
   colour-patches
+  display
 end
 
+;; this works OK, but might not be sensible to do...
 to setup-world-dimensions
-  let max-dimension 300
   let cell-size 3
   let ncols 270
   let nrows 400
   let cellsize 100
+  ;; if initialising from geospatial data we override some of these defaults
   if setup-geography-from-files? [
+    ;; read dimensions of the raster from header of an Esri raster .asc file
+    ;; which looks like this
+    ;;
+    ;; ncols         623
+    ;; nrows         1201
+    ;; xllcorner     1883097.0153
+    ;; yllcorner     5676986.4123
+    ;; cellsize      100
+    ;; NODATA_value  -9999
+    ;;
     carefully [
       file-open word spatial-data-folder "luc.asc"
       set ncols read-from-string item 1 split-string file-read-line " "
@@ -435,24 +453,26 @@ to setup-world-dimensions
       set cellsize read-from-string item 1 split-string file-read-line " "
       file-close
     ]
-    [ file-close
-      print "luc.asc not found"
+    [
+      file-close
+      print (word "Problem reading " spatial-data-folder "luc.asc")
     ]
   ]
   let x-extent ncols * cellsize
   let y-extent nrows * cellsize
   let x-scale x-extent / max-dimension
   let y-scale y-extent / max-dimension
-  let sf ceiling max (list x-scale y-scale) ; 400.333
+  let sf ceiling max (list x-scale y-scale)
   resize-world 0 x-extent / sf 0 y-extent / sf ;
   set-patch-size cell-size * max-dimension / max (list world-width world-height)
-  ask patches [ set pcolor key-background-colour ]
+  ask patches [ set pcolor table:get colour-key "background" ]
   display
 end
 
 to colour-patches
+  let pal table:get colour-key "LUC-palette"
   ifelse show-luc-codes?
-  [ ask farm-land [ set pcolor palette:scale-scheme "Sequential" key-LUC-palette 9 luc-code 1 12 ] ]
+  [ ask farm-land [ set pcolor palette:scale-scheme "Sequential" pal 9 luc-code 1 12 ] ]
   [ ask farm-land [ set pcolor green + 4 ] ]
 end
 
@@ -461,57 +481,54 @@ end
 ;; patch specific functions
 ;; -----------------------------------------
 
+;; patch reporter
+to-report get-farm-type
+  report [farm-type] of ([my-farm] of the-owner)
+end
+
 ;; patch procedure
 to set-farm-production-function
+  let ft get-farm-type
   ;; this test might need to change depending on how the spatial data files are finally specified
   if not is-nan? luc-code and luc-code != 0 [
-    let yield-mean        table:to-list table:get commodity-yield-means luc-code
-    let yield-sd          table:to-list table:get commodity-yield-sds luc-code
-    set commodity-yields  table:from-list (map [[m s] -> (list item 0 m random-normal item 1 m item 1 s)] yield-mean yield-sd)
+    let yield-mean             get-parameter "yield" "mean" ft luc-code
+    let yield-sd               get-parameter "yield" "sd" ft luc-code
+    set commodity-yield-per-ha random-normal yield-mean yield-sd
 
-    let costs-mean        table:to-list table:get input-cost-means luc-code
-    let costs-sd          table:to-list table:get input-cost-sds luc-code
-    set input-costs       table:from-list (map [[m s] -> (list item 0 m random-normal item 1 m item 1 s)] costs-mean costs-sd)
+    let costs-mean             get-parameter "cost" "mean" ft luc-code
+    let costs-sd               get-parameter "cost" "sd" ft luc-code
+    set input-cost-per-ha      random-normal costs-mean costs-sd
 
-    let ghg-mean          table:to-list table:get ghg-emission-means luc-code
-    let ghg-sd            table:to-list table:get ghg-emission-sds luc-code
-    set ghg-emissions     table:from-list (map [[m s] -> (list item 0 m random-normal item 1 m item 1 s)] ghg-mean ghg-sd)
+    let emissions-mean         get-parameter "emissions" "mean" ft luc-code
+    let emissions-sd           get-parameter "emissions" "sd" ft luc-code
+    set ghg-emissions-per-ha   random-normal emissions-mean emissions-sd
   ]
 end
 
 ;; patch-report
-to-report get-net-revenue-of-patch [fm-type]
-  let the-interventions [my-interventions] of ([my-farm] of the-owner)
-  let price             table:get prices fm-type
-  ;; yield, costs and emissions are all subject to modification by the interventions
-  ;; made on this farm
-  let yield             table:get commodity-yields fm-type
-  set yield     yield * product [1 + get-intervention-impact fm-type "effect-on-yields"] of the-interventions
-  let cost              table:get input-costs fm-type
-  set cost       cost + sum [get-intervention-impact fm-type "effect-on-costs"] of the-interventions
-  let ghg               table:get ghg-emissions fm-type
-  set ghg         ghg * product [1 + get-intervention-impact fm-type "effect-on-emissions"] of the-interventions
-  let ghg-tax           table:get environmental-taxes fm-type
-  let income price * yield
-  let costs cost + ghg * ghg-tax
-  report income - costs
+to-report get-net-revenue-of-patch
+  report get-income-of-patch - get-costs-of-patch
 end
 
-to-report get-income-from-patch [fm-type]
+;; patch-report
+to-report get-income-of-patch
+  let ft get-farm-type
   let the-interventions [my-interventions] of ([my-farm] of the-owner)
-  let price             table:get prices fm-type
-  let yield             table:get commodity-yields fm-type
-  set yield     yield * product [1 + get-intervention-impact fm-type "effect-on-yields"] of the-interventions
+  let price             table:get prices ft
+  let yield             commodity-yield-per-ha
+  set yield     yield * product [1 + get-intervention-impact ft "effect-on-yields"] of the-interventions
   report price * yield
 end
 
-to-report get-costs-of-patch [fm-type]
+;; patch-report
+to-report get-costs-of-patch
+  let ft get-farm-type
   let the-interventions [my-interventions] of ([my-farm] of the-owner)
-  let cost              table:get input-costs fm-type
-  set cost       cost + sum [get-intervention-impact fm-type "effect-on-costs"] of the-interventions
-  let ghg               table:get ghg-emissions fm-type
-  set ghg         ghg * product [1 + get-intervention-impact fm-type "effect-on-emissions"] of the-interventions
-  let ghg-tax           table:get environmental-taxes fm-type
+  let cost              input-cost-per-ha
+  set cost       cost + sum [get-intervention-impact ft "effect-on-costs"] of the-interventions
+  let ghg               ghg-emissions-per-ha
+  set ghg         ghg * product [1 + get-intervention-impact ft "effect-on-emissions"] of the-interventions
+  let ghg-tax           table:get environmental-taxes ft
   report cost + ghg * ghg-tax
 end
 
@@ -526,51 +543,46 @@ to initialise-farm
   let the-farmer my-farmer
   set the-land farm-land with [the-owner = the-farmer]
   ifelse not any? the-land
-  [ ask my-farmer [ die ]
+  [ ;; a null farm (which can happen due to random placement of farmers
+    ;; or parcels in GIS data below resolution of the patch grid
+    ask my-farmer [ die ]
     die ]
-  [ create-link-with my-farmer [set color key-owner-link-colour]
+  [
+    create-link-with my-farmer [set color table:get colour-key "owner-link"]
     setxy mean [pxcor] of the-land mean [pycor] of the-land
     set shape "circle"
-    let ft one-of farm-types
-    set farm-type ft
-    ask my-farmer [ set label ft set label-color black ]
-    let my-possible-interventions possible-interventions
+    set farm-type one-of farm-types
     set my-interventions turtle-set nobody
-;    set my-interventions possible-interventions
-;    set my-interventions n-of (random (count my-possible-interventions + 1)) my-possible-interventions
-    set available-interventions possible-interventions with [not member? self [my-interventions] of myself]
-    set label-color key-label-colour
+    set available-interventions possible-interventions
+    set label-color table:get colour-key "label"
   ]
 end
 
 to implement-intervention [i]
   let the-intervention get-intervention i
   set my-interventions (turtle-set my-interventions the-intervention)
-  set available-interventions available-interventions with [self != the-intervention]
+  set available-interventions set-minus available-interventions the-intervention
 end
 
 ;; farm reporter
 to-report get-net-revenue
-  let ft farm-type
-  report sum [get-net-revenue-of-patch ft] of the-land
+  report sum [get-net-revenue-of-patch] of the-land
 end
 
 to-report get-income
-  let ft farm-type
-  report sum [get-income-from-patch ft] of the-land
+  report sum [get-income-of-patch] of the-land
 end
 
 to-report get-costs
-  let ft farm-type
-  report sum [get-costs-of-patch ft] of the-land
+  report sum [get-costs-of-patch] of the-land
 end
 
 to update-net-revenue-of-farm
   set net-revenue get-net-revenue
   set size sqrt (abs net-revenue / 2e3) ;; scaling size of net revenue circle
   ifelse net-revenue > 0
-  [ set color key-profit-colour ]
-  [ set color key-loss-colour ]
+  [ set color table:get colour-key "profit" ]
+  [ set color table:get colour-key "loss" ]
   set label (word (count my-interventions) "/" (count my-interventions + count available-interventions))
 end
 
@@ -585,15 +597,14 @@ end
 
 ;; farmer 'constructor'
 to initialise-farmer
-  set size 3
-  set color key-farmer-colour
+  set size 2
+  set color table:get colour-key "farmer"
   set shape "person"
   ;; give everyone the default threshold matrix
   ;; perhaps subject to modification later by sigmoid function
   ;; contingent on farmer dispositions (pro-social, pro-environmental, etc.)
-  ;  set thresholds-table table:from-json table:to-json base-thresholds-table
+  ;; if random setup then put them somewhere random
   if not setup-geography-from-files? [ place-farmer ]
-  ;; setxy random-xcor random-ycor
 end
 
 to place-farmer
@@ -653,52 +664,54 @@ to-report get-intervention-impact [ft effect]
   report table:get-or-default (table:get intervention-effects effect) ft 0
 end
 
+;; tests if intervention is applicable by checking if the result is numeric
 to-report is-applicable-to-farm-type? [ft]
-  report not is-string? table:get-or-default (table:get intervention-effects "effect-on-costs") ft "NA"
+  report is-number? table:get-or-default (table:get intervention-effects "effect-on-costs") ft "NA"
 end
 
 
 ;; -----------------------------------------
-;; farmer revenue output for sanity check
+;; convenience functions
 ;; -----------------------------------------
-to-report revenue-summary [is]
-  let result (list who farm-type table:get prices farm-type count the-land)
-  let current-interventions my-interventions
-  set my-interventions turtle-set nobody
-  set result lput precision get-costs 1 result
-  set result lput precision get-income 1 result
-  set result lput precision get-net-revenue 1 result
-  foreach but-first is [ i ->
-    let the-intervention get-intervention i
-    ifelse member? the-intervention possible-interventions [
-      set my-interventions turtle-set the-intervention
-      set result lput precision get-costs 1 result
-      set result lput precision get-income 1 result
-      set result lput precision get-net-revenue 1 result
-      set my-interventions turtle-set nobody
-    ]
-    [ set result sentence result ["NA" "NA" "NA"] ]
-  ]
-  set my-interventions current-interventions
-  report result
-end
 
-to save-farm-revenue-under-various-interventions [file]
-  let sorted-interventions fput "None" sort [intervention-type] of interventions
-  let interventions-header sentence ["" "" "" "Interventions"] reduce [ [a b] -> sentence a b ] map [ a -> sentence a ["" ""] ] sorted-interventions
-  let cir ["Cost" "Income" "Revenue"]
-  let header (sentence ["" "Type" "Price" "Area"] cir cir cir cir cir cir)
-  let result (list interventions-header header)
-  foreach sort farms [ f ->
-    set result lput [revenue-summary sorted-interventions] of f result
+;; Convenience function for retrieving a parameter from one of
+;; the global nested tables the values are stored in
+to-report get-parameter [parameter mean-or-sd ft luc]
+  if parameter = "yield" [
+    report ifelse-value mean-or-sd = "mean"
+    [ table:get table:get commodity-yield-means luc ft ]
+    [ table:get table:get commodity-yield-sds luc ft ]
   ]
-  csv:to-file word output-data-folder file result
+  if parameter = "cost" [
+    report ifelse-value mean-or-sd = "mean"
+    [ table:get table:get input-cost-means luc ft ]
+    [ table:get table:get input-cost-sds luc ft ]
+  ]
+  if parameter = "emissions" [
+    report ifelse-value mean-or-sd = "mean"
+    [ table:get table:get ghg-emission-means luc ft ]
+    [ table:get table:get ghg-emission-sds luc ft ]
+  ]
+  print (word "Incorrect request for parameter " parameter " " mean-or-sd)
+  report nobody
 end
 
 
 ;; -----------------------------------------
 ;; utilility functions
 ;; -----------------------------------------
+
+to-report set-difference [A B]
+  ifelse is-list? A
+  [ report filter [x -> not member? x B] A ]
+  [ report A with [ not member? self B ] ]
+end
+
+to-report set-minus [A y]
+  ifelse is-list? A
+  [ report remove y A ]
+  [ report A with [ not (self = y) ] ]
+end
 
 to-report is-nan? [x]
   report not (x <= 0 or x >= 0)
@@ -740,22 +753,24 @@ end
 ;; ------------------------------------------
 ;; drawing utilities (see netlogo-utils repo)
 ;; ------------------------------------------
-to setup-key-colours
-  set key-farmer-colour black
-  set key-border-colour grey - 2
-  set key-owner-link-colour black
-  set key-LUC-palette "Greens"
-  set key-LUC-palettes table:from-list zip farm-types ["Grays" "Blues" "Oranges" "Greens"]
-  set key-profit-colour [ 0 64 160 96 ]
-  set key-loss-colour [ 255 0 0 160 ]
-  set key-label-colour violet - 2
-  set key-background-colour grey
+to setup-colours
+  set colour-key table:make
+  table:put colour-key "farmer" black
+  table:put colour-key "farmer-label" black
+  table:put colour-key "owner-link" black
+  table:put colour-key "border" grey - 2
+  table:put colour-key "LUC-palette" "Greens"
+  table:put colour-key "farm-type-palettes" table:from-list zip farm-types ["Grays" "Blues" "Oranges" "Greens"]
+  table:put colour-key "profit" [ 0 64 160 96 ]
+  table:put colour-key "loss" [ 255 0 0 160 ]
+  table:put colour-key "label" violet - 2
+  table:put colour-key "background" grey
 end
 
 to draw-borders [col]
   ifelse setup-geography-from-files?
   [
-    gis:set-drawing-color key-border-colour
+    gis:set-drawing-color table:get colour-key "border"
     gis:draw parcels-data 0.5
   ]
   [
@@ -831,6 +846,45 @@ to profile
   profiler:reset         ;; clear the data
 end
 
+
+;; -----------------------------------------
+;; farmer revenue output for sanity check
+;; -----------------------------------------
+to-report revenue-summary [is]
+  let result (list who farm-type table:get prices farm-type count the-land)
+  let current-interventions my-interventions
+  set my-interventions turtle-set nobody
+  set result lput precision get-costs 1 result
+  set result lput precision get-income 1 result
+  set result lput precision get-net-revenue 1 result
+  foreach but-first is [ i ->
+    let the-intervention get-intervention i
+    ifelse member? the-intervention possible-interventions [
+      set my-interventions turtle-set the-intervention
+      set result lput precision get-costs 1 result
+      set result lput precision get-income 1 result
+      set result lput precision get-net-revenue 1 result
+      set my-interventions turtle-set nobody
+    ]
+    [ set result sentence result ["NA" "NA" "NA"] ]
+  ]
+  set my-interventions current-interventions
+  report result
+end
+
+to save-farm-revenue-under-various-interventions [file]
+  let sorted-interventions fput "None" sort [intervention-type] of interventions
+  let interventions-header sentence ["" "" "" "Interventions"] reduce [ [a b] -> sentence a b ] map [ a -> sentence a ["" ""] ] sorted-interventions
+  let cir ["Cost" "Income" "Revenue"]
+  let header (sentence ["" "Type" "Price" "Area"] cir cir cir cir cir cir)
+  let result (list interventions-header header)
+  foreach sort farms [ f ->
+    set result lput [revenue-summary sorted-interventions] of f result
+  ]
+  csv:to-file word output-data-folder file result
+end
+
+
 ;; The MIT License (MIT)
 ;;
 ;; Copyright (c) 2023 David O'Sullivan
@@ -857,8 +911,8 @@ end
 GRAPHICS-WINDOW
 184
 10
-654
-908
+658
+915
 -1
 -1
 3.0
@@ -914,10 +968,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-807
-523
-954
-556
+808
+591
+955
+624
 seed-the-rng?
 seed-the-rng?
 1
@@ -925,10 +979,10 @@ seed-the-rng?
 -1000
 
 INPUTBOX
-960
-523
-1034
-583
+961
+591
+1035
+651
 rng-seed
 145.0
 1
@@ -936,10 +990,10 @@ rng-seed
 Number
 
 TEXTBOX
-961
-589
-1044
-636
+962
+657
+1045
+704
 Integer value value for RNG seed
 11
 0.0
@@ -963,10 +1017,10 @@ Interventions\n(for information)
 1
 
 SWITCH
-801
-283
-1041
-316
+802
+351
+1042
+384
 setup-geography-from-files?
 setup-geography-from-files?
 0
@@ -974,10 +1028,10 @@ setup-geography-from-files?
 -1000
 
 SLIDER
-805
-422
-1032
-455
+806
+490
+1033
+523
 luc-aggregation-steps
 luc-aggregation-steps
 0
@@ -989,20 +1043,20 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-801
-399
-951
-417
+802
+467
+952
+485
 Random landscape
 12
 0.0
 1
 
 SLIDER
-804
-461
-1033
-494
+805
+529
+1034
+562
 farm-centroid-inhibition-distance
 farm-centroid-inhibition-distance
 0
@@ -1025,10 +1079,10 @@ show-luc-codes?
 -1000
 
 TEXTBOX
-804
-506
-844
-524
+805
+574
+845
+592
 RNGs
 12
 0.0
@@ -1086,10 +1140,10 @@ NIL
 1
 
 CHOOSER
-807
-326
-945
-371
+808
+394
+946
+439
 region
 region
 "Rangitaiki"
@@ -1101,7 +1155,7 @@ BUTTON
 169
 521
 toggle-labels
-set show-labels? not show-labels?\nask turtles [\n  set label-color ifelse-value show-labels? [key-label-colour] [[0 0 0 0]]\n]\n
+set show-labels? not show-labels?\nifelse show-labels?\n[ ask turtles \n  [ set label-color table:get colour-key \"label\" ] ]\n[ ask turtles\n  [ set label-color [0 0 0 0] ] ]\n
 NIL
 1
 T
@@ -1128,6 +1182,21 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+808
+306
+980
+339
+max-dimension
+max-dimension
+200
+600
+300.0
+10
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?

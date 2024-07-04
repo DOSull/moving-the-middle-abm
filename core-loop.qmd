@@ -30,6 +30,7 @@ knitr:
 | 2024-07-02 | Initial post.                                                         
 | 2024-07-03 | Added bar chart of farm income/costs estimates.                       
 | 2024-07-04 | Added detail on calculation of relative change noting that profit can't be handled this way because it is $\pm$ and relative change is meaningless for such variables.
+| 2024-07-05 | Corrected relative change from a percentage to a proportion.                       
 
 :::
 
@@ -264,23 +265,23 @@ This gives us [_relative change_](https://en.wikipedia.org/wiki/Relative_change)
 $$
 \Delta x = \left\{
 \begin{array}{rl}
-  \left. 200\left(|x_1 - x_0|\right) \middle/ \left( |x_1| + |x_0| \right) \right. & \text{if $x_1>x_0$} \\
-  \left. -200\left(|x_1 - x_0|\right) \middle/ \left( |x_1| + |x_0| \right) \right. & \text{if $x_1<x_0$} \\
-  0 & \text{if $x_0$ and $x_1=0$}
+  \left. 2\left(|x_1 - x_0|\right) \middle/ \left( |x_1| + |x_0| \right) \right. & \text{if $x_1>x_0$} \\
+  \left. -2\left(|x_1 - x_0|\right) \middle/ \left( |x_1| + |x_0| \right) \right. & \text{if $x_1<x_0$} \\
+  0 & \text{if $x_0=x_1=0$}
 \end{array}\right.
 $$
 
-**NOTE:** this formulation works if both quantities are of the same sign (both positive, or both negative) but produces meaningless results if the before and after quantities are of different sign, and so the approach outlined here should not be extended to the profit of farms, which may be either negative or positive. 
+**NOTE:** this formulation works if both quantities are of the same sign (both positive, or both negative) but produces meaningless results if the before and after quantities are of different sign, and so the approach outlined here cannot be extended to farm profits, which can be positive or negative. 
 
-Values for $\Delta Y_i$ and $\Delta X_i$ are calculated in this way and used to determine adjusted relative probabilities of adoption of each possible intervention. If we denote the baseline probability of adoption of each intervention on a particular farm type by $P_{iF}$ then we adjust this probability using the '$\Delta$'s according to
+Values for $\Delta Y_i$ and $\Delta X_i$ are calculated in this way and used to determine adjusted relative probabilities of adoption of each possible intervention. If we denote the baseline probability of adoption of each intervention on a particular farm type by $P_{iF}$ then we adjust this probability using the $\Delta$ values according to
 $$
 {
-  P'_{iF}= \left. 1 \middle/ \left(1+e^{\ln\frac{P_{iF}}{1-P_{iF}} + 
-  \Delta R_i + \Delta Y_i - \Delta X_i} \right) \right.
+  P'_{iF}= \left. 1 \middle/ 
+  \left(1+e^{\ln\frac{P_{iF}}{1-P_{iF}} + \Delta Y_i - \Delta X_i} \right) \right.
 }
 $$
 
-This puts the adoption probability of any intervention on a sigmoid curve, given by $P = 1/(1 + e^{-ax})$ where $x$ is some 'input' and $a$ is a rate of change in the probability in response to changes in the inputs. We haven't determined an appropriate setting for $a$, but intuitively it is a kind of measure of the 'elasticity' of farmer responses to changes in the combination of pressures driving their decision making. At low $a$ large pushes are needed to make much difference to the probability of a particular intervention; at high $a$ smaller pushes (perhaps even nudges!) might suffice.
+This puts the adoption probability of any intervention on a sigmoid curve, given by $P = 1/(1 + e^{-ax})$ where $x$ is some 'pressure for change' and $a$ is a rate of change in the probability in response to changes in that pressure. We haven't determined an appropriate setting for $a$, but intuitively it is a kind of measure of the 'elasticity' of farmer responses to changes in the combination of pressures driving their decision making. At low $a$ large pushes are needed to make much difference to the probability of a particular intervention; at high $a$ smaller pushes (perhaps even nudges!) might suffice. In general an adoption probability will be at its most elastic when it is around $0.5$ with substantial pressure required to make a low probability event more likely, or to make an already probable outcome near certain.
  
 ```{r}
 sigmoid <- function(x, a = 1) {

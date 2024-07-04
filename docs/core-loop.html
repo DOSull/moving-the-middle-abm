@@ -5069,6 +5069,10 @@ Update History
 <td style="text-align: left;">2024-07-04</td>
 <td style="text-align: left;">Added detail on calculation of relative change noting that profit can’t be handled this way because it is <span class="math inline">\pm</span> and relative change is meaningless for such variables.</td>
 </tr>
+<tr class="even">
+<td style="text-align: left;">2024-07-05</td>
+<td style="text-align: left;">Corrected relative change from a percentage to a proportion.</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -6259,19 +6263,19 @@ Y_A = \underbrace{ p_Fq_{FL}\prod_{i\in A} \left( 1+\Delta q_{iFL} \right)}_{\ma
 <p>This gives us <a href="https://en.wikipedia.org/wiki/Relative_change"><em>relative change</em></a> in each component, which for a particular component we define as <span class="math display">
 \Delta x = \left\{
 \begin{array}{rl}
-  \left. 200\left(|x_1 - x_0|\right) \middle/ \left( |x_1| + |x_0| \right) \right. &amp; \text{if $x_1&gt;x_0$} \\
-  \left. -200\left(|x_1 - x_0|\right) \middle/ \left( |x_1| + |x_0| \right) \right. &amp; \text{if $x_1&lt;x_0$} \\
-  0 &amp; \text{if $x_0$ and $x_1=0$}
+  \left. 2\left(|x_1 - x_0|\right) \middle/ \left( |x_1| + |x_0| \right) \right. &amp; \text{if $x_1&gt;x_0$} \\
+  \left. -2\left(|x_1 - x_0|\right) \middle/ \left( |x_1| + |x_0| \right) \right. &amp; \text{if $x_1&lt;x_0$} \\
+  0 &amp; \text{if $x_0=x_1=0$}
 \end{array}\right.
 </span></p>
-<p><strong>NOTE:</strong> this formulation works if both quantities are of the same sign (both positive, or both negative) but produces meaningless results if the before and after quantities are of different sign, and so the approach outlined here should not be extended to the profit of farms, which may be either negative or positive.</p>
-<p>Values for <span class="math inline">\Delta Y_i</span> and <span class="math inline">\Delta X_i</span> are calculated in this way and used to determine adjusted relative probabilities of adoption of each possible intervention. If we denote the baseline probability of adoption of each intervention on a particular farm type by <span class="math inline">P_{iF}</span> then we adjust this probability using the ’<span class="math inline">\Delta</span>’s according to <span class="math display">
+<p><strong>NOTE:</strong> this formulation works if both quantities are of the same sign (both positive, or both negative) but produces meaningless results if the before and after quantities are of different sign, and so the approach outlined here cannot be extended to farm profits, which can be positive or negative.</p>
+<p>Values for <span class="math inline">\Delta Y_i</span> and <span class="math inline">\Delta X_i</span> are calculated in this way and used to determine adjusted relative probabilities of adoption of each possible intervention. If we denote the baseline probability of adoption of each intervention on a particular farm type by <span class="math inline">P_{iF}</span> then we adjust this probability using the <span class="math inline">\Delta</span> values according to <span class="math display">
 {
-  P&#39;_{iF}= \left. 1 \middle/ \left(1+e^{\ln\frac{P_{iF}}{1-P_{iF}} +
-  \Delta R_i + \Delta Y_i - \Delta X_i} \right) \right.
+  P&#39;_{iF}= \left. 1 \middle/
+  \left(1+e^{\ln\frac{P_{iF}}{1-P_{iF}} + \Delta Y_i - \Delta X_i} \right) \right.
 }
 </span></p>
-<p>This puts the adoption probability of any intervention on a sigmoid curve, given by <span class="math inline">P = 1/(1 + e^{-ax})</span> where <span class="math inline">x</span> is some ‘input’ and <span class="math inline">a</span> is a rate of change in the probability in response to changes in the inputs. We haven’t determined an appropriate setting for <span class="math inline">a</span>, but intuitively it is a kind of measure of the ‘elasticity’ of farmer responses to changes in the combination of pressures driving their decision making. At low <span class="math inline">a</span> large pushes are needed to make much difference to the probability of a particular intervention; at high <span class="math inline">a</span> smaller pushes (perhaps even nudges!) might suffice.</p>
+<p>This puts the adoption probability of any intervention on a sigmoid curve, given by <span class="math inline">P = 1/(1 + e^{-ax})</span> where <span class="math inline">x</span> is some ‘pressure for change’ and <span class="math inline">a</span> is a rate of change in the probability in response to changes in that pressure. We haven’t determined an appropriate setting for <span class="math inline">a</span>, but intuitively it is a kind of measure of the ‘elasticity’ of farmer responses to changes in the combination of pressures driving their decision making. At low <span class="math inline">a</span> large pushes are needed to make much difference to the probability of a particular intervention; at high <span class="math inline">a</span> smaller pushes (perhaps even nudges!) might suffice. In general an adoption probability will be at its most elastic when it is around <span class="math inline">0.5</span> with substantial pressure required to make a low probability event more likely, or to make an already probable outcome near certain.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>

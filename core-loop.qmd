@@ -277,7 +277,7 @@ Values for $\Delta Y_i$ and $\Delta X_i$ are calculated in this way and used to 
 $$
 {
   P'_{iF}= \left. 1 \middle/ 
-  \left(1+e^{\ln\frac{P_{iF}}{1-P_{iF}} + \Delta Y_i - \Delta X_i} \right) \right.
+  \left(1+e^{-a\left[ \ln\frac{P_{iF}}{1-P_{iF}} + \Delta Y_i - \Delta X_i \right]} \right) \right.
 }
 $$
 

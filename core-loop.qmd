@@ -189,7 +189,7 @@ plot_data <- combined_data |>
   pivot_longer(cols = c("Gross income", "Profit", "Total costs"))
 
 ggplot(plot_data |> filter(name %in% c("Gross income", "Total costs"))) +
-  geom_col(aes(x = LUC, y = value, group = name, fill = name),
+  geom_col(aes(x = as.factor(LUC), y = value, group = name, fill = name),
            position = "dodge") + 
   scale_fill_manual(values = c("#999999", "#ff6666"), name = "Income vs. Costs") +
   geom_point(data = plot_data |> filter(name == "Profit"), 

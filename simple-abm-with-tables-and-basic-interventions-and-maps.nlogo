@@ -12,12 +12,12 @@ globals [
   output-data-folder
   market-data-folder
   spatial-data-folder
+  show-labels?
 
   parcels-data            ;; GIS functionality depends on reading the data into an object
   luc-data                ;; then acccesing it again later
 
   farm-land               ;; patches that are on farms
-  show-labels?            ;; display labels on farms, farmers, etc. or not
 
   farm-types              ;; list of named farm types
   commodity-yield-means   ;; table of mean yields by LUC and farm-type
@@ -28,7 +28,7 @@ globals [
   ghg-emission-sds        ;; table of sd of GHG emissions by LUC and farm-type
   prices                  ;; table of commodity prices
   environmental-taxes     ;; table of additional environmental taxes/subsidies by farm-type
-  base-thresholds-table   ;; table of default farmer decision thresholds for various interventions
+  base-thresholds   ;; table of default farmer decision thresholds for various interventions
 
   ;; colour settings - these can be changed in one place, see setup-key-colours procedure
   colour-key              ;; table of colour settings
@@ -43,9 +43,11 @@ farms-own [
   my-farmer               ;; the farmer who owns/runs this farm
   farm-type               ;; farm type of this farm
   the-land                ;; patch-set of the patches in this farm
-  net-revenue             ;; net revenue of farm summed across patches
+  current-profit          ;; profit of farm summed across patches
+  current-income          ;; income of farm summed across patches
+  current-costs           ;; costs of farm summed across patches
   my-interventions        ;; interventions already implemented
-  available-interventions ;; interventions that could be implemented
+  available-interventions ;; interventions types that could be implemented
 ]
 
 farmers-own [
@@ -54,7 +56,7 @@ farmers-own [
 
 interventions-own [
   intervention-type       ;; this would be one of the named types
-  intervention-effects    ;; table of effects by farm-type for this intervention
+  intervention-impacts    ;; table of effects by farm-type and outcome (costs, yields, emissions)
 ]
 
 patches-own [
@@ -62,9 +64,12 @@ patches-own [
   the-owner               ;; the farmer who owns this patch
   luc-code                ;; LUC code where 1 = LUC1, 2 = LUC2, etc.
   ;; NOTE these are patch level parameter because they are set up with mean/sd and vary at patch level
-  commodity-yield-per-ha
-  input-cost-per-ha
-  ghg-emissions-per-ha
+  yield-per-ha
+  yield-sd
+  cost-per-ha
+  cost-sd
+  emissions-per-ha
+  emissions-sd
 ]
 
 ;; -----------------------------------------
@@ -79,7 +84,7 @@ to setup
   set market-data-folder word base-data-folder "market/"                ;; 'data/market/'
   set spatial-data-folder (word base-data-folder "spatial/" region "/") ;; 'data/spatial/REGION-NAME/'
 
-  set show-labels? true
+  set show-labels? false
   if seed-the-rng? [ random-seed rng-seed ]
 
   setup-farmer-parameters
@@ -88,7 +93,7 @@ to setup
   display
 
   setup-economic-parameters
-  go ;; this initialises the farms with current net revenue and some interventions
+  go ;; this initialises the farms with current net profit and some interventions
 end
 
 ;; the main model loop
@@ -98,9 +103,12 @@ to go
     stop
   ]
   ;; much more action to go here...
+  ask farms [
+    update-profit-of-farm
+  ]
   ask farmers [
-    if any? [available-interventions] of my-farm [
-      let potential-change consider-interventions
+    if [count available-interventions] of my-farm > 0 [
+      let potential-change consider-interventions false
       if random-float 1 < last potential-change [
         print (word "Farmer " who " implementing " first potential-change " on " [farm-type] of my-farm " " [who] of my-farm)
         ask my-farm [
@@ -109,15 +117,18 @@ to go
       ]
     ]
   ]
-  ask farms [
-    update-net-revenue-of-farm
-  ]
   tick
 end
 
 ;; put a model stop condition here
 to-report stop-model?
-  report false
+  ifelse all-true [count available-interventions = 0] of farms [
+    show "Stopping model: all possible interventions implemented on all farms!"
+    report true
+  ]
+  [
+    report false
+  ]
 end
 
 ;; put any model clean up at end here
@@ -160,20 +171,20 @@ to read-farm-types-and-interventions-from-file [file]
   file-close
 end
 
-;; initialise the intervention's intervention-effects table
-;; which holds the production function impacts by effect type and farm type
+;; initialise the global intervention-effects table
+;; which holds production function impacts by intervention type, effect, and farm type
 to read-interventions-from-file [file]
   ;; CSV file format like this - note that each intervention should be
   ;; 3 consecutive lines with its effects (these can be in any order)
   ;; farm types can also be in any order. Spaces added for clarity
   ;;
-  ;;                  ,                    ,   SNB, Dairy, Forest,  Crop
-  ;; Build_Wetland    , effect-on-costs    ,    25,    68,     NA,    34
-  ;; Build_Wetland    , effect-on-yields   ,  -0.2, -0.02,     NA,  -0.1
-  ;; Build_Wetland    , effect-on-emissions,  -0.1, -0.05,     NA, -0.05
-  ;; Riparian_Planting, effect-on-costs    ,    26,    71,     NA,    11
-  ;; Riparian_Planting, effect-on-yields   ,  -0.2, -0.02,     NA, -0.01
-  ;; Riparian_Planting, effect-on-emissions,  -0.1, -0.03,     NA, -0.04
+  ;; Intervention     , Impact   ,   SNB, Dairy, Forest,  Crop
+  ;; Build_Wetland    , costs    ,    25,    68,     NA,    34
+  ;; Build_Wetland    , yields   ,  -0.2, -0.02,     NA,  -0.1
+  ;; Build_Wetland    , emissions,  -0.1, -0.05,     NA, -0.05
+  ;; Riparian_Planting, costs    ,    26,    71,     NA,    11
+  ;; Riparian_Planting, yields   ,  -0.2, -0.02,     NA, -0.01
+  ;; Riparian_Planting, emissions,  -0.1, -0.03,     NA, -0.04
   ;;  ... and so on ...
   ;;
   carefully [
@@ -181,19 +192,14 @@ to read-interventions-from-file [file]
     let the-farm-types but-first but-first csv:from-row file-read-line
     while [not file-at-end?] [
       let i 0
-      let this-intervention nobody
+      let i-type nobody
       while [i < 3] [ ;; read the table in 3s
         let data csv:from-row file-read-line
-        let i-type item 0 data
-        if i = 0 [ ;; first line of the three
-          set this-intervention get-intervention i-type
-        ]
+        set i-type item 0 data
         set data but-first data
         let the-effect-type item 0 data
         let the-effect-impacts table:from-list zip the-farm-types (but-first data)
-        ask this-intervention [
-          table:put intervention-effects the-effect-type the-effect-impacts
-        ]
+        set-intervention-impact i-type the-effect-type the-effect-impacts
         set i i + 1
       ]
     ]
@@ -209,7 +215,7 @@ end
 to initialise-intervention [name]
   set intervention-type name
   ;; make an empty table for the effect data
-  set intervention-effects table:make
+  set intervention-impacts table:make
   set hidden? true
   output-print name
 end
@@ -226,8 +232,8 @@ to read-thresholds-table-from-file [file]
   ;;  Join_ETS         , 0.2,  0.2 ,    0.9,  0.4
   ;;
   ;; resulting table is read by
-  ;;   table-get (table:get base-thresholds-table INTERVENTION-NAME) FARM-TYPE
-  set base-thresholds-table table:make
+  ;;   table-get (table:get base-thresholds INTERVENTION-NAME) FARM-TYPE
+  set base-thresholds table:make
   carefully [
     file-open file
     let the-farm-types but-first csv:from-row file-read-line
@@ -235,7 +241,7 @@ to read-thresholds-table-from-file [file]
       let data csv:from-row file-read-line
       let the-intervention item 0 data
       let vals table:from-list zip the-farm-types (but-first data)
-      table:put base-thresholds-table the-intervention vals
+      table:put base-thresholds the-intervention vals
     ]
     file-close
   ]
@@ -369,8 +375,10 @@ to setup-geography
     ]
     set my-farm this-farm
     set label [farm-type] of my-farm
-    set label-color table:get colour-key "farmer-label"
+    set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
+    set hidden? true
   ]
+  colour-patches show-landuse?
 end
 
 to setup-geography-from-files
@@ -379,7 +387,7 @@ to setup-geography-from-files
 
   gis:apply-raster luc-data luc-code
   set farm-land patches with [not is-nan? luc-code and luc-code != 0]
-  colour-patches
+  colour-patches false
   display ;; do this early for reassurance...
 
   ;; setup farms based on distinct parcels identified by ID in the parcels data
@@ -422,7 +430,7 @@ to setup-random-luc-codes
       set luc-code [luc-code] of one-of neighbors4
     ]
   ]
-  colour-patches
+  colour-patches false
   display
 end
 
@@ -469,11 +477,22 @@ to setup-world-dimensions
   display
 end
 
-to colour-patches
-  let pal table:get colour-key "LUC-palette"
-  ifelse show-luc-codes?
-  [ ask farm-land [ set pcolor palette:scale-scheme "Sequential" pal 9 luc-code 1 12 ] ]
-  [ ask farm-land [ set pcolor green + 4 ] ]
+to colour-patches [show-farm-type?]
+  ifelse show-farm-type? [
+    foreach table:to-list table:get colour-key "farm-type-palettes" [ farm-type-palette ->
+      let ft item 0 farm-type-palette
+      let pal-name item 1 farm-type-palette
+      ask farm-land with [get-farm-type = ft] [
+        set pcolor palette:scale-scheme "Sequential" pal-name 9 luc-code 8 0
+      ]
+    ]
+  ]
+  [
+    let pal table:get colour-key "LUC-palette"
+    ifelse show-luc-codes?
+    [ ask farm-land [ set pcolor palette:scale-scheme "Sequential" pal 9 luc-code 8 0 ] ]
+    [ ask farm-land [ set pcolor green + 4 ] ]
+  ]
 end
 
 
@@ -491,43 +510,61 @@ to set-farm-production-function
   let ft get-farm-type
   ;; this test might need to change depending on how the spatial data files are finally specified
   if not is-nan? luc-code and luc-code != 0 [
-    let yield-mean             get-parameter "yield" "mean" ft luc-code
-    let yield-sd               get-parameter "yield" "sd" ft luc-code
-    set commodity-yield-per-ha random-normal yield-mean yield-sd
+    set yield-per-ha     get-parameter "yield" "mean" ft luc-code
+    set yield-sd         get-parameter "yield" "sd" ft luc-code
 
-    let costs-mean             get-parameter "cost" "mean" ft luc-code
-    let costs-sd               get-parameter "cost" "sd" ft luc-code
-    set input-cost-per-ha      random-normal costs-mean costs-sd
+    set cost-per-ha      get-parameter "cost" "mean" ft luc-code
+    set cost-sd          get-parameter "cost" "sd" ft luc-code
 
-    let emissions-mean         get-parameter "emissions" "mean" ft luc-code
-    let emissions-sd           get-parameter "emissions" "sd" ft luc-code
-    set ghg-emissions-per-ha   random-normal emissions-mean emissions-sd
+    set emissions-per-ha get-parameter "emissions" "mean" ft luc-code
+    set emissions-sd     get-parameter "emissions" "sd" ft luc-code
   ]
 end
 
 ;; patch-report
-to-report get-net-revenue-of-patch
-  report get-income-of-patch - get-costs-of-patch
+to-report get-patch-yield [with-var?]
+  ifelse with-var?
+  [ report random-normal yield-per-ha yield-sd ]
+  [ report yield-per-ha ]
 end
 
 ;; patch-report
-to-report get-income-of-patch
+to-report get-patch-costs [with-var?]
+  ifelse with-var?
+  [ report random-normal cost-per-ha cost-sd ]
+  [ report cost-per-ha ]
+end
+
+;; patch-report
+to-report get-patch-emissions [with-var?]
+  ifelse with-var?
+  [ report random-normal emissions-per-ha emissions-sd ]
+  [ report emissions-per-ha ]
+end
+
+;; patch-report
+to-report get-profit-of-patch [with-var?]
+  report get-income-of-patch with-var? - get-costs-of-patch with-var?
+end
+
+;; patch-report
+to-report get-income-of-patch [with-var?]
   let ft get-farm-type
-  let the-interventions [my-interventions] of ([my-farm] of the-owner)
+  let adopted [my-interventions] of ([my-farm] of the-owner)
   let price             table:get prices ft
-  let yield             commodity-yield-per-ha
-  set yield     yield * product [1 + get-intervention-impact ft "effect-on-yields"] of the-interventions
+  let yield             get-patch-yield with-var?
+  set yield     yield * product [1 + get-intervention-impact ft "yields"] of adopted
   report price * yield
 end
 
 ;; patch-report
-to-report get-costs-of-patch
+to-report get-costs-of-patch [with-var?]
   let ft get-farm-type
-  let the-interventions [my-interventions] of ([my-farm] of the-owner)
-  let cost              input-cost-per-ha
-  set cost       cost + sum [get-intervention-impact ft "effect-on-costs"] of the-interventions
-  let ghg               ghg-emissions-per-ha
-  set ghg         ghg * product [1 + get-intervention-impact ft "effect-on-emissions"] of the-interventions
+  let adopted [my-interventions] of ([my-farm] of the-owner)
+  let cost              get-patch-costs with-var?
+  set cost       cost + sum [get-intervention-impact ft "costs"] of adopted
+  let ghg               get-patch-emissions with-var?
+  set ghg         ghg * product [1 + get-intervention-impact ft "emissions"] of adopted
   let ghg-tax           table:get environmental-taxes ft
   report cost + ghg * ghg-tax
 end
@@ -548,39 +585,40 @@ to initialise-farm
     ask my-farmer [ die ]
     die ]
   [
-    create-link-with my-farmer [set color table:get colour-key "owner-link"]
+    create-link-with my-farmer [
+      set color table:get colour-key "owner-link"
+      set hidden? true
+    ]
     setxy mean [pxcor] of the-land mean [pycor] of the-land
     set shape "circle"
+    set hidden? false
     set farm-type one-of farm-types
     set my-interventions turtle-set nobody
     set available-interventions possible-interventions
-    set label-color table:get colour-key "label"
+    set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
   ]
 end
 
 to implement-intervention [i]
-  let the-intervention get-intervention i
-  set my-interventions (turtle-set my-interventions the-intervention)
-  set available-interventions set-minus available-interventions the-intervention
+  set my-interventions set-add my-interventions i
+  set available-interventions set-minus available-interventions i
 end
 
-;; farm reporter
-to-report get-net-revenue
-  report sum [get-net-revenue-of-patch] of the-land
+to-report get-farm-income [with-var?]
+  report sum [get-income-of-patch with-var?] of the-land
 end
 
-to-report get-income
-  report sum [get-income-of-patch] of the-land
+to-report get-farm-costs [with-var?]
+  report sum [get-costs-of-patch with-var?] of the-land
 end
 
-to-report get-costs
-  report sum [get-costs-of-patch] of the-land
-end
-
-to update-net-revenue-of-farm
-  set net-revenue get-net-revenue
-  set size sqrt (abs net-revenue / 2e3) ;; scaling size of net revenue circle
-  ifelse net-revenue > 0
+;; this alway sapplies year-on-year SD so no 'with-var?' parameter required
+to update-profit-of-farm
+  set current-income get-farm-income true
+  set current-costs get-farm-costs true
+  set current-profit current-income - current-costs
+  set size sqrt (abs current-profit / 2e3) ;; scaling size of net profit circle
+  ifelse current-profit > 0
   [ set color table:get colour-key "profit" ]
   [ set color table:get colour-key "loss" ]
   set label (word (count my-interventions) "/" (count my-interventions + count available-interventions))
@@ -588,6 +626,24 @@ end
 
 to-report possible-interventions
   report interventions with [is-applicable-to-farm-type? [farm-type] of myself]
+end
+
+to-report get-intervention-score [i-type show-messages?]
+;  let possibility get-intervention i-type
+  set my-interventions set-add my-interventions i-type
+  let new-costs get-farm-costs false
+  let new-income get-farm-income false
+  let change-in-costs relative-change current-costs new-costs
+  let change-in-income relative-change current-income new-income
+  if show-messages? [
+    show i-type
+    show (word "Current costs: " current-costs   " Current income: " current-income)
+    show (word "New costs    : " new-costs       " New income    : " new-income)
+    show (word "Delta costs  : " change-in-costs " Delta income  : " change-in-income)
+  ]
+  ;; don't forget to undo the intervention... we are only trying them out!
+  set my-interventions set-minus my-interventions i-type
+  report change-in-income - change-in-costs
 end
 
 
@@ -600,6 +656,7 @@ to initialise-farmer
   set size 2
   set color table:get colour-key "farmer"
   set shape "person"
+  set hidden? true
   ;; give everyone the default threshold matrix
   ;; perhaps subject to modification later by sigmoid function
   ;; contingent on farmer dispositions (pro-social, pro-environmental, etc.)
@@ -607,6 +664,7 @@ to initialise-farmer
   if not setup-geography-from-files? [ place-farmer ]
 end
 
+;; pick a random location for farmer (used in random initialisation)
 to place-farmer
   while [any? other farmers in-radius farm-centroid-inhibition-distance] [
     setxy random-xcor random-ycor
@@ -615,38 +673,38 @@ end
 
 ;; farmer reporter
 ;; returns threshold for the supplied intervention
-to-report get-threshold [i]
-  let ft [farm-type] of my-farm
-  report table:get (table:get base-thresholds-table i) ft
+;; this or a wrapper for this could include farmer demography 'shifts'
+;; or social/geographic network shifts
+to-report get-adoption-probability [i]
+  report table:get (
+    table:get base-thresholds [intervention-type] of i
+  ) [farm-type] of my-farm
 end
 
-;; farmer command
-;; can use this to boost the thresholds associated with this farmer for a given nudge
-to-report boosted-threshold [nudge i]
-  report nudged-threshold get-threshold i nudge
-end
-
-to-report consider-interventions
-  let current-costs [get-costs] of my-farm
-  let current-income [get-income] of my-farm
-  let current-interventions [my-interventions] of my-farm
-  let changes []
-  let to-consider [available-interventions] of my-farm
-  ifelse any? to-consider [
-    foreach sort to-consider [ i ->
-      let i-type [intervention-type] of i
-      let base-probability get-threshold i-type
-      ask my-farm [
-        set my-interventions (turtle-set current-interventions i)
-        let new-costs get-costs
-        let new-income get-income
-        let change-in-costs precision (100 * (new-costs - current-costs) / current-costs) 1
-        let change-in-income precision (100 * (new-income - current-income) / current-income) 1
-        let new-prob precision nudged-threshold base-probability (change-in-income - change-in-costs) 3
-        set changes lput (list i-type change-in-costs change-in-income new-prob) changes
-        set my-interventions current-interventions
-      ]
+;; loop through the available interventions scoring their probabilities
+;; then select one in a random draw weighted by those probabilities
+to-report consider-interventions [show-messages?]
+  ;; empty list to put results in
+  let fm my-farm
+  ;; list the interevention types that are to be considered
+  let to-consider [sort available-interventions] of fm
+  ifelse length to-consider > 0 [
+    ;; get nudge score for this intervention from the farm
+    let scores map [poss -> [get-intervention-score poss show-messages?] of fm] to-consider
+    ;; get the base probabilities for this farmer (which might be changeable over time)
+    let base-probs map [poss -> get-adoption-probability poss] to-consider
+    ;; adjust probabilities using the sigmoid function
+    let new-probs (map [[prob score] -> nudged-threshold prob score] base-probs scores)
+    if show-messages? [
+      show [farm-type] of fm
+      show to-consider
+      show map [s -> precision s 4] scores
+      show map [p -> precision p 4] base-probs
+      show map [p -> precision p 4] new-probs
     ]
+    ;; put results in a list of tuples [[<INTERVENTION> <PROBABILITY>], select one
+    ;; by weighted random draw and return it to the calling context
+    let changes zip to-consider new-probs
     report rnd:weighted-one-of-list changes [ [p] -> last p ]
   ]
   [ report nobody ]
@@ -656,22 +714,37 @@ end
 ;; -----------------------------------------
 ;; intervention specific
 ;; -----------------------------------------
+
+;; it's convenient sometimes to be able to get an intervention by its name
 to-report get-intervention [name]
   report one-of interventions with [intervention-type = name]
 end
 
-to-report get-intervention-impact [ft effect]
-  report table:get-or-default (table:get intervention-effects effect) ft 0
+;; set impacts (a farm-type: value lookup)
+to set-intervention-impact [i-type effect-type impacts]
+  ask get-intervention i-type [
+    table:put intervention-impacts effect-type impacts
+  ]
 end
 
-;; tests if intervention is applicable by checking if the result is numeric
+;; get the impact of this intervention by farm type and effect (cost/yield/emissions)
+;; return 0 if no effect -- this won't affect any calculations
+to-report get-intervention-impact [ft effect]
+  report table:get-or-default (
+    table:get intervention-impacts effect
+  ) ft 0
+end
+
+;; tests if intervention is applicable by checking if the result is in the impacts table
 to-report is-applicable-to-farm-type? [ft]
-  report is-number? table:get-or-default (table:get intervention-effects "effect-on-costs") ft "NA"
+  report is-number? table:get-or-default (
+    table:get intervention-impacts "costs" ;; pick one at random
+  ) ft "NA"
 end
 
 
 ;; -----------------------------------------
-;; convenience functions
+;; convenience functions for data access
 ;; -----------------------------------------
 
 ;; Convenience function for retrieving a parameter from one of
@@ -698,8 +771,52 @@ end
 
 
 ;; -----------------------------------------
+;; sigmoid function related
+;; -----------------------------------------
+to-report sigmoid [x a]
+  report 1 / (1 + exp (a * (- x)))
+end
+
+to-report logit [x a]
+  if x = 0.5 [report 0]
+  report ln (x / (1 - x)) / a
+end
+
+to-report nudged-threshold [x nudge]
+  if x = 1 [report 1]
+  if x = 0 [report 0]
+  let centre logit x sigmoid-slope
+  report sigmoid (centre + nudge) sigmoid-slope
+end
+
+
+;; -----------------------------------------
 ;; utilility functions
 ;; -----------------------------------------
+
+;; this formulation of relative change avoids overflows when
+;; the base value is close to 0, and is symmetrical relative to the
+;; direction of change ie the absolute value when x0 and x1 are
+;; reversed will be the same, x0 and x1 must be the same sign.
+to-report relative-change [x0 x1]
+  if x0 = 0 and x1 = 0 [ report 0 ]
+  if (x0 * x1) < 0 [
+    show "Error attempting to determine relative change between numbers of opposite sign"
+    report nobody
+  ]
+  let change 2 * abs (x1 - x0) / (abs x1 + abs x0)
+  ifelse x1 < x0
+  [ report (- change) ]
+  [ report    change  ]
+end
+
+to-report percent-change [a b]
+  report 100 * relative-change a b
+end
+
+to-report all-true [lst]
+  report product map [i -> ifelse-value i [1] [0]] lst = 1
+end
 
 to-report set-difference [A B]
   ifelse is-list? A
@@ -711,6 +828,12 @@ to-report set-minus [A y]
   ifelse is-list? A
   [ report remove y A ]
   [ report A with [ not (self = y) ] ]
+end
+
+to-report set-add [A y]
+  ifelse is-list? A
+  [ report lput y A ]
+  [ report (turtle-set A y) ]
 end
 
 to-report is-nan? [x]
@@ -728,27 +851,42 @@ to-report product [numbers]
   [ report reduce * numbers ]
 end
 
-to-report sigmoid [x a]
-  report 1 / (1 + exp (a * (- x)))
-end
-
-to-report logit [x a]
-  if x = 0.5 [report 0]
-  report ln (x / (1 - x)) / a
-end
-
-to-report nudged-threshold [x nudge]
-  if x = 1 [report 1]
-  if x = 0 [report 0]
-  let centre logit x sigmoid-slope
-  report sigmoid (centre + nudge) sigmoid-slope
-end
-
+;; returns approximate centroid of a patch-set
 to-report approximate-centroid [poly]
   let mean-x mean [pxcor] of poly
   let mean-y mean [pycor] of poly
   report one-of poly with-min [distancexy mean-x mean-y]
 end
+
+
+;; ------------------------------------------
+;; string utilities (see netlogo-utils repo)
+;; ------------------------------------------
+
+;; reports string into a list of characters
+to-report string-as-list [str]
+  report n-values length str [i -> item i str]
+end
+
+;; splits a string str on the separator provided
+;; returns a list of strings
+to-report split-string [str sep]
+  let words []
+  let this-word ""
+  foreach (string-as-list str) [ c ->
+    ifelse c = sep
+    [ if this-word != ""
+      [ set words sentence words this-word
+        set this-word ""
+      ]
+    ]
+    [ set this-word word this-word c ]
+  ]
+  ifelse this-word = ""
+  [ report words ]
+  [ report sentence words this-word ]
+end
+
 
 ;; ------------------------------------------
 ;; drawing utilities (see netlogo-utils repo)
@@ -760,9 +898,10 @@ to setup-colours
   table:put colour-key "owner-link" black
   table:put colour-key "border" grey - 2
   table:put colour-key "LUC-palette" "Greens"
-  table:put colour-key "farm-type-palettes" table:from-list zip farm-types ["Grays" "Blues" "Oranges" "Greens"]
-  table:put colour-key "profit" [ 0 64 160 96 ]
-  table:put colour-key "loss" [ 255 0 0 160 ]
+  table:put colour-key "farm-type-palettes" (
+    table:from-list zip farm-types ["YlOrBr" "Greys" "YlGn" "Oranges"])
+  table:put colour-key "profit" [ 64 64 64 128 ]
+  table:put colour-key "loss" [ 255 40 40 160 ]
   table:put colour-key "label" violet - 2
   table:put colour-key "background" grey
 end
@@ -788,27 +927,6 @@ to draw-borders [col]
       ]
     ]
   ]
-end
-
-to-report string-as-list [str]
-  report n-values length str [i -> item i str]
-end
-
-to-report split-string [str sep]
-  let words []
-  let this-word ""
-  foreach (string-as-list str) [ c ->
-    ifelse c = sep
-    [ if this-word != ""
-      [ set words sentence words this-word
-        set this-word ""
-      ]
-    ]
-    [ set this-word word this-word c ]
-  ]
-  ifelse this-word = ""
-  [ report words ]
-  [ report sentence words this-word ]
 end
 
 ;; draw line between two patches
@@ -848,22 +966,24 @@ end
 
 
 ;; -----------------------------------------
-;; farmer revenue output for sanity check
+;; farmer profit output for sanity check
 ;; -----------------------------------------
-to-report revenue-summary [is]
+to-report profit-summary [adopted-interventions]
   let result (list who farm-type table:get prices farm-type count the-land)
   let current-interventions my-interventions
   set my-interventions turtle-set nobody
-  set result lput precision get-costs 1 result
-  set result lput precision get-income 1 result
-  set result lput precision get-net-revenue 1 result
-  foreach but-first is [ i ->
+  let X get-farm-costs false
+  let Y get-farm-income false
+  set result lput precision X 1 result
+  set result lput precision Y 1 result
+  set result lput precision (Y - X) 1 result
+  foreach but-first adopted-interventions [ i ->
     let the-intervention get-intervention i
     ifelse member? the-intervention possible-interventions [
       set my-interventions turtle-set the-intervention
-      set result lput precision get-costs 1 result
-      set result lput precision get-income 1 result
-      set result lput precision get-net-revenue 1 result
+      set result lput precision X 1 result
+      set result lput precision Y 1 result
+      set result lput precision (Y - X) 1 result
       set my-interventions turtle-set nobody
     ]
     [ set result sentence result ["NA" "NA" "NA"] ]
@@ -872,14 +992,14 @@ to-report revenue-summary [is]
   report result
 end
 
-to save-farm-revenue-under-various-interventions [file]
+to save-farm-profit-under-various-interventions [file]
   let sorted-interventions fput "None" sort [intervention-type] of interventions
   let interventions-header sentence ["" "" "" "Interventions"] reduce [ [a b] -> sentence a b ] map [ a -> sentence a ["" ""] ] sorted-interventions
-  let cir ["Cost" "Income" "Revenue"]
+  let cir ["Cost" "Income" "Profit"]
   let header (sentence ["" "Type" "Price" "Area"] cir cir cir cir cir cir)
   let result (list interventions-header header)
   foreach sort farms [ f ->
-    set result lput [revenue-summary sorted-interventions] of f result
+    set result lput [profit-summary sorted-interventions] of f result
   ]
   csv:to-file word output-data-folder file result
 end
@@ -917,7 +1037,7 @@ GRAPHICS-WINDOW
 -1
 3.0
 1
-8
+7
 1
 1
 1
@@ -953,15 +1073,15 @@ NIL
 1
 
 SLIDER
-809
+802
 15
-981
+1045
 48
 sigmoid-slope
 sigmoid-slope
 0.01
-2
-1.0
+5
+2.5
 0.01
 1
 NIL
@@ -974,7 +1094,7 @@ SWITCH
 624
 seed-the-rng?
 seed-the-rng?
-1
+0
 1
 -1000
 
@@ -984,7 +1104,7 @@ INPUTBOX
 1035
 651
 rng-seed
-145.0
+42.0
 1
 0
 Number
@@ -1089,12 +1209,12 @@ RNGs
 1
 
 BUTTON
-93
-582
-167
-615
+95
+683
+169
+716
 redraw
-colour-patches\ndisplay
+colour-patches show-landuse?\ndisplay
 NIL
 1
 T
@@ -1106,10 +1226,10 @@ NIL
 1
 
 BUTTON
-56
-92
-119
-125
+55
+95
+136
+128
 step
 go
 NIL
@@ -1123,10 +1243,10 @@ NIL
 1
 
 BUTTON
-58
-136
-121
-169
+55
+176
+135
+209
 NIL
 go
 T
@@ -1197,6 +1317,34 @@ max-dimension
 1
 NIL
 HORIZONTAL
+
+BUTTON
+55
+135
+136
+168
+step-10
+repeat 10 [go]
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SWITCH
+11
+634
+172
+667
+show-landuse?
+show-landuse?
+0
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?

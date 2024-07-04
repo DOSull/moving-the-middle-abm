@@ -22,6 +22,17 @@ knitr:
       knitr.table.html.attr: "quarto-disable-processing=true"
 ---
 
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date | Changes
+|:-|:--------|
+| 2024-07-02 | Initial post.                                                         
+| 2024-07-03 | Added bar chart of farm income/costs estimates.                       
+| 2024-07-04 | Added detail on calculation of relative change noting that profit can't be handled this way because it is $\pm$ and relative change is meaningless for such variables.
+
+:::
+
 ```{r echo=FALSE}
 library(tidyr)
 library(dplyr)
@@ -33,17 +44,17 @@ library(kableExtra)
 These notes are intended to make it easier to discuss with colleagues if we are approaching the core decision loop in the agent-based model (ABM) for 'Moving the Middle' (MtM) in a coherent and reasonable way.
 
 ## Baseline income equation for farms
-The baseline net revenue $R$ of each hectare of a farm is given by
+The baseline profit $Z$ of each hectare of a farm is given by
 
-$$R=Y-X$$
+$$Z=Y-X$$
 
-where $Y$ is gross revenue, and $X$ is total costs. These are in turn given by
+where $Y$ is gross income, and $X$ is total costs. These are in turn given by
 
 $$
-\begin{matrix}
-Y & = & pq\\
-X & = & \left(x+te\right)
-\end{matrix}
+\begin{array}{rcl}
+Y &=& pq \\
+X &=& \left(x+te\right)
+\end{array}
 $$
 
 where 
@@ -54,11 +65,11 @@ where
 - $e$ is the greenhouse gas emissions per hectare, and 
 - $t$ is the tax on each unit of emissions.
 
-Each of these parameters may depend on the _farm type_ $F$ (one of Crops, Dairy, Forestry, or Sheep/Beef) and the _land use capability_ (LUC), $L$, such that the full calculation of revenue for each hectare of a farm is
+Each of these parameters may depend on the _farm type_ $F$ (one of Crops, Dairy, Forestry, or Sheep/Beef) and the _land use capability_ (LUC), $L$, such that the full calculation of profit for each hectare of a farm is
 $$
-R_{FL} = p_Fq_{FL} - x_{FL} - te_{FL}
+Z_{FL} = p_Fq_{FL} - x_{FL} - te_{FL}
 $$
-and total farm revenue is obtaining by summing this quantity across all hectares of the farm (which may be of varying landuse capability $L$).
+and total farm profit is obtaining by summing this quantity across all hectares of the farm (which may be of varying landuse capability $L$).
 
 ### Parameter values
 The parameter values are stored in a number of CSV files which are read in by the model at start up.
@@ -88,7 +99,7 @@ yields |>
 ```
 
 #### Costs 
-Costs per ha. by farm type and landuse capability, $x_{FL}$, are in the `input-costs.csv` file:
+Base costs per ha. by farm type and landuse capability, $x_{FL}$, are in the `input-costs.csv` file:
 
 ```{r}
 costs <- read.csv("data/market/input-costs.csv", 
@@ -111,9 +122,11 @@ emissions |>
   scroll_box(height = "250px")
 ```
 
-Note that all of yields, costs, and emissions are stored as a mean and a standard deviation, and that individual hectare sites will see these numbers vary every model time period by drawing from a normal distribution.
+&nbsp; 
 
-We can use these data to show the revenue and costs for each farm type across different landuse capability classes. We'll throw away the standard deviations for simplicity and consider only mean outcomes.
+Note that all of yields, base costs, and emissions are stored as a mean and a standard deviation, and that individual hectare sites will see these numbers vary every model time period by drawing from a normal distribution.
+
+We can use these data to show the profit, gross income, and total costs for each farm type across different landuse capability classes. We'll throw away the standard deviations for simplicity and consider only mean outcomes.
 
 ```{r}
 prices <- prices |> 
@@ -155,12 +168,12 @@ combined_data <- prices |>
   left_join(yields) |>
   left_join(costs) |>
   left_join(emissions) |>
-  mutate(income = price * yield, # LUC = as.factor(LUC),
-         total_costs = costs + carbon_tax * emissions,
-         revenue = income - total_costs) |>
-  select(farm_type, LUC, revenue, price, yield, income, costs,
+  mutate(gross_income = price * yield, # LUC = as.factor(LUC),
+         total_costs = costs + carbon_tax * emissions, base_costs = costs,
+         profit = gross_income - total_costs) |>
+  select(farm_type, LUC, profit, price, yield, gross_income, base_costs,
          emissions, carbon_tax, total_costs) |>
-  rename(Revenue = revenue, Income = income, `Total costs` = total_costs)
+  rename(Profit = profit, `Gross income` = gross_income, `Total costs` = total_costs)
 
 combined_data |> 
   kable() |> 
@@ -169,26 +182,26 @@ combined_data |>
 ```
 
 ### Or visually...
-Below are shown the income, costs, and net revenue per hectare for each farm type across the eight landuse capability classes.
+Below are shown the income, costs, and net revenue per hectare for each farm type across the eight landuse capability classes. These are crude estimates dating back to the ARLUNZ model^[See: Morgan FJ and AJ Daigneault. 2015. [Estimating Impacts of Climate Change Policy on Land Use: An Agent-Based Modelling Approach](https://dx.doi.org/10.1371/journal.pone.0127317). _PLOS ONE_ **10**(5): e0127317.] and will be updated in due course.
 
 ```{r}
 plot_data <- combined_data |> 
-  pivot_longer(cols = c("Income", "Revenue", "Total costs"))
+  pivot_longer(cols = c("Gross income", "Profit", "Total costs"))
 
-ggplot(plot_data |> filter(name %in% c("Income", "Total costs"))) +
+ggplot(plot_data |> filter(name %in% c("Gross income", "Total costs"))) +
   geom_col(aes(x = LUC, y = value, group = name, fill = name),
            position = "dodge") + 
   scale_fill_manual(values = c("#999999", "#ff6666"), name = "Income vs. Costs") +
-  geom_point(data = plot_data |> filter(name == "Revenue"), 
+  geom_point(data = plot_data |> filter(name == "Profit"), 
             aes(x = LUC, y = value, shape = name), size = 7) +
   scale_shape_manual(values = "\u2014", name = "") + # \u2014 is an em-dash
   # The below more correct, but doesn't extend the lines to the full width of the plot
-  # geom_step(data = plot_data |> filter(name == "Revenue"), 
+  # geom_step(data = plot_data |> filter(name == "Profit"), 
   #           aes(x = LUC, y = value, group = farm_type, colour = name), 
   #           direction = "mid", lwd = 0.65) +
   # scale_colour_manual(values = c("black"), name = "") +
   xlab("Landuse Capability (LUC)") +
-  ylab("Net Revenue, $ per ha.") +
+  ylab("Profit, $ per ha.") +
   facet_wrap(~ farm_type) +
   theme_minimal()
 ```
@@ -205,13 +218,24 @@ A range of possible interventions $I=\{i_1,i_2,\ldots i_n\}$ may be undertaken b
 
 The currently adopted interventions on a particular farm we denote $A$ which will be a subset of the available interventions $I$. Not all interventions will make sense on each farm, so it might be more accurate to think of there being a number of intervention sets $I_F$ and on a particular farm of type $F$, the adopted interventions $A$ are some subset of $I_F$, with the potential new interventions to be considered in each time interval given by $I_F\setminus A$, that is the possible interventions on this type of farm not yet adopted.
 
-For each intervention $i_i$ there are associated impacts, in terms of added costs $\Delta x_{iFL}$, and changes in yields $\Delta q_{iFL}$ and emissions $\Delta e_{iFL}$, where the $F$ and $L$ subscripts indicate the dependence of these impacts on farm type $F$ and landuse capability $L$. 
+For each intervention $i_i$ there are associated impacts, in terms of added costs $\Delta x_{iFL}$, and changes in yields $\Delta q_{iFL}$ and emissions $\Delta e_{iFL}$, where the $F$ and $L$ subscripts indicate the dependence of these impacts on farm type $F$ and landuse capability $L$. The impacts of various interventions are stored in the `intervention-impacts.csv` file:
+
+```{r}
+interventions <- read.csv("data/market/intervention-impacts.csv", 
+                          header = T)
+interventions |> 
+  kable() |> 
+  kable_styling("striped", full_width = F) |>
+  scroll_box(height = "250px")
+```
+
+&nbsp;
 
 The adopted interventions on a particular farm, change its yield to
 $$
 q = q_{FL}\prod_{i\in A} \left( 1+\Delta q_{iFL} \right)
 $$
-its costs to
+its total costs to
 $$
 x = x_{FL} + \sum_{i\in A} \Delta x_{iFL}
 $$
@@ -219,39 +243,44 @@ and its emissions to
 $$
 e = e_{FL}\prod_{i\in A} \left(1+\Delta e_{iFL}\right)
 $$
-Together these give us an overall net revenue for each hectare of landuse capability $L$ on a farm of type $F$ that has adopted a set of interventions $A$ 
+Together these give us an overall profit for each hectare of landuse capability $L$ on a farm of type $F$ that has adopted a set of interventions $A$ 
 $$
 {
-Y_A = \underbrace{ p_Fq_{FL}\prod_{i\in A} \left( 1+\Delta q_{iFL} \right)}_{\mathrm{total\thinspace income}\,Y} - 
+Y_A = \underbrace{ p_Fq_{FL}\prod_{i\in A} \left( 1+\Delta q_{iFL} \right)}_{\mathrm{gross\thinspace income}\,Y} - 
 \underbrace{
-  \underbrace{\left( x_{FL} + \sum_{i\in A}\Delta x_{iFL} \right)}_{\mathrm{running\thinspace costs}} - 
+  \underbrace{\left( x_{FL} + \sum_{i\in A}\Delta x_{iFL} \right)}_{\mathrm{base\thinspace costs}} - 
   \underbrace{te_{FL}\prod_{i\in A} \left(1+\Delta e_{iFL} \right)}_{\mathrm{carbon\thinspace costs}}
 }_{\mathrm{total\thinspace costs}\,X}
 }
 $$
-and the overall net revenue of any farm is given by summing this result across its constituent hectares. It is convenient to think of the net revenue as being the difference in the total income given by the first term in the above equation, and total costs given by the second and third terms.
+and the overall profit of any farm is given by summing this result across its constituent hectares. It is convenient to think of the profit as being the difference in the gross income given by the first term in the above equation, and total costs given by the second and third terms.
 
 ## Considering interventions
-The current net revenue of a farm is determined as in the previous section. Call the current gross revenue and total cost components $Y_0$ and $X_0$, respectively. 
+The current profit of a farm is determined as in the previous section. Call the current profit, gross income, and total cost components $\tilde{Y}_0$ and $\tilde{X}_0$, respectively. 
 
-Then, for each intervention under consideration, i.e., each intervention $i_i\in I_F\setminus A$, the  new income and costs that would result $Y_i$ and $X_i$ are determined using the same equation, but with $A_i=A\cup\{i_i\}$ augmented to include the new intervention.
+Then, for each intervention under consideration, i.e., each intervention $i_i\in I_F\setminus A$, the new expected gross income, and total costs that would result $\bar{Y}_i$ and $\bar{X}_i$ are determined using the same equation, but with $A_i=A\cup\{i_i\}$ augmented to include the new intervention, _and no variance in outcomes taken into consideration, i.e., using only the mean yield, costs, and emissions settings_ (the $\tilde{Y}_0$ and $\tilde{X}_0$ values _will_ reflect that variance in the most recent year's results).
 
-This gives us percentage changes in each component
-
+This gives us [_relative change_](https://en.wikipedia.org/wiki/Relative_change) in each component, which for a particular component we define as
 $$
-\begin{matrix}
-\Delta Y_i & = & 100\left(Y_i - Y_0\right)/Y_0 \\
-\Delta X_i & = & 100\left(X_i - X_0\right)/X_0
-\end{matrix}
-$$
-
-If we denote the baseline probability of adoption of each intervention on a particular farm type by $P_{iF}$ then we adjust this probability using the above two percentages according to
-
-$$
-P'_{iF}= \left. 1 \middle/ \left(1+e^{\ln\frac{P_{iF}}{1-P_{iF}} + \Delta Y_i - \Delta X_i} \right) \right.
+\Delta x = \left\{
+\begin{array}{rl}
+  \left. 200\left(|x_1 - x_0|\right) \middle/ \left( |x_1| + |x_0| \right) \right. & \text{if $x_1>x_0$} \\
+  \left. -200\left(|x_1 - x_0|\right) \middle/ \left( |x_1| + |x_0| \right) \right. & \text{if $x_1<x_0$} \\
+  0 & \text{if $x_0$ and $x_1=0$}
+\end{array}\right.
 $$
 
-This puts the adoption probability of any intervention on a sigmoid curve, given by $p = 1/(1 + e^{-ax})$ where $x$ is some 'input' and $a$ is a rate of change in the probability in response to changes in the inputs. We haven't determined an appropriate setting for $a$, but intuitively it is a kind of measure of the 'elasticity' of farmer responses to changes in the combination of pressures driving their decision making. At low $a$ large pushes are needed to make much difference to the probability of a particular intervention; at high $a$ smaller pushes (perhaps even nudges!) might suffice.
+**NOTE:** this formulation works if both quantities are of the same sign (both positive, or both negative) but produces meaningless results if the before and after quantities are of different sign, and so the approach outlined here should not be extended to the profit of farms, which may be either negative or positive. 
+
+Values for $\Delta Y_i$ and $\Delta X_i$ are calculated in this way and used to determine adjusted relative probabilities of adoption of each possible intervention. If we denote the baseline probability of adoption of each intervention on a particular farm type by $P_{iF}$ then we adjust this probability using the '$\Delta$'s according to
+$$
+{
+  P'_{iF}= \left. 1 \middle/ \left(1+e^{\ln\frac{P_{iF}}{1-P_{iF}} + 
+  \Delta R_i + \Delta Y_i - \Delta X_i} \right) \right.
+}
+$$
+
+This puts the adoption probability of any intervention on a sigmoid curve, given by $P = 1/(1 + e^{-ax})$ where $x$ is some 'input' and $a$ is a rate of change in the probability in response to changes in the inputs. We haven't determined an appropriate setting for $a$, but intuitively it is a kind of measure of the 'elasticity' of farmer responses to changes in the combination of pressures driving their decision making. At low $a$ large pushes are needed to make much difference to the probability of a particular intervention; at high $a$ smaller pushes (perhaps even nudges!) might suffice.
  
 ```{r}
 sigmoid <- function(x, a = 1) {
@@ -269,7 +298,7 @@ ggplot(df) +
            label = paste0("a = ", unique(df$a)))
 ```
 
-A positive calculated change in income $\Delta Y_i$ pushes the farmer's probability of adoption of intervention $i$ higher (to the right), and any increase in total costs$\Delta X_i$ pushes it lower (to the left). We start with initial probabilities of adoption in the `farmer-threshold-matrix.csv` file:
+A positive calculated change in either net revenue $\Delta R_i$, or income $\Delta Y_i$, pushes the farmer's probability of adoption of intervention $i$ higher (to the right), and any increase in total costs $\Delta X_i$ pushes it lower (to the left). We start with initial probabilities of adoption in the `farmer-threshold-matrix.csv` file:
 
 ```{r}
 probabilities <- read.csv("data/market/farmer-threshold-matrix.csv", 

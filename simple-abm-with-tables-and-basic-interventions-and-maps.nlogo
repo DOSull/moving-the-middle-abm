@@ -130,7 +130,7 @@ end
 
 ;; put a model stop condition here
 to-report stop-model?
-  ifelse all-true [length available-interventions = 0] of farms [
+  ifelse sum [length available-interventions] of farms = 0 [
     show "Stopping model: all possible interventions implemented on all farms!"
     report true
   ]
@@ -1491,7 +1491,7 @@ random-landscape-RNG
 random-landscape-RNG
 0
 1000
-500.0
+0.0
 1
 1
 NIL
@@ -1506,50 +1506,6 @@ Set to 0 for completely random landscape.
 11
 0.0
 1
-
-MONITOR
-806
-824
-1098
-869
-NIL
-sum [length available-interventions] of farms
-17
-1
-11
-
-MONITOR
-808
-872
-896
-917
-NIL
-count farms
-17
-1
-11
-
-MONITOR
-900
-872
-1001
-917
-NIL
-count farmers
-17
-1
-11
-
-MONITOR
-1005
-869
-1121
-914
-NIL
-count interventions
-17
-1
-11
 
 @#$#@#$#@
 ## WHAT IS IT?

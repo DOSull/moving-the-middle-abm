@@ -14,6 +14,8 @@ globals [
   spatial-data-folder
   show-labels?
 
+  epsilon                 ;; for convenience - constant for 'smallest number'
+
   parcels-data            ;; GIS functionality depends on reading the data into an object
   luc-data                ;; then acccesing it again later
 
@@ -84,6 +86,7 @@ to setup
   set market-data-folder word base-data-folder "market/"                ;; 'data/market/'
   set spatial-data-folder (word base-data-folder "spatial/" region "/") ;; 'data/spatial/REGION-NAME/'
 
+  set epsilon 1e-16
   set show-labels? false
   if seed-the-rng? [ random-seed rng-seed ]
 
@@ -110,7 +113,9 @@ to go
     if [count available-interventions] of my-farm > 0 [
       let potential-change consider-interventions false
       if random-float 1 < last potential-change [
-        print (word "Farmer " who " implementing " first potential-change " on " [farm-type] of my-farm " " [who] of my-farm)
+        print (word "Farmer " who " implementing "
+          [intervention-type] of first potential-change " on "
+          [farm-type] of my-farm " " [who] of my-farm)
         ask my-farm [
           implement-intervention first potential-change
         ]
@@ -374,11 +379,9 @@ to setup-geography
       set this-farm self
     ]
     set my-farm this-farm
-    set label [farm-type] of my-farm
-    set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
     set hidden? true
   ]
-  colour-patches show-landuse?
+  colour-patches true
 end
 
 to setup-geography-from-files
@@ -411,8 +414,12 @@ to setup-geography-from-files
 end
 
 to setup-random-geography
-  setup-random-luc-codes
-  create-farmers 100 [ initialise-farmer ]
+  with-local-randomness [
+    if random-landscape-RNG != 0
+    [ random-seed random-landscape-RNG ]
+    setup-random-luc-codes
+    create-farmers 100 [ initialise-farmer ]
+  ]
   ;; make the farms proximity polygons based on farmer locations
   ask patches [ set the-owner min-one-of farmers [distance myself] ]
 end
@@ -475,24 +482,6 @@ to setup-world-dimensions
   set-patch-size cell-size * max-dimension / max (list world-width world-height)
   ask patches [ set pcolor table:get colour-key "background" ]
   display
-end
-
-to colour-patches [show-farm-type?]
-  ifelse show-farm-type? [
-    foreach table:to-list table:get colour-key "farm-type-palettes" [ farm-type-palette ->
-      let ft item 0 farm-type-palette
-      let pal-name item 1 farm-type-palette
-      ask farm-land with [get-farm-type = ft] [
-        set pcolor palette:scale-scheme "Sequential" pal-name 9 luc-code 8 0
-      ]
-    ]
-  ]
-  [
-    let pal table:get colour-key "LUC-palette"
-    ifelse show-luc-codes?
-    [ ask farm-land [ set pcolor palette:scale-scheme "Sequential" pal 9 luc-code 8 0 ] ]
-    [ ask farm-land [ set pcolor green + 4 ] ]
-  ]
 end
 
 
@@ -590,12 +579,13 @@ to initialise-farm
       set hidden? true
     ]
     setxy mean [pxcor] of the-land mean [pycor] of the-land
-    set shape "circle"
+    set shape "circle 3"
     set hidden? false
     set farm-type one-of farm-types
+    set label farm-type
+    set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
     set my-interventions turtle-set nobody
     set available-interventions possible-interventions
-    set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
   ]
 end
 
@@ -617,11 +607,7 @@ to update-profit-of-farm
   set current-income get-farm-income true
   set current-costs get-farm-costs true
   set current-profit current-income - current-costs
-  set size sqrt (abs current-profit / 2e3) ;; scaling size of net profit circle
-  ifelse current-profit > 0
-  [ set color table:get colour-key "profit" ]
-  [ set color table:get colour-key "loss" ]
-  set label (word (count my-interventions) "/" (count my-interventions + count available-interventions))
+  redraw-farm
 end
 
 to-report possible-interventions
@@ -694,7 +680,7 @@ to-report consider-interventions [show-messages?]
     ;; get the base probabilities for this farmer (which might be changeable over time)
     let base-probs map [poss -> get-adoption-probability poss] to-consider
     ;; adjust probabilities using the sigmoid function
-    let new-probs (map [[prob score] -> nudged-threshold prob score] base-probs scores)
+    let new-probs (map [[prob score] -> nudged-probability prob score] base-probs scores)
     if show-messages? [
       show [farm-type] of fm
       show to-consider
@@ -744,8 +730,75 @@ end
 
 
 ;; -----------------------------------------
-;; convenience functions for data access
+;; model rendering
 ;; -----------------------------------------
+
+;; colour in the map by landuse and LUC
+to colour-patches [colour-by-type?]
+  ifelse colour-by-type? and show-landuse? [
+    ifelse show-luc-codes? [
+      foreach table:to-list table:get colour-key "farm-type-palettes" [ farm-type-palette ->
+        let ft item 0 farm-type-palette
+        let pal-name item 1 farm-type-palette
+        ask farm-land with [get-farm-type = ft] [
+          set pcolor palette:scale-scheme "Sequential" pal-name 9 luc-code 9 0
+        ]
+      ]
+    ]
+    [
+      foreach table:to-list table:get colour-key "farm-type" [ farm-type-colours ->
+        let ft item 0 farm-type-colours
+        let col item 1 farm-type-colours
+        ask farm-land with [get-farm-type = ft] [
+          set pcolor col
+        ]
+      ]
+    ]
+  ]
+  [
+    let pal table:get colour-key "LUC-palette"
+    ifelse show-luc-codes?
+    [ ask farm-land [ set pcolor palette:scale-scheme "Sequential" pal 9 luc-code 9 0 ] ]
+    [ ask farm-land [ set pcolor green + 2 ] ]
+  ]
+end
+
+to redraw-farm
+    set size sqrt (abs current-profit / 2e3) ;; scaling size of net profit circle
+    ifelse current-profit > 0 [
+      ifelse farm-type-colours?
+      [ set color table:get table:get colour-key "farm-type" farm-type ]
+      [ set color table:get colour-key "profit" ]
+    ]
+    [ set color table:get colour-key "loss" ]
+    set color color palette:with-alpha 160
+    set label (word
+      farm-type ": "
+      (count my-interventions) "/"
+      (count my-interventions + count available-interventions))
+end
+
+to redraw-farms
+  ask farms [ redraw-farm ]
+end
+
+to setup-colours
+  set colour-key table:make
+  table:put colour-key "farmer" black
+  table:put colour-key "farmer-label" black
+  table:put colour-key "farm-type"
+    table:from-list zip farm-types (list (yellow + 1) (grey + 2) (green - 2) brown)
+  table:put colour-key "owner-link" black
+  table:put colour-key "border" grey - 1
+  table:put colour-key "LUC-palette" "Greens"
+  table:put colour-key "farm-type-palettes" (
+    table:from-list zip farm-types ["YlOrBr" "Greys" "YlGn" "Oranges"])
+  table:put colour-key "profit" grey - 3
+  table:put colour-key "loss" red
+  table:put colour-key "label" violet - 2
+  table:put colour-key "background" grey
+end
+
 
 ;; Convenience function for retrieving a parameter from one of
 ;; the global nested tables the values are stored in
@@ -773,19 +826,37 @@ end
 ;; -----------------------------------------
 ;; sigmoid function related
 ;; -----------------------------------------
+
+;; see https://en.wikipedia.org/wiki/Sigmoid_function
+;; the argument a increases the slope at (0, 0.5)
 to-report sigmoid [x a]
   report 1 / (1 + exp (a * (- x)))
 end
 
-to-report logit [x a]
-  if x = 0.5 [report 0]
-  report ln (x / (1 - x)) / a
+;; see https://en.wikipedia.org/wiki/Logit
+;; inverse of the sigmoid function - used to determine
+;; where on the sigmoid a given probability lies
+;; NOTE: commented 'epsilon correction' avoids errors from
+;; overflow/underflow but might be incorrect in practice
+to-report logit [p a]
+  if p = 0.5 [report 0]
+  ;; if p = 1 [report logit (1 - epsilon) a]
+  ;; if p = 0 [report logit epsilon a]
+  report ln (p / (1 - p)) / a
 end
 
-to-report nudged-threshold [x nudge]
-  if x = 1 [report 1]
-  if x = 0 [report 0]
-  let centre logit x sigmoid-slope
+;; reports revised probability from 'nudging' initial
+;; initial probability p along a sigmoid curve
+;; NOTE: that starting from 0 and 1 it's unclear if the epsilon
+;; adjustment should be used or not... see commented out code
+to-report nudged-probability [p nudge]
+  ;; if p = 1 [
+  ;;   report ifelse-value nudge > 0 [1] [nudged-probability (1 - epsilon) nudge]
+  ;; ]
+  ;; if p = 0 [
+  ;;   report ifelse-value nudge < 0 [0] [nudged-probability epsilon nudge]
+  ;; ]
+  let centre logit p sigmoid-slope
   report sigmoid (centre + nudge) sigmoid-slope
 end
 
@@ -891,20 +962,6 @@ end
 ;; ------------------------------------------
 ;; drawing utilities (see netlogo-utils repo)
 ;; ------------------------------------------
-to setup-colours
-  set colour-key table:make
-  table:put colour-key "farmer" black
-  table:put colour-key "farmer-label" black
-  table:put colour-key "owner-link" black
-  table:put colour-key "border" grey - 2
-  table:put colour-key "LUC-palette" "Greens"
-  table:put colour-key "farm-type-palettes" (
-    table:from-list zip farm-types ["YlOrBr" "Greys" "YlGn" "Oranges"])
-  table:put colour-key "profit" [ 64 64 64 128 ]
-  table:put colour-key "loss" [ 255 40 40 160 ]
-  table:put colour-key "label" violet - 2
-  table:put colour-key "background" grey
-end
 
 to draw-borders [col]
   ifelse setup-geography-from-files?
@@ -994,7 +1051,9 @@ end
 
 to save-farm-profit-under-various-interventions [file]
   let sorted-interventions fput "None" sort [intervention-type] of interventions
-  let interventions-header sentence ["" "" "" "Interventions"] reduce [ [a b] -> sentence a b ] map [ a -> sentence a ["" ""] ] sorted-interventions
+  let interventions-header sentence
+    ["" "" "" "Interventions"]
+    reduce [ [a b] -> sentence a b ] map [ a -> sentence a ["" ""] ] sorted-interventions
   let cir ["Cost" "Income" "Profit"]
   let header (sentence ["" "Type" "Price" "Area"] cir cir cir cir cir cir)
   let result (list interventions-header header)
@@ -1029,10 +1088,10 @@ end
 ;; DEALINGS IN THE SOFTWARE.
 @#$#@#$#@
 GRAPHICS-WINDOW
-184
-10
-658
-915
+215
+12
+689
+917
 -1
 -1
 3.0
@@ -1056,10 +1115,10 @@ ticks
 30.0
 
 BUTTON
-54
-35
-120
-68
+85
+37
+168
+70
 NIL
 setup
 NIL
@@ -1073,10 +1132,10 @@ NIL
 1
 
 SLIDER
-802
-15
-1045
-48
+846
+17
+1089
+50
 sigmoid-slope
 sigmoid-slope
 0.01
@@ -1088,21 +1147,21 @@ NIL
 HORIZONTAL
 
 SWITCH
-808
-591
-955
-624
+849
+716
+996
+749
 seed-the-rng?
 seed-the-rng?
-0
+1
 1
 -1000
 
 INPUTBOX
-961
-591
-1035
-651
+850
+756
+952
+816
 rng-seed
 42.0
 1
@@ -1110,37 +1169,37 @@ rng-seed
 Number
 
 TEXTBOX
-962
-657
-1045
-704
+960
+759
+1043
+806
 Integer value value for RNG seed
 11
 0.0
 1
 
 OUTPUT
-805
-118
-1013
-240
+849
+138
+1057
+260
 11
 
 TEXTBOX
-812
-85
-962
-113
-Interventions\n(for information)
+853
+117
+1040
+135
+Interventions (for information)
 11
 0.0
 1
 
 SWITCH
-802
-351
-1042
-384
+847
+359
+1087
+392
 setup-geography-from-files?
 setup-geography-from-files?
 0
@@ -1148,10 +1207,10 @@ setup-geography-from-files?
 -1000
 
 SLIDER
-806
-490
-1033
-523
+850
+536
+1077
+569
 luc-aggregation-steps
 luc-aggregation-steps
 0
@@ -1163,20 +1222,20 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-802
-467
-952
-485
+846
+513
+996
+531
 Random landscape
 12
 0.0
 1
 
 SLIDER
-805
-529
-1034
-562
+849
+575
+1078
+608
 farm-centroid-inhibition-distance
 farm-centroid-inhibition-distance
 0
@@ -1188,10 +1247,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-11
-540
-175
-573
+39
+661
+203
+694
 show-luc-codes?
 show-luc-codes?
 0
@@ -1199,22 +1258,22 @@ show-luc-codes?
 -1000
 
 TEXTBOX
-805
-574
-845
-592
-RNGs
+846
+696
+1001
+714
+Model process RNGs
 12
 0.0
 1
 
 BUTTON
-95
-683
-169
-716
+128
+738
+202
+771
 redraw
-colour-patches show-landuse?\ndisplay
+colour-patches show-landuse?\nredraw-farms\ndisplay
 NIL
 1
 T
@@ -1226,10 +1285,10 @@ NIL
 1
 
 BUTTON
-55
-95
-136
-128
+86
+97
+167
+130
 step
 go
 NIL
@@ -1243,10 +1302,10 @@ NIL
 1
 
 BUTTON
-55
-176
-135
-209
+86
+178
+166
+211
 NIL
 go
 T
@@ -1260,20 +1319,20 @@ NIL
 1
 
 CHOOSER
-808
-394
-946
-439
+853
+402
+991
+447
 region
 region
 "Rangitaiki"
 0
 
 BUTTON
-20
-488
-169
-521
+53
+780
+202
+813
 toggle-labels
 set show-labels? not show-labels?\nifelse show-labels?\n[ ask turtles \n  [ set label-color table:get colour-key \"label\" ] ]\n[ ask turtles\n  [ set label-color [0 0 0 0] ] ]\n
 NIL
@@ -1287,10 +1346,10 @@ NIL
 1
 
 BUTTON
-20
-445
-168
-478
+54
+821
+202
+854
 toggle-farmers
 ask farmers [\n  set hidden? not hidden?\n]
 NIL
@@ -1304,10 +1363,10 @@ NIL
 1
 
 SLIDER
-808
-306
-980
-339
+848
+281
+1020
+314
 max-dimension
 max-dimension
 200
@@ -1319,10 +1378,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-55
-135
-136
-168
+86
+137
+167
+170
 step-10
 repeat 10 [go]
 NIL
@@ -1336,15 +1395,111 @@ NIL
 1
 
 SWITCH
-11
-634
-172
-667
+40
+463
+204
+496
 show-landuse?
 show-landuse?
+1
+1
+-1000
+
+SWITCH
+39
+598
+203
+631
+farm-type-colours?
+farm-type-colours?
 0
 1
 -1000
+
+TEXTBOX
+860
+56
+1075
+86
+Bigger numbers amplify the impact of nudges (in both directions)
+11
+0.0
+1
+
+TEXTBOX
+857
+451
+1007
+479
+You'll need the named regional spatial subfolder
+11
+0.0
+1
+
+TEXTBOX
+40
+698
+208
+727
+More intense colours are lower LUC values (better land).
+11
+0.0
+1
+
+TEXTBOX
+43
+500
+195
+584
+Colour key (applies to both landuse and farm symbols)\nBrown - SNB\nGrey - Dairy\nGreen - Forestry \nYellow - Crop
+11
+0.0
+1
+
+TEXTBOX
+40
+635
+208
+653
+Loss-making farms always red
+11
+0.0
+1
+
+TEXTBOX
+851
+318
+1019
+346
+Longer dimension of map will be this many patches.
+11
+0.0
+1
+
+SLIDER
+861
+616
+1065
+649
+random-landscape-RNG
+random-landscape-RNG
+0
+1000
+500.0
+1
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+865
+653
+1102
+671
+Set to 0 for completely random landscape.
+11
+0.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1449,6 +1604,12 @@ false
 0
 Circle -7500403 true true 0 0 300
 Circle -16777216 true false 30 30 240
+
+circle 3
+false
+0
+Circle -7500403 true true 2 2 297
+Circle -16777216 false false -1 -1 301
 
 cow
 false

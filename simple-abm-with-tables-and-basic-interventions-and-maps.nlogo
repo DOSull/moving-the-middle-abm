@@ -20,6 +20,7 @@ globals [
   luc-data                ;; then acccesing it again later
 
   farm-land               ;; patches that are on farms
+  not-farm-land
 
   farm-types              ;; list of named farm types
   commodity-yield-means   ;; table of mean yields by LUC and farm-type
@@ -50,6 +51,13 @@ farms-own [
   current-costs           ;; costs of farm summed across patches
   my-interventions        ;; list of intervention types already implemented
   available-interventions ;; list of intervention types that could be implemented
+  ;; initial values of the above
+  farm-type-0
+  current-profit-0
+  current-income-0
+  current-costs-0
+  my-interventions-0
+  available-interventions-0
 ]
 
 farmers-own [
@@ -72,17 +80,25 @@ patches-own [
   cost-sd
   emissions-per-ha
   emissions-sd
+  ;; initial values of each of the above
+  yield-per-ha-0
+  yield-sd-0
+  cost-per-ha-0
+  cost-sd-0
+  emissions-per-ha-0
+  emissions-sd-0
 ]
 
 ;; -----------------------------------------
 ;; MAIN LOOP i.e., setup and go
 ;; -----------------------------------------
 to setup
+  ;; Setup order is very sensitive to a number of interdependencies among the various
+  ;; elements. So be VERY CAREFUL IF CHANGING THE SEQUENCE OF OPERATIONS in this procedure
   clear-all
 
   set epsilon 1e-16
   set show-labels? false
-  if seed-the-rng? [ random-seed rng-seed ]
 
   let base-data-folder "data/"
   set output-data-folder word base-data-folder "output/"                ;; 'data/output/'
@@ -93,11 +109,17 @@ to setup
 
   setup-farmer-parameters
   setup-colours
+  ask patches [ set pcolor table:get colour-key "background" ]
+  if seed-geography-rng? [ random-seed rng-geography ]
   setup-geography
+  assign-patches-to-farmers
+  assign-farms-to-farmers
+  if seed-setup-rng? [ random-seed rng-economics ]
   setup-economic-parameters
-
   reset-ticks
   go ;; this initialises the farms with current net profit and some interventions
+  store-initial-values
+  if run-rng-seed != 0 [ random-seed run-rng-seed ]
 end
 
 ;; the main model loop
@@ -162,21 +184,68 @@ to setup-farmer-parameters
   ;; Farm_Plan        , 0.7, 0.85,  0.4,    0.6
   ;; Join_ETS         , 0.2, 0.2,   0.9,    0.4
   ;;
-  read-farm-types-and-interventions-from-file word market-data-folder "farmer-threshold-matrix.csv"
-  read-interventions-from-file word market-data-folder "intervention-impacts.csv"
-  read-thresholds-table-from-file word market-data-folder "farmer-threshold-matrix.csv"
+  read-farm-types-from-file word market-data-folder "farmer-threshold-matrix.csv"
+  read-interventions-from-file word market-data-folder "farmer-threshold-matrix.csv"
+  read-farmer-thresholds-from-file word market-data-folder "farmer-threshold-matrix.csv"
+  read-intervention-impacts-from-file word market-data-folder "intervention-impacts.csv"
 end
 
 ;; setup farm types and interventions
-to read-farm-types-and-interventions-from-file [file]
+to read-farm-types-from-file [file]
   carefully [
-    print word "Reading farm types and interventions from " file
+    print word "Reading farm types from " file
     file-open file
     set farm-types but-first csv:from-row file-read-line
+    file-close
+  ]
+  [
+    print "ERROR: problem reading farm types from thresholds data file"
+    file-close
+  ]
+end
+
+;; setup interventions
+to read-interventions-from-file [file]
+  carefully [
+    print word "Reading intervention types from " file
+    file-open file
+    let skip file-read-line
     while [not file-at-end?] [
       create-interventions 1 [
         initialise-intervention item 0 csv:from-row file-read-line
       ]
+    ]
+    file-close
+  ]
+  [
+    print "ERROR: problem reading intervention types from thresholds data file"
+    file-close
+  ]
+end
+
+;; setup baseline probability of adoption of interventions by farm type
+to read-farmer-thresholds-from-file [file]
+  ;; CSV file looks like this (spacing added for clarity)
+  ;;
+  ;;                   , SNB, Dairy, Forest, Crop
+  ;;  Build_Wetland    , 0.7,  0.75,    0.3,  0.5
+  ;;  Riparian_Planting, 0.7,  0.75,    0.2,  0.4
+  ;;  Clean_Races      , 0.2,  0.7 ,    0  ,  0
+  ;;  Farm_Plan        , 0.7,  0.85,    0.4,  0.6
+  ;;  Join_ETS         , 0.2,  0.2 ,    0.9,  0.4
+  ;;
+  ;; resulting table is read by
+  ;;   table-get (table:get base-thresholds INTERVENTION-NAME) FARM-TYPE
+  set base-thresholds table:make
+  carefully [
+    print word "Reading farmer adoption thresholds from file " file
+    file-open file
+    let the-farm-types but-first csv:from-row file-read-line
+    while [not file-at-end?] [
+      let data csv:from-row file-read-line
+      let the-intervention item 0 data
+      let vals table:from-list zip the-farm-types (but-first data)
+      table:put base-thresholds the-intervention vals
     ]
     file-close
   ]
@@ -188,7 +257,7 @@ end
 
 ;; initialise the global intervention-effects table
 ;; which holds production function impacts by intervention type, effect, and farm type
-to read-interventions-from-file [file]
+to read-intervention-impacts-from-file [file]
   ;; CSV file format like this - note that each intervention should be
   ;; 3 consecutive lines with its effects (these can be in any order)
   ;; farm types can also be in any order. Spaces added for clarity
@@ -223,38 +292,6 @@ to read-interventions-from-file [file]
   ]
   [
     print "ERROR: problem reading the interventions effects file"
-    file-close
-  ]
-end
-
-;; setup baseline probability of adoption of interventions by farm type
-to read-thresholds-table-from-file [file]
-  ;; CSV file looks like this (spacing added for clarity)
-  ;;
-  ;;                   , SNB, Dairy, Forest, Crop
-  ;;  Build_Wetland    , 0.7,  0.75,    0.3,  0.5
-  ;;  Riparian_Planting, 0.7,  0.75,    0.2,  0.4
-  ;;  Clean_Races      , 0.2,  0.7 ,    0  ,  0
-  ;;  Farm_Plan        , 0.7,  0.85,    0.4,  0.6
-  ;;  Join_ETS         , 0.2,  0.2 ,    0.9,  0.4
-  ;;
-  ;; resulting table is read by
-  ;;   table-get (table:get base-thresholds INTERVENTION-NAME) FARM-TYPE
-  set base-thresholds table:make
-  carefully [
-    print word "Reading farmer adoption thresholds from file " file
-    file-open file
-    let the-farm-types but-first csv:from-row file-read-line
-    while [not file-at-end?] [
-      let data csv:from-row file-read-line
-      let the-intervention item 0 data
-      let vals table:from-list zip the-farm-types (but-first data)
-      table:put base-thresholds the-intervention vals
-    ]
-    file-close
-  ]
-  [
-    print "ERROR: problem reading the farmer thresholds data file"
     file-close
   ]
 end
@@ -369,23 +406,10 @@ end
 ;;       LUC codes
 ;; -----------------------------------------
 to setup-geography
-  setup-world-dimensions
-  ;; first initialise patch LUC codes and
-  ;; assign patches to farmers to make farms
   ifelse setup-geography-from-files?
   [ setup-geography-from-files ]
   [ setup-random-geography ]
-  draw-borders table:get colour-key "border"
-  ;; then we can initialise the farms
-  ask farmers [
-    let this-farm nobody
-    hatch-farms 1 [
-      initialise-farm
-      set this-farm self
-    ]
-    set my-farm this-farm
-    set hidden? true
-  ]
+  ;; assign patches to farmers to make farms
   colour-patches true
 end
 
@@ -395,45 +419,46 @@ to setup-geography-from-files
     set luc-data gis:load-dataset word spatial-data-folder "luc.asc"
     print (word "Reading farm data from " spatial-data-folder "parcels.shp")
     set parcels-data gis:load-dataset word spatial-data-folder "parcels.shp"
-
-    gis:apply-raster luc-data luc-code
-    set farm-land patches with [not is-nan? luc-code and luc-code != 0]
-    colour-patches false
-    display ;; do this early for reassurance...
-
-    ;; setup farms based on distinct parcels identified by ID in the parcels data
-    gis:apply-coverage parcels-data "ID" temp-ID
-    foreach remove-duplicates [temp-ID] of patches [ id ->
-      let this-farms-land farm-land with [temp-ID = id]
-      if any? this-farms-land [
-        let this-farmer nobody
-        ask approximate-centroid this-farms-land [
-          sprout-farmers 1 [
-            initialise-farmer
-            set this-farmer self
-          ]
-        ]
-        ask this-farms-land [
-          set the-owner this-farmer
-        ]
-      ]
-    ]
-    display
   ]
   [
     print "ERROR: problem reading spatial data"
   ]
+  gis:apply-raster luc-data luc-code
+  set farm-land patches with [not is-nan? luc-code and luc-code > 0]
+  colour-patches false
+  display ;; do this early for reassurance...
+  let bgcolor table:get colour-key "background"
+  set not-farm-land patches with [pcolor = bgcolor]
+
+  ;; setup farms based on distinct parcels identified by ID in the parcels data
+  ;; This relies on a STR_ID variable which is unique string for each farm parcel
+  ;; String is IMPORTANT because of automatic interpolation that GIS extension applies
+  ;; when assigning values from a shapefile to patches only partly contained in polygons
+  gis:apply-coverage parcels-data "STR_ID" temp-ID
+  ;; might get some new NaN values, so clean up farm-land and not-farm-land patch-sets
+  let more-not-farm-land farm-land with [not is-string? temp-ID]
+  ask more-not-farm-land [ set pcolor bgcolor ]
+  set not-farm-land (patch-set not-farm-land more-not-farm-land)
+  ;; could use not-farm-land membership in border drawing but it is slow, so...
+  ask not-farm-land [ set the-owner nobody ]
+  set farm-land farm-land with [not member? self more-not-farm-land]
+  ask farm-land [ set temp-ID read-from-string temp-ID ]
 end
 
 to setup-random-geography
+  set farm-land patch-set patches
+  set not-farm-land patch-set nobody
   with-local-randomness [
-    if random-landscape-RNG != 0
-    [ random-seed random-landscape-RNG ]
+    if rng-geography != 0
+    [ random-seed rng-geography ]
     setup-random-luc-codes
     create-farmers 100 [ initialise-farmer ]
   ]
+  colour-patches false
+  display
   ;; make the farms proximity polygons based on farmer locations
-  ask patches [ set the-owner min-one-of farmers [distance myself] ]
+  ask patches [ set temp-ID [who] of min-one-of (farmers with-min [distance myself]) [who] ]
+;  ask patches [ set the-owner min-one-of farmers [distance myself] ]
 end
 
 ;; use a simple voter model to set up LUC codes for now eventually
@@ -453,14 +478,51 @@ to setup-random-luc-codes
   display
 end
 
+to assign-patches-to-farmers
+  ;; do this with a list to ensure assignment is repeatable
+  clear-drawing
+  foreach remove-duplicates [temp-ID] of farm-land [ id ->
+    let this-farms-land farm-land with [temp-ID = id]
+    if any? this-farms-land [
+      let this-farmer nobody
+      ask approximate-centroid this-farms-land [
+        sprout-farmers 1 [
+          initialise-farmer
+          set this-farmer self
+        ]
+      ]
+      ask this-farms-land [
+        set the-owner this-farmer
+      ]
+    ]
+  ]
+  draw-borders table:get colour-key "border"
+end
+
+to assign-farms-to-farmers
+  ;; do this with a list to ensure assignment is repeatable
+  ask farmers [
+    let this-farm nobody
+    hatch-farms 1 [
+      initialise-farm
+      set this-farm self
+    ]
+    set my-farm this-farm
+    set hidden? true
+  ]
+end
+
 ;; this works OK, but might not be sensible to do...
+;; note that set-world-size kills all turtles so this must
+;; be done BEFORE any turtles are initialised
 to setup-world-dimensions
   let cell-size 3
   let ncols 270
   let nrows 400
-  let cellsize 100
+  let raster-pixel-resolution 3
   ;; if initialising from geospatial data we override some of these defaults
   if setup-geography-from-files? [
+    print "Getting model dimensions from GIS data"
     ;; read dimensions of the raster from header of an Esri raster .asc file
     ;; which looks like this
     ;;
@@ -477,7 +539,7 @@ to setup-world-dimensions
       set nrows read-from-string item 1 split-string file-read-line " "
       let skip file-read-line
       set skip file-read-line
-      set cellsize read-from-string item 1 split-string file-read-line " "
+      set raster-pixel-resolution read-from-string item 1 split-string file-read-line " "
       file-close
     ]
     [
@@ -485,12 +547,16 @@ to setup-world-dimensions
       print (word "Problem reading " spatial-data-folder "luc.asc")
     ]
   ]
-  let x-extent ncols * cellsize
-  let y-extent nrows * cellsize
+  let x-extent ncols * raster-pixel-resolution
+  let y-extent nrows * raster-pixel-resolution
   let x-scale x-extent / max-dimension
   let y-scale y-extent / max-dimension
-  let sf ceiling max (list x-scale y-scale)
-  resize-world 0 x-extent / sf 0 y-extent / sf
+  let sf max (list x-scale y-scale)
+  let x (list 0 (round (x-extent / sf) - 1))
+  let y (list 0 (round (y-extent / sf) - 1))
+  show csv:to-row (list ncols nrows raster-pixel-resolution x-extent y-extent x-scale y-scale sf x y)
+  resize-world item 0 x item 1 x item 0 y item 1 y
+  print (word "Setting model dimensions to " x " by " y )
   set-patch-size cell-size * max-dimension / max (list world-width world-height)
   ask patches [ set pcolor grey ]
 end
@@ -585,12 +651,8 @@ to initialise-farm
     ask my-farmer [ die ]
     die ]
   [
-    create-link-with my-farmer [
-      set color table:get colour-key "owner-link"
-      set hidden? true
-    ]
     setxy mean [pxcor] of the-land mean [pycor] of the-land
-    set shape "circle 3"
+    set shape "square 3"
     set hidden? false
     set farm-type one-of farm-types
     set label farm-type
@@ -759,36 +821,38 @@ end
 
 ;; colour in the map by landuse and LUC
 to colour-patches [colour-by-type?]
-  ifelse colour-by-type? and show-landuse? [
-    ifelse show-luc-codes? [
-      foreach table:to-list table:get colour-key "farm-type-palettes" [ farm-type-palette ->
-        let ft item 0 farm-type-palette
-        let pal-name item 1 farm-type-palette
-        ask farm-land with [get-farm-type = ft] [
-          set pcolor palette:scale-scheme "Sequential" pal-name 9 luc-code 9 0
+  with-local-randomness [
+    ifelse colour-by-type? and show-landuse? [
+      ifelse show-luc-codes? [
+        foreach table:to-list table:get colour-key "farm-type-palettes" [ farm-type-palette ->
+          let ft item 0 farm-type-palette
+          let pal-name item 1 farm-type-palette
+          ask farm-land with [get-farm-type = ft] [
+            set pcolor palette:scale-scheme "Sequential" pal-name 9 luc-code 9 0
+          ]
+        ]
+      ]
+      [
+        foreach table:to-list table:get colour-key "farm-type" [ farm-type-colours ->
+          let ft item 0 farm-type-colours
+          let col item 1 farm-type-colours
+          ask farm-land with [get-farm-type = ft] [
+            set pcolor col
+          ]
         ]
       ]
     ]
     [
-      foreach table:to-list table:get colour-key "farm-type" [ farm-type-colours ->
-        let ft item 0 farm-type-colours
-        let col item 1 farm-type-colours
-        ask farm-land with [get-farm-type = ft] [
-          set pcolor col
-        ]
-      ]
+      let pal table:get colour-key "LUC-palette"
+      ifelse show-luc-codes?
+      [ ask farm-land [ set pcolor palette:scale-scheme "Sequential" pal 9 luc-code 9 0 ] ]
+      [ ask farm-land [ set pcolor green + 2 ] ]
     ]
-  ]
-  [
-    let pal table:get colour-key "LUC-palette"
-    ifelse show-luc-codes?
-    [ ask farm-land [ set pcolor palette:scale-scheme "Sequential" pal 9 luc-code 9 0 ] ]
-    [ ask farm-land [ set pcolor green + 2 ] ]
   ]
 end
 
 to redraw-farm
-  set size sqrt (abs current-profit / 2e3) ;; scaling size of net profit circle
+  set size (abs current-profit / 250) ^ 0.333 ;; scaling size of net profit circle
   ifelse current-profit > 0 [
     ifelse farm-type-colours?
     [ set color table:get table:get colour-key "farm-type" farm-type ]
@@ -803,7 +867,9 @@ to redraw-farm
 end
 
 to redraw-farms
-  ask farms [ redraw-farm ]
+  with-local-randomness [
+    ask farms [ redraw-farm ]
+  ]
 end
 
 to setup-colours
@@ -812,17 +878,66 @@ to setup-colours
   table:put colour-key "farmer-label" black
   table:put colour-key "farm-type"
     table:from-list zip farm-types (list (yellow + 1) (grey + 2) (green - 2) brown)
-  table:put colour-key "owner-link" black
-  table:put colour-key "border" grey - 1
-  table:put colour-key "LUC-palette" "Greens"
   table:put colour-key "farm-type-palettes" (
     table:from-list zip farm-types ["YlOrBr" "Greys" "YlGn" "Oranges"])
+  table:put colour-key "owner-link" black
+  table:put colour-key "border" pink
+  table:put colour-key "LUC-palette" "Greens"
   table:put colour-key "profit" grey - 3
   table:put colour-key "loss" red
   table:put colour-key "label" violet - 2
   table:put colour-key "background" grey
 end
 
+;; -----------------------------------------
+;; reset code
+;; -----------------------------------------
+
+to store-initial-values
+  ask farm-land [
+    set yield-per-ha-0 yield-per-ha
+    set yield-sd-0 yield-sd
+    set cost-per-ha-0 cost-per-ha
+    set cost-sd-0 cost-sd
+    set emissions-per-ha-0 emissions-per-ha
+    set emissions-sd-0 emissions-sd
+  ]
+  ask farms [
+    set farm-type-0 farm-type
+    set current-profit-0 current-profit
+    set current-income-0 current-income
+    set current-costs-0 current-costs
+    set my-interventions-0 my-interventions
+    set available-interventions-0 available-interventions
+  ]
+end
+
+to restore-initial-values
+  ask farm-land [
+    set yield-per-ha yield-per-ha-0
+    set yield-sd yield-sd-0
+    set cost-per-ha cost-per-ha-0
+    set cost-sd cost-sd-0
+    set emissions-per-ha emissions-per-ha-0
+    set emissions-sd emissions-sd-0
+  ]
+  ask farms [
+    set farm-type farm-type-0
+    set current-profit current-profit-0
+    set current-income current-income-0
+    set current-costs current-costs-0
+    set my-interventions my-interventions-0
+    set available-interventions available-interventions-0
+  ]
+  redraw-farms
+  reset-ticks
+  tick
+  if run-rng-seed != 0 [ random-seed run-rng-seed ]
+end
+
+;; -----------------------------------------
+;; convenience reporting functions
+;; -----------------------------------------
 
 ;; Convenience function for retrieving a parameter from one of
 ;; the global nested tables the values are stored in
@@ -930,9 +1045,13 @@ end
 
 ;; returns approximate centroid of a patch-set
 to-report approximate-centroid [poly]
-  let mean-x mean [pxcor] of poly
-  let mean-y mean [pycor] of poly
-  report one-of poly with-min [distancexy mean-x mean-y]
+  let centroid nobody
+  with-local-randomness [
+    let mean-x mean [pxcor] of poly
+    let mean-y mean [pycor] of poly
+    set centroid one-of poly with-min [distancexy mean-x mean-y]
+  ]
+  report centroid
 end
 
 
@@ -970,19 +1089,21 @@ end
 ;; ------------------------------------------
 
 to draw-borders [col]
-  ifelse setup-geography-from-files?
-  [
-    gis:set-drawing-color table:get colour-key "border"
-    gis:draw parcels-data 0.5
-  ]
-  [
+  with-local-randomness [
+    ;  ifelse setup-geography-from-files?
+    ;  [
+    ;    gis:set-drawing-color table:get colour-key "border"
+    ;    gis:draw parcels-data 0.5
+    ;  ]
     ;; boundary patches are those with any neighbors4 that have
     ;; different pcolor than themselves
-    let boundaries farm-land with [any? neighbors4
-      with [[who] of the-owner != [[who] of the-owner] of myself]
+    let bgcolor table:get colour-key "background"
+    let boundaries farm-land with [
+      any? (neighbors4 with [pcolor != bgcolor]) and
+      any? neighbors4 with [the-owner != nobody and [who] of the-owner != [[who] of the-owner] of myself]
     ]
     ask boundaries [
-      ask neighbors4 [
+      ask neighbors4 with [the-owner != nobody] [
         ;; only those with different my-node need to draw a line
         if [who] of the-owner != [[who] of the-owner] of myself [
           draw-line-between self myself col
@@ -1096,8 +1217,8 @@ end
 GRAPHICS-WINDOW
 215
 12
-689
-917
+691
+921
 -1
 -1
 3.0
@@ -1121,10 +1242,10 @@ ticks
 30.0
 
 BUTTON
-85
-37
-168
-70
+118
+38
+201
+71
 NIL
 setup
 NIL
@@ -1153,36 +1274,26 @@ NIL
 HORIZONTAL
 
 SWITCH
-849
-716
+852
+760
 996
-749
-seed-the-rng?
-seed-the-rng?
+793
+seed-setup-rng?
+seed-setup-rng?
 1
 1
 -1000
 
 INPUTBOX
-850
-756
-952
-816
-rng-seed
+851
+799
+996
+859
+rng-economics
 42.0
 1
 0
 Number
-
-TEXTBOX
-960
-759
-1043
-806
-Integer value value for RNG seed
-11
-0.0
-1
 
 OUTPUT
 849
@@ -1264,10 +1375,10 @@ show-luc-codes?
 -1000
 
 TEXTBOX
-846
-696
-1001
-714
+849
+740
+1004
+758
 Model process RNGs
 12
 0.0
@@ -1291,10 +1402,10 @@ NIL
 1
 
 BUTTON
-86
-97
-167
-130
+119
+137
+200
+170
 step
 go
 NIL
@@ -1308,10 +1419,10 @@ NIL
 1
 
 BUTTON
-86
-178
-166
-211
+119
+218
+199
+251
 NIL
 go
 T
@@ -1384,10 +1495,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-86
-137
-167
-170
+119
+177
+200
+210
 step-10
 repeat 10 [go]
 NIL
@@ -1482,27 +1593,76 @@ Longer dimension of map will be this many patches.
 0.0
 1
 
-SLIDER
-861
-616
-1065
-649
-random-landscape-RNG
-random-landscape-RNG
+INPUTBOX
+851
+665
+952
+725
+rng-geography
+42.0
+1
 0
+Number
+
+SWITCH
+850
+623
+1070
+656
+seed-geography-rng?
+seed-geography-rng?
+0
+1
+-1000
+
+BUTTON
+26
+37
+89
+70
+reset
+restore-initial-values\n
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+850
+874
 1000
-0.0
+907
+run-rng-seed
+run-rng-seed
+0
+100
+50.0
 1
 1
 NIL
 HORIZONTAL
 
 TEXTBOX
-865
-653
-1102
-671
-Set to 0 for completely random landscape.
+1007
+826
+1113
+912
+This can be set to any value in experiments, but only a small range provided here for interactive use
+11
+0.0
+1
+
+TEXTBOX
+852
+912
+1031
+930
+0 for non-seeded randomness
 11
 0.0
 1
@@ -1773,6 +1933,12 @@ false
 0
 Rectangle -7500403 true true 30 30 270 270
 Rectangle -16777216 true false 60 60 240 240
+
+square 3
+false
+0
+Rectangle -7500403 true true 0 0 300 300
+Rectangle -16777216 false false 0 0 300 300
 
 star
 false

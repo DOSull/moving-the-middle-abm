@@ -1463,7 +1463,7 @@ NIL
 1
 
 BUTTON
-54
+53
 821
 202
 854
@@ -1665,6 +1665,23 @@ TEXTBOX
 0 for non-seeded randomness
 11
 0.0
+1
+
+BUTTON
+53
+862
+203
+895
+toggle-farms
+ask farms [set hidden? not hidden?]
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
 1
 
 @#$#@#$#@

@@ -1651,11 +1651,11 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-1007
-826
-1113
-912
-This can be set to any value in experiments, but only a small range provided here for interactive use
+1005
+839
+1118
+906
+Set to any value in experiments, but only small range provided for interactive use
 11
 0.0
 1

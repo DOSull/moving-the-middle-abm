@@ -137,9 +137,12 @@ to go
       if [length available-interventions] of my-farm > 0 [
         let potential-change consider-interventions false
         if random-float 1 < last potential-change [
-          print (word "Farmer " who " implementing "
-            first potential-change " on "
-            [farm-type] of my-farm " " [who] of my-farm)
+          if show-interventions? [
+            print (
+              word "Farmer " who " implementing "
+              first potential-change " on "
+              [farm-type] of my-farm " " [who] of my-farm)
+          ]
           ask my-farm [
             implement-intervention first potential-change
           ]
@@ -1682,6 +1685,27 @@ NIL
 NIL
 NIL
 NIL
+1
+
+SWITCH
+37
+310
+203
+343
+show-interventions?
+show-interventions?
+1
+1
+-1000
+
+TEXTBOX
+44
+346
+194
+374
+Turn off messages to speed things up!
+11
+0.0
 1
 
 @#$#@#$#@

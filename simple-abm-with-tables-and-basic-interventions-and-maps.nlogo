@@ -155,7 +155,7 @@ end
 
 ;; put a model stop condition here
 to-report stop-model?
-  ifelse sum [length available-interventions] of farms = 0 [
+  ifelse all-true? [length available-interventions = 0] of farms [
     show "Stopping model: all possible interventions implemented on all farms!"
     report true
   ]
@@ -1027,10 +1027,15 @@ to-report percent-change [a b]
   report 100 * relative-change a b
 end
 
-to-report all-true [lst]
-  report product map [i -> ifelse-value i [1] [0]] lst = 1
+to-report all-true? [lst]
+  report is-boolean? position false lst
 end
 
+to-report any-true? [lst]
+  report not is-boolean? position true lst
+end
+
+;; because the GIS extension makes NaNs and we need to detect them
 to-report is-nan? [x]
   report not (x <= 0 or x >= 0)
 end
@@ -1093,22 +1098,14 @@ end
 
 to draw-borders [col]
   with-local-randomness [
-    ;  ifelse setup-geography-from-files?
-    ;  [
-    ;    gis:set-drawing-color table:get colour-key "border"
-    ;    gis:draw parcels-data 0.5
-    ;  ]
-    ;; boundary patches are those with any neighbors4 that have
-    ;; different pcolor than themselves
-    let bgcolor table:get colour-key "background"
     let boundaries farm-land with [
-      any? (neighbors4 with [pcolor != bgcolor]) and
-      any? neighbors4 with [the-owner != nobody and [who] of the-owner != [[who] of the-owner] of myself]
+      any? neighbors4 with [the-owner != nobody and
+                            the-owner != [the-owner] of myself]
     ]
     ask boundaries [
       ask neighbors4 with [the-owner != nobody] [
-        ;; only those with different my-node need to draw a line
-        if [who] of the-owner != [[who] of the-owner] of myself [
+        ;; only those with different owner need to draw a line
+        if the-owner != [the-owner] of myself [
           draw-line-between self myself col
         ]
       ]

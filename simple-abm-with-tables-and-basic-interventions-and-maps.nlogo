@@ -452,7 +452,7 @@ to setup-random-geography
   set farm-land patch-set patches
   set not-farm-land patch-set nobody
   with-local-randomness [
-    if rng-geography != 0
+    if seed-geography-rng?
     [ random-seed rng-geography ]
     setup-random-luc-codes
     create-farmers 100 [ initialise-farmer ]
@@ -469,12 +469,21 @@ end
 ;; method (hence it is separate function)
 to setup-random-luc-codes
   set farm-land patches
-  ask patches [
-    set luc-code one-of n-values 8 [i -> i + 1]
-  ]
-  repeat luc-aggregation-steps [
+  ifelse random-landscape-method = "averaging" [
+    ask patches [ set luc-code random-normal 0 1 ]
+    repeat luc-aggregation-steps [ diffuse4 luc-code 0.8 ]
+    let min-x min [luc-code] of patches
+    let max-x max [luc-code] of patches
     ask patches [
-      set luc-code [luc-code] of one-of neighbors4
+      set luc-code round rescale luc-code min-x max-x 0.5 8.499
+    ]
+  ]
+  [ ;; voter model method
+    ask patches [ set luc-code 1 + random 8 ]
+    repeat luc-aggregation-steps [
+      ask patches [
+        set luc-code [luc-code] of one-of neighbors4
+      ]
     ]
   ]
   colour-patches false
@@ -884,7 +893,7 @@ to setup-colours
   table:put colour-key "farm-type-palettes" (
     table:from-list zip farm-types ["YlOrBr" "Greys" "YlGn" "Oranges"])
   table:put colour-key "owner-link" black
-  table:put colour-key "border" pink
+  table:put colour-key "border" red
   table:put colour-key "LUC-palette" "Greens"
   table:put colour-key "profit" grey - 3
   table:put colour-key "loss" red
@@ -1006,6 +1015,10 @@ end
 ;; -----------------------------------------
 ;; utilility functions
 ;; -----------------------------------------
+
+to-report rescale [x min-x max-x new-min-x new-max-x]
+  report new-min-x + (new-max-x - new-min-x) * (x - min-x) / (max-x - min-x)
+end
 
 ;; this formulation of relative change avoids overflows when
 ;; the base value is close to 0, and is symmetrical relative to the
@@ -1217,7 +1230,7 @@ end
 GRAPHICS-WINDOW
 215
 12
-691
+832
 921
 -1
 -1
@@ -1232,7 +1245,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-155
+202
 0
 299
 1
@@ -1313,36 +1326,36 @@ Interventions (for information)
 1
 
 SWITCH
-847
-359
-1087
-392
+848
+355
+1088
+388
 setup-geography-from-files?
 setup-geography-from-files?
-0
+1
 1
 -1000
 
 SLIDER
 850
-536
+552
 1077
-569
+585
 luc-aggregation-steps
 luc-aggregation-steps
 0
-100
-50.0
-1
+250
+250.0
+5
 1
 NIL
 HORIZONTAL
 
 TEXTBOX
-846
-513
-996
-531
+851
+481
+972
+499
 Random landscape
 12
 0.0
@@ -1350,9 +1363,9 @@ Random landscape
 
 SLIDER
 849
-575
+591
 1078
-608
+624
 farm-centroid-inhibition-distance
 farm-centroid-inhibition-distance
 0
@@ -1436,10 +1449,10 @@ NIL
 1
 
 CHOOSER
-853
-402
-991
-447
+854
+398
+992
+443
 region
 region
 "Rangitaiki"
@@ -1480,10 +1493,10 @@ NIL
 1
 
 SLIDER
-848
-281
-1020
-314
+849
+277
+1021
+310
 max-dimension
 max-dimension
 200
@@ -1544,10 +1557,10 @@ Bigger numbers amplify the impact of nudges (in both directions)
 1
 
 TEXTBOX
-857
-451
-1007
-479
+858
+447
+1008
+475
 You'll need the named regional spatial subfolder
 11
 0.0
@@ -1584,10 +1597,10 @@ Loss-making farms always red
 1
 
 TEXTBOX
-851
-318
-1019
-346
+852
+314
+1020
+342
 Longer dimension of map will be this many patches.
 11
 0.0
@@ -1595,9 +1608,9 @@ Longer dimension of map will be this many patches.
 
 INPUTBOX
 851
-665
+673
 952
-725
+733
 rng-geography
 42.0
 1
@@ -1606,12 +1619,12 @@ Number
 
 SWITCH
 850
-623
+633
 1070
-656
+666
 seed-geography-rng?
 seed-geography-rng?
-0
+1
 1
 -1000
 
@@ -1641,7 +1654,7 @@ run-rng-seed
 run-rng-seed
 0
 100
-50.0
+0.0
 1
 1
 NIL
@@ -1703,6 +1716,16 @@ TEXTBOX
 Turn off messages to speed things up!
 11
 0.0
+1
+
+CHOOSER
+850
+501
+1046
+546
+random-landscape-method
+random-landscape-method
+"voter-model" "averaging"
 1
 
 @#$#@#$#@

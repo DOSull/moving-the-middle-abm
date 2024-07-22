@@ -31,7 +31,7 @@ globals [
   ghg-emission-sds        ;; table of sd of GHG emissions by LUC and farm-type
   prices                  ;; table of commodity prices
   environmental-taxes     ;; table of additional environmental taxes/subsidies by farm-type
-  base-thresholds         ;; table of default farmer decision thresholds for various interventions
+  base-thresholds   ;; table of default farmer decision thresholds for various interventions
 
   ;; colour settings - these can be changed in one place, see setup-key-colours procedure
   colour-key              ;; table of colour settings
@@ -73,7 +73,6 @@ patches-own [
   temp-ID
   the-owner               ;; the farmer who owns this patch
   luc-code                ;; LUC code where 1 = LUC1, 2 = LUC2, etc.
-  f-type
   ;; NOTE these are patch level parameter because they are set up with mean/sd and vary at patch level
   yield-per-ha
   yield-sd
@@ -571,22 +570,23 @@ end
 ;; -----------------------------------------
 
 ;; patch reporter
-;to-report get-farm-type
-;  report [farm-type] of ([my-farm] of the-owner)
-;end
+to-report get-farm-type
+  report [farm-type] of ([my-farm] of the-owner)
+end
 
 ;; patch procedure
 to set-farm-production-function
+  let ft get-farm-type
   ;; this test might need to change depending on how the spatial data files are finally specified
   if not is-nan? luc-code and luc-code != 0 [
-    set yield-per-ha     get-parameter "yield" "mean" f-type luc-code
-    set yield-sd         get-parameter "yield" "sd" f-type luc-code
+    set yield-per-ha     get-parameter "yield" "mean" ft luc-code
+    set yield-sd         get-parameter "yield" "sd" ft luc-code
 
-    set cost-per-ha      get-parameter "cost" "mean" f-type luc-code
-    set cost-sd          get-parameter "cost" "sd" f-type luc-code
+    set cost-per-ha      get-parameter "cost" "mean" ft luc-code
+    set cost-sd          get-parameter "cost" "sd" ft luc-code
 
-    set emissions-per-ha get-parameter "emissions" "mean" f-type luc-code
-    set emissions-sd     get-parameter "emissions" "sd" f-type luc-code
+    set emissions-per-ha get-parameter "emissions" "mean" ft luc-code
+    set emissions-sd     get-parameter "emissions" "sd" ft luc-code
   ]
 end
 
@@ -618,21 +618,23 @@ end
 
 ;; patch-report
 to-report get-income-of-patch [with-var?]
+  let ft get-farm-type
   let adopted [my-interventions] of ([my-farm] of the-owner)
-  let price             table:get prices f-type
+  let price             table:get prices ft
   let yield             get-patch-yield with-var?
-  set yield     yield * product map [a -> [1 + get-intervention-impact f-type "yields"] of get-intervention a] adopted
+  set yield     yield * product map [a -> [1 + get-intervention-impact ft "yields"] of get-intervention a] adopted
   report price * yield
 end
 
 ;; patch-report
 to-report get-costs-of-patch [with-var?]
+  let ft get-farm-type
   let adopted [my-interventions] of ([my-farm] of the-owner)
   let cost              get-patch-costs with-var?
-  set cost       cost + sum map [a -> [get-intervention-impact f-type "costs"] of get-intervention a] adopted
+  set cost       cost + sum map [a -> [get-intervention-impact ft "costs"] of get-intervention a] adopted
   let ghg               get-patch-emissions with-var?
-  set ghg         ghg * product map [a -> [1 + get-intervention-impact f-type "emissions"] of get-intervention a] adopted
-  let ghg-tax           table:get environmental-taxes f-type
+  set ghg         ghg * product map [a -> [1 + get-intervention-impact ft "emissions"] of get-intervention a] adopted
+  let ghg-tax           table:get environmental-taxes ft
   report cost + ghg * ghg-tax
 end
 
@@ -656,7 +658,6 @@ to initialise-farm
     set shape "square 3"
     set hidden? false
     set farm-type one-of farm-types
-    ask the-land [ set f-type [farm-type] of myself ]
     set label farm-type
     set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
     set my-interventions []
@@ -829,7 +830,7 @@ to colour-patches [colour-by-type?]
         foreach table:to-list table:get colour-key "farm-type-palettes" [ farm-type-palette ->
           let ft item 0 farm-type-palette
           let pal-name item 1 farm-type-palette
-          ask farm-land with [f-type = ft] [
+          ask farm-land with [get-farm-type = ft] [
             set pcolor palette:scale-scheme "Sequential" pal-name 9 luc-code 9 0
           ]
         ]
@@ -838,7 +839,7 @@ to colour-patches [colour-by-type?]
         foreach table:to-list table:get colour-key "farm-type" [ farm-type-colours ->
           let ft item 0 farm-type-colours
           let col item 1 farm-type-colours
-          ask farm-land with [f-type = ft] [
+          ask farm-land with [get-farm-type = ft] [
             set pcolor col
           ]
         ]
@@ -1192,7 +1193,7 @@ end
 
 ;; The MIT License (MIT)
 ;;
-;; Copyright (c) 2023-24 David O'Sullivan
+;; Copyright (c) 2023 David O'Sullivan
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation

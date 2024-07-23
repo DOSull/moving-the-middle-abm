@@ -13,6 +13,7 @@ globals [
   market-data-folder
   spatial-data-folder
   show-labels?
+  interventions-lookup
 
   epsilon                 ;; for convenience - constant for 'smallest number'
 
@@ -44,7 +45,7 @@ breed [interventions
 
 farms-own [
   my-farmer               ;; the farmer who owns/runs this farm
-  farm-type               ;; farm type of this farm
+  farm-class              ;; farm type of this farm
   the-land                ;; patch-set of the patches in this farm
   current-profit          ;; profit of farm summed across patches
   current-income          ;; income of farm summed across patches
@@ -52,7 +53,7 @@ farms-own [
   my-interventions        ;; list of intervention types already implemented
   available-interventions ;; list of intervention types that could be implemented
   ;; initial values of the above
-  farm-type-0
+  farm-class-0
   current-profit-0
   current-income-0
   current-costs-0
@@ -73,6 +74,7 @@ patches-own [
   temp-ID
   the-owner               ;; the farmer who owns this patch
   luc-code                ;; LUC code where 1 = LUC1, 2 = LUC2, etc.
+  f-type
   ;; NOTE these are patch level parameter because they are set up with mean/sd and vary at patch level
   yield-per-ha
   yield-sd
@@ -99,6 +101,7 @@ to setup
 
   set epsilon 1e-16
   set show-labels? false
+  set interventions-lookup table:make
 
   let base-data-folder "data/"
   set output-data-folder word base-data-folder "output/"                ;; 'data/output/'
@@ -110,12 +113,11 @@ to setup
   setup-farmer-parameters
   setup-colours
   ask patches [ set pcolor table:get colour-key "background" ]
-  if seed-geography-rng? [ random-seed rng-geography ]
   setup-geography
   assign-patches-to-farmers
   assign-farms-to-farmers
-  if seed-setup-rng? [ random-seed rng-economics ]
   setup-economic-parameters
+  redraw
   reset-ticks
   go ;; this initialises the farms with current net profit and some interventions
   store-initial-values
@@ -141,7 +143,7 @@ to go
             print (
               word "Farmer " who " implementing "
               first potential-change " on "
-              [farm-type] of my-farm " " [who] of my-farm)
+              [farm-class] of my-farm " " [who] of my-farm)
           ]
           ask my-farm [
             implement-intervention first potential-change
@@ -304,8 +306,13 @@ end
 ;; economic setup procedures
 ;; -----------------------------------------
 to setup-economic-parameters
-  read-production-function-parameters
-  ask farm-land [ set-farm-production-function ]
+  with-local-randomness [
+    ifelse seed-setup-rng?
+    [ random-seed rng-economics ]
+    [ random-seed timer ]
+    read-production-function-parameters
+    ask farm-land [ set-farm-production-function ]
+  ]
 end
 
 to read-production-function-parameters
@@ -409,11 +416,13 @@ end
 ;;       LUC codes
 ;; -----------------------------------------
 to setup-geography
-  ifelse setup-geography-from-files?
-  [ setup-geography-from-files ]
-  [ setup-random-geography ]
-  ;; assign patches to farmers to make farms
-  colour-patches true
+  with-local-randomness [
+    ifelse setup-geography-from-files?
+    [ setup-geography-from-files ]
+    [ setup-random-geography ]
+    ;; assign patches to farmers to make farms
+    colour-patches true
+  ]
 end
 
 to setup-geography-from-files
@@ -449,14 +458,13 @@ to setup-geography-from-files
 end
 
 to setup-random-geography
+  ifelse seed-geography-rng?
+  [ random-seed rng-geography ]
+  [ random-seed random timer ]
   set farm-land patch-set patches
   set not-farm-land patch-set nobody
-  with-local-randomness [
-    if seed-geography-rng?
-    [ random-seed rng-geography ]
-    setup-random-luc-codes
-    create-farmers 100 [ initialise-farmer ]
-  ]
+  setup-random-luc-codes
+  create-farmers 250 [ initialise-farmer ]
   colour-patches false
   display
   ;; make the farms proximity polygons based on farmer locations
@@ -475,15 +483,13 @@ to setup-random-luc-codes
     let min-x min [luc-code] of patches
     let max-x max [luc-code] of patches
     ask patches [
-      set luc-code round rescale luc-code min-x max-x 0.5 8.499
+      set luc-code round rescale luc-code min-x max-x 0.5 8.4999
     ]
   ]
   [ ;; voter model method
     ask patches [ set luc-code 1 + random 8 ]
     repeat luc-aggregation-steps [
-      ask patches [
-        set luc-code [luc-code] of one-of neighbors4
-      ]
+      ask patches [ set luc-code [luc-code] of one-of neighbors4 ]
     ]
   ]
   colour-patches false
@@ -579,23 +585,22 @@ end
 ;; -----------------------------------------
 
 ;; patch reporter
-to-report get-farm-type
-  report [farm-type] of ([my-farm] of the-owner)
+to-report get-farm-of-patch
+  report [my-farm] of the-owner
 end
 
 ;; patch procedure
 to set-farm-production-function
-  let ft get-farm-type
   ;; this test might need to change depending on how the spatial data files are finally specified
   if not is-nan? luc-code and luc-code != 0 [
-    set yield-per-ha     get-parameter "yield" "mean" ft luc-code
-    set yield-sd         get-parameter "yield" "sd" ft luc-code
+    set yield-per-ha     get-parameter "yield" "mean" f-type luc-code
+    set yield-sd         get-parameter "yield" "sd" f-type luc-code
 
-    set cost-per-ha      get-parameter "cost" "mean" ft luc-code
-    set cost-sd          get-parameter "cost" "sd" ft luc-code
+    set cost-per-ha      get-parameter "cost" "mean" f-type luc-code
+    set cost-sd          get-parameter "cost" "sd" f-type luc-code
 
-    set emissions-per-ha get-parameter "emissions" "mean" ft luc-code
-    set emissions-sd     get-parameter "emissions" "sd" ft luc-code
+    set emissions-per-ha get-parameter "emissions" "mean" f-type luc-code
+    set emissions-sd     get-parameter "emissions" "sd" f-type luc-code
   ]
 end
 
@@ -627,9 +632,9 @@ end
 
 ;; patch-report
 to-report get-income-of-patch [with-var?]
-  let ft get-farm-type
+  let ft f-type
   let adopted [my-interventions] of ([my-farm] of the-owner)
-  let price             table:get prices ft
+  let price             table:get prices f-type
   let yield             get-patch-yield with-var?
   set yield     yield * product map [a -> [1 + get-intervention-impact ft "yields"] of get-intervention a] adopted
   report price * yield
@@ -637,8 +642,8 @@ end
 
 ;; patch-report
 to-report get-costs-of-patch [with-var?]
-  let ft get-farm-type
-  let adopted [my-interventions] of ([my-farm] of the-owner)
+  let ft f-type
+  let adopted [my-interventions] of get-farm-of-patch
   let cost              get-patch-costs with-var?
   set cost       cost + sum map [a -> [get-intervention-impact ft "costs"] of get-intervention a] adopted
   let ghg               get-patch-emissions with-var?
@@ -666,8 +671,10 @@ to initialise-farm
     setxy mean [pxcor] of the-land mean [pycor] of the-land
     set shape "square 3"
     set hidden? false
-    set farm-type one-of farm-types
-    set label farm-type
+    set farm-class one-of farm-types
+    let ft farm-class
+    ask the-land [ set f-type ft ]
+    set label farm-class
     set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
     set my-interventions []
     set available-interventions possible-interventions
@@ -696,7 +703,7 @@ to update-profit-of-farm
 end
 
 to-report possible-interventions
-  let ft farm-type
+  let ft farm-class
   let possibles filter
     [i -> [is-applicable-to-farm-type? ft] of i] sort interventions
   report map [i -> [intervention-type] of i] possibles
@@ -704,7 +711,6 @@ to-report possible-interventions
 end
 
 to-report get-intervention-score [i-type show-messages?]
-;  let possibility get-intervention i-type
   set my-interventions lput i-type my-interventions
   let new-costs get-farm-costs false
   let new-income get-farm-income false
@@ -753,7 +759,7 @@ end
 to-report get-adoption-probability [i-type]
   report table:get (
     table:get base-thresholds i-type
-  ) [farm-type] of my-farm
+  ) [farm-class] of my-farm
 end
 
 ;; loop through the available interventions scoring their probabilities
@@ -771,7 +777,7 @@ to-report consider-interventions [show-messages?]
     ;; adjust probabilities using the sigmoid function
     let new-probs (map [[prob score] -> nudged-probability prob score] base-probs scores)
     if show-messages? [
-      show [farm-type] of fm
+      show [farm-class] of fm
       show to-consider
       show map [s -> precision s 4] scores
       show map [p -> precision p 4] base-probs
@@ -793,6 +799,7 @@ end
 ;; initialises an intervention with a name and blank table for effects
 to initialise-intervention [name]
   set intervention-type name
+  table:put interventions-lookup name self
   ;; make an empty table for the effect data
   set intervention-impacts table:make
   set hidden? true
@@ -801,7 +808,8 @@ end
 
 ;; it's convenient sometimes to be able to get an intervention by its name
 to-report get-intervention [name]
-  report one-of interventions with [intervention-type = name]
+  report table:get interventions-lookup name
+;  report one-of interventions with [intervention-type = name]
 end
 
 ;; set impacts (a farm-type: value lookup)
@@ -831,6 +839,12 @@ end
 ;; model rendering
 ;; -----------------------------------------
 
+to redraw
+  colour-patches show-landuse?
+  redraw-farms
+  display
+end
+
 ;; colour in the map by landuse and LUC
 to colour-patches [colour-by-type?]
   with-local-randomness [
@@ -839,7 +853,7 @@ to colour-patches [colour-by-type?]
         foreach table:to-list table:get colour-key "farm-type-palettes" [ farm-type-palette ->
           let ft item 0 farm-type-palette
           let pal-name item 1 farm-type-palette
-          ask farm-land with [get-farm-type = ft] [
+          ask farm-land with [f-type = ft] [
             set pcolor palette:scale-scheme "Sequential" pal-name 9 luc-code 9 0
           ]
         ]
@@ -848,7 +862,7 @@ to colour-patches [colour-by-type?]
         foreach table:to-list table:get colour-key "farm-type" [ farm-type-colours ->
           let ft item 0 farm-type-colours
           let col item 1 farm-type-colours
-          ask farm-land with [get-farm-type = ft] [
+          ask farm-land with [f-type = ft] [
             set pcolor col
           ]
         ]
@@ -867,13 +881,15 @@ to redraw-farm
   set size (abs current-profit / 250) ^ 0.333 ;; scaling size of net profit circle
   ifelse current-profit > 0 [
     ifelse farm-type-colours?
-    [ set color table:get table:get colour-key "farm-type" farm-type ]
+    [ set color table:get table:get colour-key "farm-type" farm-class
+      set color color palette:with-alpha 160
+    ]
     [ set color table:get colour-key "profit" ]
   ]
   [ set color table:get colour-key "loss" ]
-  set color color palette:with-alpha 160
+
   set label (word
-    farm-type ": "
+    farm-class ": "
     (length my-interventions) "/"
     (length my-interventions + length available-interventions))
 end
@@ -889,14 +905,14 @@ to setup-colours
   table:put colour-key "farmer" black
   table:put colour-key "farmer-label" black
   table:put colour-key "farm-type"
-    table:from-list zip farm-types (list (yellow + 1) (grey + 2) (green - 2) brown)
+    table:from-list zip ["SNB" "Dairy" "Forest" "Crop"] (list (orange) (grey + 2) (green - 2) (yellow + 1))
   table:put colour-key "farm-type-palettes" (
-    table:from-list zip farm-types ["YlOrBr" "Greys" "YlGn" "Oranges"])
-  table:put colour-key "owner-link" black
+    table:from-list zip ["SNB" "Dairy" "Forest" "Crop"] ["Oranges" "Greys" "YlGn" "YlOrBr"])
+  table:put colour-key "owner-link" [0 0 0 180]
   table:put colour-key "border" red
   table:put colour-key "LUC-palette" "Greens"
   table:put colour-key "profit" grey - 3
-  table:put colour-key "loss" red
+  table:put colour-key "loss" [255 0 0 180]
   table:put colour-key "label" violet - 2
   table:put colour-key "background" grey
 end
@@ -915,7 +931,7 @@ to store-initial-values
     set emissions-sd-0 emissions-sd
   ]
   ask farms [
-    set farm-type-0 farm-type
+    set farm-class-0 farm-class
     set current-profit-0 current-profit
     set current-income-0 current-income
     set current-costs-0 current-costs
@@ -934,7 +950,7 @@ to restore-initial-values
     set emissions-sd emissions-sd-0
   ]
   ask farms [
-    set farm-type farm-type-0
+    set farm-class farm-class-0
     set current-profit current-profit-0
     set current-income current-income-0
     set current-costs current-costs-0
@@ -991,8 +1007,8 @@ end
 ;; overflow/underflow but might be incorrect in practice
 to-report logit [p a]
   if p = 0.5 [report 0]
-  ;; if p = 1 [report logit (1 - epsilon) a]
-  ;; if p = 0 [report logit epsilon a]
+  if p = 1 [report logit (1 - epsilon) a]
+  if p = 0 [report logit epsilon a]
   report ln (p / (1 - p)) / a
 end
 
@@ -1085,6 +1101,10 @@ to-report string-as-list [str]
   report n-values length str [i -> item i str]
 end
 
+to-report join-string [lst sep]
+  report reduce [[a b] -> (word a sep b)] lst
+end
+
 ;; splits a string str on the separator provided
 ;; returns a list of strings
 to-report split-string [str sep]
@@ -1153,7 +1173,7 @@ to draw-line-between [p1 p2 col]
 end
 
 
-to profile
+to profile-setup
   profiler:start         ;; start profiling
   setup                  ;; set up the model
   profiler:stop          ;; stop profiling
@@ -1162,11 +1182,20 @@ to profile
 end
 
 
+to profile-go [n]
+  setup                  ;; set up the model
+  profiler:start         ;; start profiling
+  repeat n [go]
+  profiler:stop          ;; stop profiling
+  print profiler:report  ;; view the results
+  profiler:reset         ;; clear the data
+end
+
 ;; -----------------------------------------
 ;; farmer profit output for sanity check
 ;; -----------------------------------------
 to-report profit-summary [adopted-interventions]
-  let result (list who farm-type table:get prices farm-type count the-land)
+  let result (list who farm-class table:get prices farm-class count the-land)
   let current-interventions my-interventions
   set my-interventions turtle-set nobody
   let X get-farm-costs false
@@ -1230,7 +1259,7 @@ end
 GRAPHICS-WINDOW
 215
 12
-832
+691
 921
 -1
 -1
@@ -1245,7 +1274,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-202
+155
 0
 299
 1
@@ -1293,7 +1322,7 @@ SWITCH
 793
 seed-setup-rng?
 seed-setup-rng?
-1
+0
 1
 -1000
 
@@ -1332,7 +1361,7 @@ SWITCH
 388
 setup-geography-from-files?
 setup-geography-from-files?
-1
+0
 1
 -1000
 
@@ -1345,7 +1374,7 @@ luc-aggregation-steps
 luc-aggregation-steps
 0
 250
-250.0
+100.0
 5
 1
 NIL
@@ -1403,7 +1432,7 @@ BUTTON
 202
 771
 redraw
-colour-patches show-landuse?\nredraw-farms\ndisplay
+redraw
 NIL
 1
 T
@@ -1499,7 +1528,7 @@ SLIDER
 310
 max-dimension
 max-dimension
-200
+100
 600
 300.0
 10
@@ -1612,7 +1641,7 @@ INPUTBOX
 952
 733
 rng-geography
-42.0
+0.0
 1
 0
 Number
@@ -1624,7 +1653,7 @@ SWITCH
 666
 seed-geography-rng?
 seed-geography-rng?
-1
+0
 1
 -1000
 
@@ -1654,17 +1683,17 @@ run-rng-seed
 run-rng-seed
 0
 100
-0.0
+1.0
 1
 1
 NIL
 HORIZONTAL
 
 TEXTBOX
-1005
-839
-1118
-906
+1004
+855
+1127
+908
 Set to any value in experiments, but only small range provided for interactive use
 11
 0.0

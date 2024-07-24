@@ -32,7 +32,17 @@ globals [
   ghg-emission-sds        ;; table of sd of GHG emissions by LUC and farm-type
   prices                  ;; table of commodity prices
   environmental-taxes     ;; table of additional environmental taxes/subsidies by farm-type
-  base-thresholds   ;; table of default farmer decision thresholds for various interventions
+  base-thresholds         ;; table of default farmer decision thresholds for various interventions
+
+  ;; matrix equivalents of the above
+  mat-yield-means
+  mat-yield-sds
+  mat-cost-means
+  mat-cost-sds
+  mat-emission-means
+  mat-emission-sds
+  mat-prices
+  mat-taxes
 
   ;; colour settings - these can be changed in one place, see setup-key-colours procedure
   colour-key              ;; table of colour settings
@@ -45,8 +55,9 @@ breed [interventions
 
 farms-own [
   my-farmer               ;; the farmer who owns/runs this farm
-  farm-type              ;; farm type of this farm
+  farm-type               ;; farm type of this farm
   the-land                ;; patch-set of the patches in this farm
+  detailed-profile
   current-profit          ;; profit of farm summed across patches
   current-income          ;; income of farm summed across patches
   current-costs           ;; costs of farm summed across patches
@@ -117,6 +128,7 @@ to setup
   assign-patches-to-farmers
   assign-farms-to-farmers
   setup-economic-parameters
+  make-matrix-copies
   redraw
   reset-ticks
   go ;; this initialises the farms with current net profit and some interventions
@@ -312,6 +324,7 @@ to setup-economic-parameters
     [ random-seed timer ]
     read-production-function-parameters
     ask farm-land [ set-farm-production-function ]
+    ask farms [ set detailed-profile get-detailed-profile ]
   ]
 end
 
@@ -377,7 +390,6 @@ to-report get-parameter-from-file [file]
   ]
   report (list means-table sds-table)
 end
-
 
 to-report get-prices [file]
   ;; the CSV for prices and emissions taxes looks like this
@@ -727,9 +739,28 @@ to-report get-intervention-score [i-type show-messages?]
   report change-in-income - change-in-costs
 end
 
-to-report get-farm-profile
-  let counts map [ft -> count the-land with [landuse = ft]] farm-types
-  report table:from-list zip farm-types counts
+to-report get-farm-landuse-profile
+  report map [lu -> count the-land with [landuse = lu]] farm-types
+end
+
+to-report get-farm-luc-profile
+  report map [luc -> count the-land with [luc-code = luc]] range-from-to 1 9
+end
+
+to-report get-detailed-profile
+  let luc-i map [p -> position [luc-code] of p range-from-to 1 9] sort the-land
+  let lu-j map [p -> position [landuse] of p farm-types] sort the-land
+  let nrow 8
+  let ncol length farm-types
+  let farm-profile matrix:make-constant nrow ncol 0
+  (foreach luc-i lu-j [ [i j] ->
+    matrix:set farm-profile i j matrix:get farm-profile i j + 1
+  ])
+  report farm-profile
+end
+
+to-report get-farm-intervention-profile
+
 end
 
 
@@ -839,6 +870,85 @@ to-report is-applicable-to-farm-type? [ft]
   ) ft "NA"
 end
 
+
+;; -----------------------------------------
+;; matrix alternatives
+;; -----------------------------------------
+
+to make-matrix-copies
+  set mat-yield-means matrix:from-row-list map [t -> table:values t] table:values commodity-yield-means
+  set mat-yield-sds matrix:from-row-list map [t -> table:values t] table:values commodity-yield-sds
+  set mat-cost-means matrix:from-row-list map [t -> table:values t] table:values input-cost-means
+  set mat-cost-sds matrix:from-row-list map [t -> table:values t] table:values input-cost-sds
+  set mat-emission-means matrix:from-row-list map [t -> table:values t] table:values ghg-emission-means
+  set mat-emission-sds matrix:from-row-list map [t -> table:values t] table:values ghg-emission-sds
+  set mat-prices matrix-from-list rep-list-inline table:values prices 8 8 4 true
+  set mat-taxes matrix-from-list rep-list-inline table:values environmental-taxes 8 8 4 true
+end
+
+to-report matrix-row-sums [m]
+  report map [r -> sum r] matrix:to-row-list m
+end
+
+to-report matrix-col-sums [m]
+  report map [c -> sum c] matrix:to-column-list m
+end
+
+to-report matrix-sum-elements [m]
+  report sum matrix-row-sums m
+end
+
+to-report matrix-row-by-n [row n]
+  report matrix:from-row-list map [i -> row] range n
+end
+
+to-report matrix-col-by-n [col n]
+  report matrix:from-column-list map [i -> col] range n
+end
+
+to-report matrix-sum-of-rows-cols [row col]
+  report matrix:plus matrix:from-row-list map [i -> row] range length col
+                     matrix:from-column-list map [i -> col] range length row
+end
+
+;to-report matrix-rows-as-list [m]
+;  report flatten-matrix m
+;end
+;
+;to-report matrix-cols-as-list [m]
+;  report flatten-matrix m
+;end
+
+to-report matrix-from-list [lst nr nc byrow?]
+  ifelse byrow?
+  [ report matrix:from-row-list as-list-of-lists lst nr ]
+  [ report matrix:from-column-list as-list-of-lists lst nc ]
+end
+
+;; for now this has no interventions component
+to-report m-get-farm-costs [with-var?]
+  report matrix-sum-elements
+    matrix:times-element-wise
+      detailed-profile
+      ( m-get-costs with-var? matrix:+
+        matrix:times-element-wise mat-taxes m-get-emissions with-var? )
+end
+
+to-report m-get-costs [with-var?]
+  ifelse with-var? [
+    report
+      mat-cost-means matrix:+
+      matrix:map [s -> random-normal 0 s] mat-cost-sds ]
+  [ report mat-cost-means ]
+end
+
+to-report m-get-emissions [with-var?]
+  ifelse with-var? [
+    report
+      mat-emission-means matrix:+
+      matrix:map [s -> random-normal 0 s] mat-emission-sds ]
+  [ report mat-emission-means ]
+end
 
 ;; -----------------------------------------
 ;; model rendering
@@ -1103,6 +1213,37 @@ to-report as-list-of-lists [lst n-sublists]
   report (map [[a b] -> sublist lst a b] butlast breaks butfirst breaks)
 end
 
+to-report flatten-list [lst]
+  report reduce [[a b] -> sentence a b] lst
+end
+
+to-report flatten-matrix [m byrow?]
+  ifelse byrow?
+  [ report flatten-list matrix:to-row-list m ]
+  [ report flatten-list matrix:to-column-list m ]
+end
+
+to-report range-from-to-by [start finish step]
+  let n ceiling ((finish - start) / step)
+  if (step * (finish - start)) < 0 [
+    print "***WARNING: step in sequence reporter is wrong sign. Returning empty list***"
+    report []
+  ]
+  ifelse finish > start
+  [ report n-values n [i -> start + step * i] ]
+  [ report n-values n [i -> start + step * i] ]
+end
+
+to-report range-from-to [start finish]
+  ifelse finish > start
+  [ report range-from-to-by start finish 1 ]
+  [ report range-from-to-by start finish -1 ]
+end
+
+to-report range-by [finish by]
+  report range-from-to-by 0 finish by
+end
+
 to-report rep-list [lst n inline?]
   ifelse inline?
   [ report rep-list-inline lst n]
@@ -1117,9 +1258,6 @@ to-report rep-list-inline [lst n]
   report reduce [[a b] -> sentence a b ] map [i -> lst] range n
 end
 
-to-report flatten-list [lst]
-  report reduce [[a b] -> sentence a b] lst
-end
 
 ;; ------------------------------------------
 ;; string utilities (see netlogo-utils repo)
@@ -1218,6 +1356,23 @@ to profile-go [n]
   profiler:stop          ;; stop profiling
   print profiler:report  ;; view the results
   profiler:reset         ;; clear the data
+end
+
+to iterate-cost-function [n]
+  repeat n [let x [get-farm-costs true] of farms]
+end
+
+to iterate-m-cost-function [n]
+  repeat n [let x [m-get-farm-costs true] of farms]
+end
+
+to profile-cost-functions [n]
+  profiler:start
+  iterate-cost-function n
+  iterate-m-cost-function n
+  profiler:stop
+  print profiler:report
+  profiler:reset
 end
 
 ;; -----------------------------------------
@@ -1589,7 +1744,7 @@ SWITCH
 496
 show-landuse?
 show-landuse?
-1
+0
 1
 -1000
 

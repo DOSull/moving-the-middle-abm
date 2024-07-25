@@ -31,10 +31,9 @@ globals [
   ghg-emission-means      ;; table of mean GHG emissions by LUC and farm-type
   ghg-emission-sds        ;; table of sd of GHG emissions by LUC and farm-type
   prices                  ;; table of commodity prices
-  __environmental-taxes     ;; table of additional environmental taxes/subsidies by farm-type
   base-thresholds         ;; table of default farmer decision thresholds for various interventions
 
-  ;; matrix equivalents of the above
+  ;; matrix equivalents of the above -- which after initialisation have priority!
   m-yield-means
   m-yield-sds
   m-cost-means
@@ -45,7 +44,6 @@ globals [
   m-intervention-cost-impacts
   m-intervention-yield-impacts
   m-intervention-emissions-impacts
-;  m-taxes
 
   ;; colour settings - these can be changed in one place, see setup-key-colours procedure
   colour-key              ;; table of colour settings
@@ -64,10 +62,8 @@ farms-own [
   current-profit          ;; profit of farm summed across patches
   current-income          ;; income of farm summed across patches
   current-costs           ;; costs of farm summed across patches
-  my-interventions        ;; list of intervention types already implemented
-  available-interventions ;; list of intervention types that could be implemented
-  m-my-interventions
-  m-available-interventions
+  my-interventions
+  available-interventions
   ;; initial values of the above
   farm-type-0
   current-profit-0
@@ -94,20 +90,7 @@ patches-own [
   the-owner               ;; the farmer who owns this patch
   luc-code                ;; LUC code where 1 = LUC1, 2 = LUC2, etc.
   landuse
-  ;; NOTE these are patch level parameter because they are set up with mean/sd and vary at patch level
-  yield-per-ha
-  yield-sd
-  cost-per-ha
-  cost-sd
-  emissions-per-ha
-  emissions-sd
-  ;; initial values of each of the above
-  yield-per-ha-0
-  yield-sd-0
-  cost-per-ha-0
-  cost-sd-0
-  emissions-per-ha-0
-  emissions-sd-0
+  landuse-0
 ]
 
 ;; -----------------------------------------
@@ -136,9 +119,10 @@ to setup
   assign-patches-to-farmers
   assign-farms-to-farmers
   setup-economic-parameters
-  make-matrix-copies
+  make-matrix-copies-of-data
   redraw
   reset-ticks
+  random-seed run-rng-seed
   go ;; this initialises the farms with current net profit and some interventions
   store-initial-values
   if run-rng-seed != 0 [ random-seed run-rng-seed ]
@@ -156,7 +140,7 @@ to go
       update-profit-of-farm
     ]
     ask farmers [
-      if [length available-interventions] of my-farm > 0 [
+      if [length get-available-interventions] of my-farm > 0 [
         let potential-change consider-interventions false
         if random-float 1 < last potential-change [
           if show-interventions? [
@@ -177,7 +161,7 @@ end
 
 ;; put a model stop condition here
 to-report stop-model?
-  ifelse all-true? [length available-interventions = 0] of farms [
+  ifelse all-true? [length get-available-interventions = 0] of farms [
     show "Stopping model: all possible interventions implemented on all farms!"
     report true
   ]
@@ -331,7 +315,6 @@ to setup-economic-parameters
     [ random-seed rng-economics ]
     [ random-seed timer ]
     read-production-function-parameters
-    ask farm-land [ set-farm-production-function ]
     ask farms [ set landuse-luc-profile get-farm-landuse-luc-profile ]
   ]
 end
@@ -528,11 +511,16 @@ to assign-patches-to-farmers
     let this-farms-land farm-land with [temp-ID = id]
     if any? this-farms-land [
       let this-farmer nobody
-      ask approximate-centroid this-farms-land [
-        sprout-farmers 1 [
-          initialise-farmer
-          set this-farmer self
+      ifelse setup-geography-from-files? [
+        ask approximate-centroid this-farms-land [
+          sprout-farmers 1 [
+            initialise-farmer
+            set this-farmer self
+          ]
         ]
+      ]
+      [ set this-farmer farmer id
+        ask this-farmer [ move-to approximate-centroid this-farms-land ]
       ]
       ask this-farms-land [
         set the-owner this-farmer
@@ -540,6 +528,17 @@ to assign-patches-to-farmers
     ]
   ]
   draw-borders table:get colour-key "border"
+end
+
+;; returns approximate centroid of a patch-set
+to-report approximate-centroid [poly]
+  let centroid nobody
+  with-local-randomness [
+    let mean-x mean [pxcor] of poly
+    let mean-y mean [pycor] of poly
+    set centroid one-of poly with-min [distancexy mean-x mean-y]
+  ]
+  report centroid
 end
 
 to assign-farms-to-farmers
@@ -614,69 +613,6 @@ to-report get-farm-of-patch
   report [my-farm] of the-owner
 end
 
-;; patch procedure
-to set-farm-production-function
-  ;; this test might need to change depending on how the spatial data files are finally specified
-  if not is-nan? luc-code and luc-code != 0 [
-    set yield-per-ha     get-parameter "yield" "mean" landuse luc-code
-    set yield-sd         get-parameter "yield" "sd" landuse luc-code
-
-    set cost-per-ha      get-parameter "cost" "mean" landuse luc-code
-    set cost-sd          get-parameter "cost" "sd" landuse luc-code
-
-    set emissions-per-ha get-parameter "emissions" "mean" landuse luc-code
-    set emissions-sd     get-parameter "emissions" "sd" landuse luc-code
-  ]
-end
-
-;; patch-report
-to-report get-patch-yield [with-var?]
-  ifelse with-var?
-  [ report random-normal yield-per-ha yield-sd ]
-  [ report yield-per-ha ]
-end
-
-;; patch-report
-to-report get-patch-costs [with-var?]
-  ifelse with-var?
-  [ report random-normal cost-per-ha cost-sd ]
-  [ report cost-per-ha ]
-end
-
-;; patch-report
-to-report get-patch-emissions [with-var?]
-  ifelse with-var?
-  [ report random-normal emissions-per-ha emissions-sd ]
-  [ report emissions-per-ha ]
-end
-
-;; patch-report
-to-report get-profit-of-patch [with-var?]
-  report get-income-of-patch with-var? - get-costs-of-patch with-var?
-end
-
-;; patch-report
-to-report get-income-of-patch [with-var?]
-  let ft landuse
-  let adopted [my-interventions] of ([my-farm] of the-owner)
-  let price             table:get prices landuse
-  let yield             get-patch-yield with-var?
-  set yield     yield * product map [a -> [1 + get-intervention-impact ft "yields"] of get-intervention a] adopted
-  report price * yield
-end
-
-;; patch-report
-to-report get-costs-of-patch [with-var?]
-  let ft landuse
-  let adopted [my-interventions] of get-farm-of-patch
-  let cost              get-patch-costs with-var?
-  set cost       cost + sum map [a -> [get-intervention-impact ft "costs"] of get-intervention a] adopted
-  let ghg               get-patch-emissions with-var?
-  set ghg         ghg * product map [a -> [1 + get-intervention-impact ft "emissions"] of get-intervention a] adopted
-;  let ghg-tax           table:get environmental-taxes ft
-;  report cost + ghg * ghg-tax
-  report cost + ghg * carbon-price
-end
 
 ;; -----------------------------------------
 ;; farm specific functions
@@ -702,64 +638,46 @@ to initialise-farm
     ask the-land [ set landuse ft ]
     set label farm-type
     set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
-    set my-interventions []
+    set my-interventions matrix:make-constant 1 length table:keys interventions-lookup 0
     set available-interventions possible-interventions
-    set m-my-interventions matrix:make-constant 1 length table:keys interventions-lookup 0
-    set m-available-interventions m-possible-interventions
   ]
 end
 
 to implement-intervention [i-type]
-  set my-interventions lput i-type my-interventions
-  set available-interventions remove i-type available-interventions
-  matrix:set m-my-interventions 0 position i-type table:keys interventions-lookup 1
-  matrix:set m-available-interventions 0 position i-type table:keys interventions-lookup 0
-end
-
-to-report get-farm-income [with-var?]
-  report sum [get-income-of-patch with-var?] of the-land
-end
-
-to-report get-farm-costs [with-var?]
-  report sum [get-costs-of-patch with-var?] of the-land
+  matrix:set my-interventions 0 position i-type table:keys interventions-lookup 1
+  matrix:set available-interventions 0 position i-type table:keys interventions-lookup 0
 end
 
 ;; this alway sapplies year-on-year SD so no 'with-var?' parameter required
 to update-profit-of-farm
-;  set current-income get-farm-income true
-;  set current-costs get-farm-costs true
-  set current-income m-farm-income true
-  set current-costs m-farm-costs true
+  set current-income get-farm-income true
+  set current-costs get-farm-costs true
   set current-profit current-income - current-costs
   redraw-farm
+end
+
+to-report get-my-interventions
+  report slice-by-ones
+    table:keys interventions-lookup
+    item 0 matrix:to-row-list my-interventions
 end
 
 to-report get-available-interventions
   report slice-by-ones
     table:keys interventions-lookup
-    item 0 matrix:to-row-list m-available-interventions
+    item 0 matrix:to-row-list available-interventions
 end
 
 to-report possible-interventions
-  let ft farm-type
-  let possibles filter
-    [i -> [is-applicable-to-farm-type? ft] of i] sort interventions
-  report map [i -> [intervention-type] of i] possibles
-;  report interventions with [is-applicable-to-farm-type? [farm-type] of myself]
-end
-
-to-report m-possible-interventions
   let ft farm-type
   report matrix:from-row-list
     (list map [i -> ifelse-value [is-applicable-to-farm-type? ft] of i [1] [0]] sort interventions)
 end
 
 to-report get-intervention-score [i-type show-messages?]
-  set my-interventions lput i-type my-interventions
-;  let new-costs get-farm-costs false
-;  let new-income get-farm-income false
-  let new-costs m-farm-costs false
-  let new-income m-farm-income false
+  matrix:set my-interventions 0 position i-type table:keys interventions-lookup 1
+  let new-costs get-farm-costs false
+  let new-income get-farm-income false
   let change-in-costs relative-change current-costs new-costs
   let change-in-income relative-change current-income new-income
   if show-messages? [
@@ -769,7 +687,7 @@ to-report get-intervention-score [i-type show-messages?]
     show (word "Delta costs  : " change-in-costs " Delta income  : " change-in-income)
   ]
   ;; don't forget to undo the intervention... we are only trying them out!
-  set my-interventions remove i-type my-interventions
+  matrix:set my-interventions 0 position i-type table:keys interventions-lookup 0
   report change-in-income - change-in-costs
 end
 
@@ -813,7 +731,7 @@ end
 
 ;; pick a random location for farmer (used in random initialisation)
 to place-farmer
-  while [any? other farmers in-radius farm-centroid-inhibition-distance] [
+  while [any? other farmers in-radius inhibition-distance] [
     setxy random-xcor random-ycor
   ]
 end
@@ -926,7 +844,7 @@ end
 ;; each round BUT AT FARM LEVEL. That is, every patch on a given farm with given
 ;; LU/LUC experiences same deviation from mean outcomes in a particular year. But a
 ;; neighbouring farm might experience quite different deviations.
-to make-matrix-copies
+to make-matrix-copies-of-data
   set m-yield-means matrix:from-row-list map [t -> table:values t] table:values commodity-yield-means
   set m-yield-sds matrix:from-row-list map [t -> table:values t] table:values commodity-yield-sds
   set m-cost-means matrix:from-row-list map [t -> table:values t] table:values input-cost-means
@@ -945,104 +863,55 @@ to make-matrix-copies
     matrix:plus 1 matrix:from-row-list map [i -> table:values [emissions-impacts] of i] sort interventions
 end
 
-;; this is used by the emissions and yield impacts matrices
-;; which assumulate MULTIPLICATIVELY
-to-report matrix-column-products [m]
-  report matrix:from-column-list (
-    (list map [r -> product r] matrix:to-column-list m)
-  )
-end
-
-to-report matrix-row-sums [m]
-  report map [r -> sum r] matrix:to-row-list m
-end
-
-to-report matrix-column-sums [m]
-  report map [c -> sum c] matrix:to-column-list m
-end
-
-to-report matrix-sum-elements [m]
-  report sum matrix-row-sums m
-end
-
-to-report matrix-dup-rows [m n]
-  if item 0 matrix:dimensions m != 1 [
-    user-message "ERROR: Print matrix supplied to matrix-dup-rows reporter has more than one row"
-    report nobody
-  ]
-  let row item 0 matrix:to-row-list m
-  report matrix:from-row-list map [r -> row] range n
-end
-
-to-report matrix-dup-cols [m n]
-  if item 1 matrix:dimensions m != 1 [
-    user-message "ERROR: Print matrix supplied to matrix-dup-cols reporter has more than one column"
-    report nobody
-  ]
-  let col item 0 matrix:to-column-list m
-  report matrix:from-column-list map [c -> col] range n
-end
-
-to-report matrix-sum-of-rows-cols [row col]
-  report matrix:plus matrix:from-row-list map [i -> row] range length col
-                     matrix:from-column-list map [i -> col] range length row
-end
-
-to-report matrix-from-list [lst nr nc byrow?]
-  ifelse byrow?
-  [ report matrix:from-row-list as-list-of-lists lst nr ]
-  [ report matrix:from-column-list as-list-of-lists lst nc ]
-end
-
-to-report m-farm-profit [with-var?]
-  report m-farm-income with-var? - m-farm-costs with-var?
-end
+;to-report get-farm-profit [with-var?]
+;  report get-farm-income with-var? - get-farm-costs with-var?
+;end
 
 ;; for now this has no interventions component
-to-report m-farm-income [with-var?]
+to-report get-farm-income [with-var?]
   ifelse with-var?
   [
     report round matrix-sum-elements (
       ( matrix:map [[a b c] -> a * b * c]
         landuse-luc-profile
-        matrix:plus m-yield-means m-farm-yield-variance
-        m-farm-yield-impact-of-interventions ) matrix:* m-prices )
+        matrix:plus m-yield-means get-farm-yield-variance
+        get-yield-after-interventions ) matrix:* m-prices )
   ]
   [
     report round matrix-sum-elements (
       ( matrix:map [[a b c] -> a * b * c]
         landuse-luc-profile
         m-yield-means
-        m-farm-yield-impact-of-interventions ) matrix:* m-prices )
+        get-yield-after-interventions ) matrix:* m-prices )
   ]
 end
 
 ;; for now this has no interventions component
-to-report m-farm-costs [with-var?]
+to-report get-farm-costs [with-var?]
   ifelse with-var?
   [
-    report round ( m-farm-cost-impact-of-interventions + matrix-sum-elements
+    report round ( get-cost-after-interventions + matrix-sum-elements
       ( matrix:map *
         landuse-luc-profile
         ( m-cost-means matrix:+
-          m-farm-cost-variance matrix:+
+          get-farm-cost-variance matrix:+
           ( matrix:map *
               ( matrix:plus
                 m-emission-means
-                m-farm-emissions-variance )
-              m-farm-emissions-impact-of-interventions ) matrix:* carbon-price
+                get-farm-emissions-variance )
+              get-emissions-after-interventions ) matrix:* carbon-price
         )
       )
     )
   ]
   [
-    report round ( m-farm-cost-impact-of-interventions + matrix-sum-elements
+    report round ( get-cost-after-interventions + matrix-sum-elements
       ( matrix:map *
         landuse-luc-profile
         ( m-cost-means matrix:+
           ( matrix:map *
               m-emission-means
-              m-farm-emissions-impact-of-interventions ) matrix:* carbon-price
+              get-emissions-after-interventions ) matrix:* carbon-price
         )
       )
     )
@@ -1062,40 +931,40 @@ to-report reduced-normal-deviate [m s n]
   report random-normal m (s / sqrt(n))
 end
 
-to-report m-farm-yield-variance
+to-report get-farm-yield-variance
   report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] m-yield-sds landuse-luc-profile)
 end
 
-to-report m-farm-cost-variance
+to-report get-farm-cost-variance
   report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] m-cost-sds landuse-luc-profile)
 end
 
-to-report m-farm-emissions-variance
+to-report get-farm-emissions-variance
   report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] m-emission-sds landuse-luc-profile)
 end
 
-to-report m-farm-cost-impact-of-interventions
+to-report get-cost-after-interventions
   report round matrix-sum-elements
-         ( m-my-interventions matrix:*
+         ( my-interventions matrix:*
            m-intervention-cost-impacts matrix:*
            get-farm-landuse-profile )
 end
 
 ;; reports a matrix for use in multiplication of yields
 ;; contingent on on-farm interventions
-to-report m-farm-yield-impact-of-interventions
+to-report get-yield-after-interventions
   report matrix:transpose matrix-dup-cols ( matrix-column-products (
     ( matrix:map [[a b] -> ifelse-value a = 0 [1] [b]]
-      matrix-dup-cols matrix:transpose m-my-interventions length farm-types
+      matrix-dup-cols matrix:transpose my-interventions length farm-types
       m-intervention-yield-impacts )
     ) ) 8
 end
 
 ;; ditto for emissions
-to-report m-farm-emissions-impact-of-interventions
+to-report get-emissions-after-interventions
   report matrix:transpose matrix-dup-cols ( matrix-column-products (
     ( matrix:map [[a b] -> ifelse-value a = 0 [1] [b]]
-      matrix-dup-cols matrix:transpose m-my-interventions length farm-types
+      matrix-dup-cols matrix:transpose my-interventions length farm-types
       m-intervention-emissions-impacts )
     ) ) 8
 end
@@ -1156,8 +1025,8 @@ to redraw-farm
 
   set label (word
     farm-type ": "
-    (length my-interventions) "/"
-    (length my-interventions + length available-interventions))
+    (length get-my-interventions) "/"
+    (length get-my-interventions + length get-available-interventions))
 end
 
 to redraw-farms
@@ -1189,39 +1058,31 @@ end
 
 to store-initial-values
   ask farm-land [
-    set yield-per-ha-0 yield-per-ha
-    set yield-sd-0 yield-sd
-    set cost-per-ha-0 cost-per-ha
-    set cost-sd-0 cost-sd
-    set emissions-per-ha-0 emissions-per-ha
-    set emissions-sd-0 emissions-sd
+    set landuse-0 landuse
   ]
   ask farms [
     set farm-type-0 farm-type
     set current-profit-0 current-profit
     set current-income-0 current-income
     set current-costs-0 current-costs
-    set my-interventions-0 my-interventions
-    set available-interventions-0 available-interventions
+    ;; important to copy here to get a new matrix, not a reference to the old one
+    set my-interventions-0 matrix:copy my-interventions
+    set available-interventions-0 matrix:copy available-interventions
   ]
 end
 
 to restore-initial-values
   ask farm-land [
-    set yield-per-ha yield-per-ha-0
-    set yield-sd yield-sd-0
-    set cost-per-ha cost-per-ha-0
-    set cost-sd cost-sd-0
-    set emissions-per-ha emissions-per-ha-0
-    set emissions-sd emissions-sd-0
+    set landuse landuse-0
   ]
   ask farms [
     set farm-type farm-type-0
     set current-profit current-profit-0
     set current-income current-income-0
     set current-costs current-costs-0
-    set my-interventions my-interventions-0
-    set available-interventions available-interventions-0
+    ;; important to copy here to get a new matrix, not a reference to the old one
+    set my-interventions matrix:copy my-interventions-0
+    set available-interventions matrix:copy available-interventions-0
   ]
   redraw-farms
   reset-ticks
@@ -1298,6 +1159,9 @@ end
 ;; utilility functions
 ;; -----------------------------------------
 
+;; -----------------------------------------
+;; math stuff
+;; -----------------------------------------
 to-report rescale [x min-x max-x new-min-x new-max-x]
   report new-min-x + (new-max-x - new-min-x) * (x - min-x) / (max-x - min-x)
 end
@@ -1322,6 +1186,14 @@ to-report percent-change [a b]
   report 100 * relative-change a b
 end
 
+;; because the GIS extension makes NaNs and we need to detect them
+to-report is-nan? [x]
+  report not (x <= 0 or x >= 0)
+end
+
+;; -----------------------------------------
+;; logic stuff
+;; -----------------------------------------
 to-report all-true? [lst]
   report is-boolean? position false lst
 end
@@ -1330,11 +1202,61 @@ to-report any-true? [lst]
   report not is-boolean? position true lst
 end
 
-;; because the GIS extension makes NaNs and we need to detect them
-to-report is-nan? [x]
-  report not (x <= 0 or x >= 0)
+;; -----------------------------------------
+;; matrix to lists and back stuff
+;; -----------------------------------------
+;; this is used by the emissions and yield impacts matrices
+;; which assumulate MULTIPLICATIVELY
+to-report matrix-column-products [m]
+  report matrix:from-column-list (
+    (list map [r -> product r] matrix:to-column-list m)
+  )
 end
 
+to-report matrix-row-sums [m]
+  report map [r -> sum r] matrix:to-row-list m
+end
+
+to-report matrix-column-sums [m]
+  report map [c -> sum c] matrix:to-column-list m
+end
+
+to-report matrix-sum-elements [m]
+  report sum matrix-row-sums m
+end
+
+to-report matrix-dup-rows [m n]
+  if item 0 matrix:dimensions m != 1 [
+    user-message "ERROR: Print matrix supplied to matrix-dup-rows reporter has more than one row"
+    report nobody
+  ]
+  let row item 0 matrix:to-row-list m
+  report matrix:from-row-list map [r -> row] range n
+end
+
+to-report matrix-dup-cols [m n]
+  if item 1 matrix:dimensions m != 1 [
+    user-message "ERROR: Print matrix supplied to matrix-dup-cols reporter has more than one column"
+    report nobody
+  ]
+  let col item 0 matrix:to-column-list m
+  report matrix:from-column-list map [c -> col] range n
+end
+
+to-report matrix-sum-of-rows-cols [row col]
+  report matrix:plus matrix:from-row-list map [i -> row] range length col
+                     matrix:from-column-list map [i -> col] range length row
+end
+
+to-report matrix-from-list [lst nr nc byrow?]
+  ifelse byrow?
+  [ report matrix:from-row-list as-list-of-lists lst nr ]
+  [ report matrix:from-column-list as-list-of-lists lst nc ]
+end
+
+;; -----------------------------------------
+;; list stuff
+;; -----------------------------------------
 ;; zip two lists into a list of tuples (cf. python function)
 to-report zip [l1 l2]
   report (map list l1 l2)
@@ -1344,17 +1266,6 @@ to-report product [numbers]
   ifelse length numbers = 0
   [ report 1 ]
   [ report reduce * numbers ]
-end
-
-;; returns approximate centroid of a patch-set
-to-report approximate-centroid [poly]
-  let centroid nobody
-  with-local-randomness [
-    let mean-x mean [pxcor] of poly
-    let mean-y mean [pycor] of poly
-    set centroid one-of poly with-min [distancexy mean-x mean-y]
-  ]
-  report centroid
 end
 
 to-report as-list-of-lists [lst n-sublists]
@@ -1403,11 +1314,9 @@ to-report slice-by-ones [lst ones]
   report map [t -> item 0 t] filter [t -> item 1 t = 1] zip lst ones
 end
 
-
 ;; ------------------------------------------
-;; string utilities (see netlogo-utils repo)
+;; string stuff
 ;; ------------------------------------------
-
 ;; reports string into a list of characters
 to-report string-as-list [str]
   report n-values length str [i -> item i str]
@@ -1501,64 +1410,6 @@ to profile-go [n]
   profiler:stop          ;; stop profiling
   print profiler:report  ;; view the results
   profiler:reset         ;; clear the data
-end
-
-to iterate-cost-function [n]
-  repeat n [let x [get-farm-costs true] of farms]
-end
-
-to iterate-m-cost-function [n]
-  repeat n [let x [m-farm-costs true] of farms]
-end
-
-to profile-cost-functions [n]
-  profiler:start
-  iterate-cost-function n
-  iterate-m-cost-function n
-  profiler:stop
-  print profiler:report
-  profiler:reset
-end
-
-;; -----------------------------------------
-;; farmer profit output for sanity check
-;; -----------------------------------------
-to-report profit-summary [adopted-interventions]
-  let result (list who farm-type table:get prices farm-type count the-land)
-  let current-interventions my-interventions
-  set my-interventions turtle-set nobody
-  let X get-farm-costs false
-  let Y get-farm-income false
-  set result lput precision X 1 result
-  set result lput precision Y 1 result
-  set result lput precision (Y - X) 1 result
-  foreach but-first adopted-interventions [ i ->
-    let the-intervention get-intervention i
-    ifelse member? the-intervention possible-interventions [
-      set my-interventions turtle-set the-intervention
-      set result lput precision X 1 result
-      set result lput precision Y 1 result
-      set result lput precision (Y - X) 1 result
-      set my-interventions turtle-set nobody
-    ]
-    [ set result sentence result ["NA" "NA" "NA"] ]
-  ]
-  set my-interventions current-interventions
-  report result
-end
-
-to save-farm-profit-under-various-interventions [file]
-  let sorted-interventions fput "None" sort [intervention-type] of interventions
-  let interventions-header sentence
-    ["" "" "" "Interventions"]
-    reduce [ [a b] -> sentence a b ] map [ a -> sentence a ["" ""] ] sorted-interventions
-  let cir ["Cost" "Income" "Profit"]
-  let header (sentence ["" "Type" "Price" "Area"] cir cir cir cir cir cir)
-  let result (list interventions-header header)
-  foreach sort farms [ f ->
-    set result lput [profit-summary sorted-interventions] of f result
-  ]
-  csv:to-file word output-data-folder file result
 end
 
 
@@ -1722,10 +1573,10 @@ Random landscape
 SLIDER
 845
 498
-1074
+1132
 531
-farm-centroid-inhibition-distance
-farm-centroid-inhibition-distance
+inhibition-distance
+inhibition-distance
 0
 sqrt (count patches / 100 / pi)
 2.8

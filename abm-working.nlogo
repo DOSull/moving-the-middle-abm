@@ -13,9 +13,9 @@ globals [
   market-data-folder
   spatial-data-folder
   show-labels?
-  interventions-lookup    ;; interventions in a table so they can be retrieved by name
 
   epsilon                 ;; for convenience - constant for 'smallest number'
+  na-value
 
   parcels-data            ;; GIS functionality depends on reading the data into an object
   luc-data                ;; then acccesing it again later
@@ -24,6 +24,9 @@ globals [
   not-farm-land
 
   farm-types              ;; list of named farm types
+  intervention-types
+  interventions           ;; table of tables of intervention impacts
+
   commodity-yield-means   ;; table of mean yields by LUC and farm-type
   commodity-yield-sds     ;; table of sd of yields by LUC and farm-type
   input-cost-means        ;; table of mean input costs by LUC and farm-type
@@ -51,8 +54,6 @@ globals [
 
 breed [farmers farmer]
 breed [farms farm]        ;; representative turtle for the farm - for data storage...
-breed [interventions
-       intervention]      ;; place to keep relevant data about each intervention type
 
 farms-own [
   my-farmer               ;; the farmer who owns/runs this farm
@@ -77,14 +78,6 @@ farmers-own [
   my-farm                 ;; the farm turtle of this farmer's farm
 ]
 
-interventions-own [
-  intervention-type       ;; this would be one of the named types
-  cost-impacts
-  yield-impacts
-  emissions-impacts
-;  intervention-impacts    ;; table of effects by farm-type and outcome (costs, yields, emissions)
-]
-
 patches-own [
   temp-ID
   the-owner               ;; the farmer who owns this patch
@@ -102,8 +95,8 @@ to setup
   clear-all
 
   set epsilon 1e-16
+  set na-value -999
   set show-labels? false
-  set interventions-lookup table:make
 
   let base-data-folder "data/"
   set output-data-folder word base-data-folder "output/"                ;; 'data/output/'
@@ -204,7 +197,7 @@ to read-farm-types-from-file [file]
   carefully [
     print word "Reading farm types from " file
     file-open file
-    set farm-types but-first csv:from-row file-read-line
+    set farm-types sort but-first csv:from-row file-read-line
     file-close
   ]
   [
@@ -215,16 +208,20 @@ end
 
 ;; setup interventions
 to read-interventions-from-file [file]
+  let names []
   carefully [
     print word "Reading intervention types from " file
     file-open file
     let skip file-read-line
     while [not file-at-end?] [
-      create-interventions 1 [
-        initialise-intervention item 0 csv:from-row file-read-line
-      ]
+      set names lput item 0 csv:from-row file-read-line names
+;      create-interventions 1 [
+;        initialise-intervention item 0 csv:from-row file-read-line
+;      ]
     ]
     file-close
+    set intervention-types sort names
+    foreach intervention-types [ i -> output-print i ]
   ]
   [
     print "ERROR: problem reading intervention types from thresholds data file"
@@ -250,10 +247,11 @@ to read-farmer-thresholds-from-file [file]
     print word "Reading farmer adoption thresholds from file " file
     file-open file
     let the-farm-types but-first csv:from-row file-read-line
+    let order get-order the-farm-types farm-types
     while [not file-at-end?] [
       let data csv:from-row file-read-line
       let the-intervention item 0 data
-      let vals table:from-list zip the-farm-types (but-first data)
+      let vals table:from-list reorder zip the-farm-types (but-first data) order
       table:put base-thresholds the-intervention vals
     ]
     file-close
@@ -268,8 +266,9 @@ end
 ;; which holds production function impacts by intervention type, effect, and farm type
 to read-intervention-impacts-from-file [file]
   ;; CSV file format like this - note that each intervention should be
-  ;; 3 consecutive lines with its effects (these can be in any order)
-  ;; farm types can also be in any order. Spaces added for clarity
+  ;; 3 consecutive lines with its effects (the three impacts can be in
+  ;; any order, but each set should be IN THE SAME ORDER)
+  ;; farm types can be in any order. Spaces added for clarity
   ;;
   ;; Intervention     , Impact   ,   SNB, Dairy, Forest,  Crop
   ;; Build_Wetland    , costs    ,    25,    68,     NA,    34
@@ -280,29 +279,46 @@ to read-intervention-impacts-from-file [file]
   ;; Riparian_Planting, emissions,  -0.1, -0.03,     NA, -0.04
   ;;  ... and so on ...
   ;;
+  let i-list []   ;; list of tables, one per intervention type
+  let i-types []  ;; list of intervention types in the order they appear
   carefully [
     print word "Reading intervention impacts from " file
     file-open file
     let the-farm-types but-first but-first csv:from-row file-read-line
+    let order get-order the-farm-types farm-types
     while [not file-at-end?] [
       let i 0
       let i-type nobody
-      while [i < 3] [ ;; read the table in 3s
+      let e-types []
+      let e-impacts []
+      while [i < 3] [ ;; read the table by 3s
         let data csv:from-row file-read-line
         set i-type item 0 data
+        if i = 0 [set i-types fput i-type i-types]
         set data but-first data
-        let the-effect-type item 0 data
-        let the-effect-impacts table:from-list zip the-farm-types (but-first data)
-        set-intervention-impact i-type the-effect-type the-effect-impacts
+        let e-type item 0 data
+        set e-types lput e-type e-types
+        set e-impacts lput table:from-list reorder zip the-farm-types (but-first map [x -> replace-na x] data) order e-impacts
         set i i + 1
       ]
+      set i-list fput table:from-list zip e-types e-impacts i-list
     ]
     file-close
+    set order get-order i-types intervention-types
+    set interventions table:from-list reorder zip i-types i-list order
   ]
   [
     print "ERROR: problem reading the interventions effects file"
     file-close
   ]
+end
+
+to-report replace-na [x]
+  report ifelse-value x = "NA" [na-value] [x]
+end
+
+to-report replace [x y z]
+  report ifelse-value x = y [z] [x]
 end
 
 
@@ -362,15 +378,16 @@ to-report get-parameter-from-file [file]
     print word "Reading parameters from " file
     file-open file
     let the-farm-types but-first csv:from-row file-read-line
+    let order get-order the-farm-types farm-types
     let luc 1
     while [not file-at-end?] [
       ;; read the LUCx_Mean line
       let means-data but-first csv:from-row file-read-line
-      let means table:from-list zip the-farm-types means-data
+      let means table:from-list reorder zip the-farm-types means-data order
       table:put means-table luc means
       ;; read the LUCx_SD line
       let sds-data but-first csv:from-row file-read-line
-      let sds table:from-list zip the-farm-types sds-data
+      let sds table:from-list reorder zip the-farm-types sds-data order
       table:put sds-table luc sds
       set luc luc + 1
     ]
@@ -403,10 +420,9 @@ to-report get-prices [file]
     print word "Reading prices from " file
     file-open file
     let the-farm-types but-first csv:from-row file-read-line
+    let order get-order the-farm-types farm-types
     let price-data but-first csv:from-row file-read-line
-    set prices-table table:from-list zip the-farm-types price-data
-;    let taxes-data but-first csv:from-row file-read-line
-;    set taxes-table table:from-list zip the-farm-types taxes-data
+    set prices-table table:from-list reorder zip the-farm-types price-data order
     file-close
   ]
   [
@@ -638,14 +654,14 @@ to initialise-farm
     ask the-land [ set landuse ft ]
     set label farm-type
     set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
-    set my-interventions matrix:make-constant 1 length table:keys interventions-lookup 0
+    set my-interventions matrix:make-constant 1 length intervention-types 0
     set available-interventions possible-interventions
   ]
 end
 
 to implement-intervention [i-type]
-  matrix:set my-interventions 0 position i-type table:keys interventions-lookup 1
-  matrix:set available-interventions 0 position i-type table:keys interventions-lookup 0
+  matrix:set my-interventions 0 position i-type intervention-types 1
+  matrix:set available-interventions 0 position i-type intervention-types 0
 end
 
 ;; this alway sapplies year-on-year SD so no 'with-var?' parameter required
@@ -657,25 +673,21 @@ to update-profit-of-farm
 end
 
 to-report get-my-interventions
-  report slice-by-ones
-    table:keys interventions-lookup
-    item 0 matrix:to-row-list my-interventions
+  report slice-by-ones intervention-types item 0 matrix:to-row-list my-interventions
 end
 
 to-report get-available-interventions
-  report slice-by-ones
-    table:keys interventions-lookup
-    item 0 matrix:to-row-list available-interventions
+  report slice-by-ones intervention-types item 0 matrix:to-row-list available-interventions
 end
 
 to-report possible-interventions
   let ft farm-type
   report matrix:from-row-list
-    (list map [i -> ifelse-value [is-applicable-to-farm-type? ft] of i [1] [0]] sort interventions)
+    (list map [i -> ifelse-value is-applicable-to-farm-type? i ft [1] [0]] intervention-types)
 end
 
 to-report get-intervention-score [i-type show-messages?]
-  matrix:set my-interventions 0 position i-type table:keys interventions-lookup 1
+  matrix:set my-interventions 0 position i-type intervention-types 1
   let new-costs get-farm-costs false
   let new-income get-farm-income false
   let change-in-costs relative-change current-costs new-costs
@@ -687,7 +699,7 @@ to-report get-intervention-score [i-type show-messages?]
     show (word "Delta costs  : " change-in-costs " Delta income  : " change-in-income)
   ]
   ;; don't forget to undo the intervention... we are only trying them out!
-  matrix:set my-interventions 0 position i-type table:keys interventions-lookup 0
+  matrix:set my-interventions 0 position i-type intervention-types 0
   report change-in-income - change-in-costs
 end
 
@@ -781,53 +793,57 @@ end
 ;; -----------------------------------------
 
 ;; initialises an intervention with a name and blank table for effects
-to initialise-intervention [name]
-  set intervention-type name
-  table:put interventions-lookup name self
+;to initialise-intervention [name]
+;  set intervention-type name
+;  table:put interventions-lookup name self
 ;  set intervention-impacts table:make
-  set hidden? true
-  output-print name
-end
+;  set hidden? true
+;  output-print name
+;end
 
 ;; it's convenient sometimes to be able to get an intervention by its name
 to-report get-intervention [name]
-  report table:get interventions-lookup name
+  report table:get interventions name
 end
 
 ;; set impacts (a farm-type: value lookup)
 to set-intervention-impact [i-type effect-type impacts]
-  ask get-intervention i-type [
+  table:put i-type effect-type impacts
+;  ask get-intervention i-type [
 ;    table:put intervention-impacts effect-type impacts
-    (ifelse
-      effect-type = "costs"     [ set cost-impacts impacts ]
-      effect-type = "yields"    [ set yield-impacts impacts ]
-      effect-type = "emissions" [ set emissions-impacts impacts ]
-      [ user-message "Unexpected effect-type specified in set-intervention-impact procedure" ]
-    )
-  ]
+;    (ifelse
+;      effect-type = "costs"     [ set cost-impacts impacts ]
+;      effect-type = "yields"    [ set yield-impacts impacts ]
+;      effect-type = "emissions" [ set emissions-impacts impacts ]
+;      [ user-message "Unexpected effect-type specified in set-intervention-impact procedure" ]
+;    )
+;  ]
 end
 
 ;; get the impact of this intervention by farm type and effect (cost/yield/emissions)
 ;; return 0 if no effect -- this won't affect any calculations
-to-report get-intervention-impact [ft effect]
-;  report table:get-or-default (
-;    table:get intervention-impacts effect
-;  ) ft 0
-  (ifelse
-    effect = "costs"     [ report table:get-or-default cost-impacts ft 0 ]
-    effect = "yields"    [ report table:get-or-default yield-impacts ft 0 ]
-    effect = "emissions" [ report table:get-or-default emissions-impacts ft 0 ]
-    [ user-message "Unexpected effect-type specified in get-intervention-impact reporter"
-      report nobody ]
-  )
+to-report get-intervention-impact [i-type ft effect]
+  report table:get-or-default (
+    table:get (
+      table:get interventions i-type
+    ) effect
+  ) ft 0
+;  (ifelse
+;    effect = "costs"     [ report table:get-or-default cost-impacts ft 0 ]
+;    effect = "yields"    [ report table:get-or-default yield-impacts ft 0 ]
+;    effect = "emissions" [ report table:get-or-default emissions-impacts ft 0 ]
+;    [ user-message "Unexpected effect-type specified in get-intervention-impact reporter"
+;      report nobody ]
+;  )
 end
 
 ;; tests if intervention is applicable by checking if the result is in the impacts table
-to-report is-applicable-to-farm-type? [ft]
-;  report is-number? table:get-or-default (
-;    table:get intervention-impacts "costs" ;; pick one at random
-;  ) ft "NA"
-  report is-number? table:get-or-default cost-impacts ft "NA"
+to-report is-applicable-to-farm-type? [i-type ft]
+  report table:get (
+    table:get (
+      table:get interventions i-type
+    ) "costs"
+  ) ft != na-value
 end
 
 
@@ -853,14 +869,17 @@ to make-matrix-copies-of-data
   set m-emission-sds matrix:from-row-list map [t -> table:values t] table:values ghg-emission-sds
   ;; TODO: change m-prices to a single row vector one entry per land use, not this 8x duplicated thing
   set m-prices matrix:from-column-list (list table:values prices)
-;  set m-taxes matrix-from-list rep-list-inline table:values environmental-taxes 8 8 4 true
   set m-intervention-cost-impacts
-    matrix:from-row-list map [i -> table:values [cost-impacts] of i] sort interventions
+  matrix:from-row-list
+    map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
+              table:values table:get table:get interventions i "costs"] intervention-types
   ;; note that these two are multiplicatively applied so add 1 to 0.05 -> 1.05, 0 -> 1, etc
-  set m-intervention-yield-impacts
-    matrix:plus 1 matrix:from-row-list map [i -> table:values [yield-impacts] of i] sort interventions
-  set m-intervention-emissions-impacts
-    matrix:plus 1 matrix:from-row-list map [i -> table:values [emissions-impacts] of i] sort interventions
+  set m-intervention-yield-impacts matrix:plus 1 matrix:from-row-list
+    map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
+              table:values table:get table:get interventions i "yields"] intervention-types
+  set m-intervention-emissions-impacts matrix:plus 1 matrix:from-row-list
+    map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
+              table:values table:get table:get interventions i "emissions"] intervention-types
 end
 
 ;to-report get-farm-profit [with-var?]
@@ -1205,6 +1224,10 @@ end
 ;; -----------------------------------------
 ;; matrix to lists and back stuff
 ;; -----------------------------------------
+to print-matrix [m]
+  print matrix:pretty-print-text m
+end
+
 ;; this is used by the emissions and yield impacts matrices
 ;; which assumulate MULTIPLICATIVELY
 to-report matrix-column-products [m]
@@ -1257,6 +1280,14 @@ end
 ;; -----------------------------------------
 ;; list stuff
 ;; -----------------------------------------
+to-report get-order [lst sorted-lst]
+  report map [a -> position a sorted-lst] lst
+end
+
+to-report reorder [lst order]
+  report map [i -> item i lst] order
+end
+
 ;; zip two lists into a list of tuples (cf. python function)
 to-report zip [l1 l2]
   report (map list l1 l2)
@@ -1439,7 +1470,7 @@ end
 GRAPHICS-WINDOW
 215
 12
-691
+832
 921
 -1
 -1
@@ -1454,7 +1485,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-155
+202
 0
 299
 1
@@ -1541,7 +1572,7 @@ SWITCH
 257
 setup-geography-from-files?
 setup-geography-from-files?
-0
+1
 1
 -1000
 

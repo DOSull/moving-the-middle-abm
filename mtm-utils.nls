@@ -1,0 +1,273 @@
+;; -----------------------------------------
+;; utilility functions
+;; -----------------------------------------
+
+;; -----------------------------------------
+;; math stuff
+;; -----------------------------------------
+to-report rescale [x min-x max-x new-min-x new-max-x]
+  report new-min-x + (new-max-x - new-min-x) * (x - min-x) / (max-x - min-x)
+end
+
+;; this formulation of relative change avoids overflows when
+;; the base value is close to 0, and is symmetrical relative to the
+;; direction of change ie the absolute value when x0 and x1 are
+;; reversed will be the same, x0 and x1 must be the same sign.
+to-report relative-change [x0 x1]
+  if x0 = 0 and x1 = 0 [ report 0 ]
+  if (x0 * x1) < 0 [
+    user-message  "Error attempting to determine relative change between numbers of opposite sign"
+    report nobody
+  ]
+  let change 2 * abs (x1 - x0) / (abs x1 + abs x0)
+  ifelse x1 < x0
+  [ report (- change) ]
+  [ report    change  ]
+end
+
+to-report percent-change [a b]
+  report 100 * relative-change a b
+end
+
+;; because the GIS extension makes NaNs and we need to detect them
+to-report is-nan? [x]
+  report not (x <= 0 or x >= 0)
+end
+
+;; -----------------------------------------
+;; logic stuff
+;; -----------------------------------------
+to-report all-true? [lst]
+  report is-boolean? position false lst
+end
+
+to-report any-true? [lst]
+  report not is-boolean? position true lst
+end
+
+;; -----------------------------------------
+;; matrix to lists and back stuff
+;; -----------------------------------------
+to print-matrix [m]
+  print matrix:pretty-print-text m
+end
+
+;; this is used by the emissions and yield impacts matrices
+;; which assumulate MULTIPLICATIVELY
+to-report matrix-column-products [m]
+  report matrix:from-column-list (
+    (list map [r -> product r] matrix:to-column-list m)
+  )
+end
+
+to-report matrix-row-sums [m]
+  report map [r -> sum r] matrix:to-row-list m
+end
+
+to-report matrix-column-sums [m]
+  report map [c -> sum c] matrix:to-column-list m
+end
+
+to-report matrix-sum-elements [m]
+  report sum matrix-row-sums m
+end
+
+to-report matrix-dup-rows [m n]
+  if item 0 matrix:dimensions m != 1 [
+    user-message "ERROR: Print matrix supplied to matrix-dup-rows reporter has more than one row"
+    report nobody
+  ]
+  let row item 0 matrix:to-row-list m
+  report matrix:from-row-list map [r -> row] range n
+end
+
+to-report matrix-dup-cols [m n]
+  if item 1 matrix:dimensions m != 1 [
+    user-message "ERROR: Print matrix supplied to matrix-dup-cols reporter has more than one column"
+    report nobody
+  ]
+  let col item 0 matrix:to-column-list m
+  report matrix:from-column-list map [c -> col] range n
+end
+
+to-report matrix-sum-of-rows-cols [row col]
+  report matrix:plus matrix:from-row-list map [i -> row] range length col
+                     matrix:from-column-list map [i -> col] range length row
+end
+
+to-report matrix-from-list [lst nr nc byrow?]
+  ifelse byrow?
+  [ report matrix:from-row-list as-list-of-lists lst nr ]
+  [ report matrix:from-column-list as-list-of-lists lst nc ]
+end
+
+;; -----------------------------------------
+;; list stuff
+;; -----------------------------------------
+to-report get-order [lst sorted-lst]
+  report map [a -> position a sorted-lst] lst
+end
+
+to-report reorder [lst order]
+  report map [i -> item i lst] order
+end
+
+;; zip two lists into a list of tuples (cf. python function)
+to-report zip [l1 l2]
+  report (map list l1 l2)
+end
+
+to-report product [numbers]
+  ifelse length numbers = 0
+  [ report 1 ]
+  [ report reduce * numbers ]
+end
+
+to-report as-list-of-lists [lst n-sublists]
+  let nm length lst
+  let m nm / n-sublists
+  let breaks sentence (n-values n-sublists [i -> i * m]) nm
+  report (map [[a b] -> sublist lst a b] butlast breaks butfirst breaks)
+end
+
+to-report range-from-to-by [start finish step]
+  let n ceiling ((finish - start) / step)
+  if (step * (finish - start)) < 0 [
+    user-message "***WARNING: step in sequence reporter is wrong sign. Returning empty list***"
+    report []
+  ]
+  ifelse finish > start
+  [ report n-values n [i -> start + step * i] ]
+  [ report n-values n [i -> start + step * i] ]
+end
+
+to-report range-from-to [start finish]
+  ifelse finish > start
+  [ report range-from-to-by start finish 1 ]
+  [ report range-from-to-by start finish -1 ]
+end
+
+to-report range-by [finish by]
+  report range-from-to-by 0 finish by
+end
+
+to-report rep-list [lst n inline?]
+  ifelse inline?
+  [ report rep-list-inline lst n]
+  [ report rep-list-each lst n]
+end
+
+to-report rep-list-each [lst n]
+  report reduce [[a b] -> sentence a b ] map [i -> n-values n [j -> i] ] lst
+end
+
+to-report rep-list-inline [lst n]
+  report reduce [[a b] -> sentence a b ] map [i -> lst] range n
+end
+
+to-report slice-by-ones [lst ones]
+  report map [t -> item 0 t] filter [t -> item 1 t = 1] zip lst ones
+end
+
+;; ------------------------------------------
+;; string stuff
+;; ------------------------------------------
+;; reports string into a list of characters
+to-report string-as-list [str]
+  report n-values length str [i -> item i str]
+end
+
+to-report join-string [lst sep]
+  report reduce [[a b] -> (word a sep b)] lst
+end
+
+;; splits a string str on the separator provided
+;; returns a list of strings
+to-report split-string [str sep]
+  let words []
+  let this-word ""
+  foreach (string-as-list str) [ c ->
+    ifelse c = sep
+    [ if this-word != ""
+      [ set words sentence words this-word
+        set this-word ""
+      ]
+    ]
+    [ set this-word word this-word c ]
+  ]
+  ifelse this-word = ""
+  [ report words ]
+  [ report sentence words this-word ]
+end
+
+
+;; ------------------------------------------
+;; drawing utilities (see netlogo-utils repo)
+;; ------------------------------------------
+
+to draw-borders [col]
+  with-local-randomness [
+    let boundaries farm-land with [
+      any? neighbors4 with [the-owner != nobody and
+                            the-owner != [the-owner] of myself]
+    ]
+    ask boundaries [
+      ask neighbors4 with [the-owner != nobody] [
+        ;; only those with different owner need to draw a line
+        if the-owner != [the-owner] of myself [
+          draw-line-between self myself col
+        ]
+      ]
+    ]
+  ]
+end
+
+;; draw line between two patches
+;; by sprouting a turtle and having it move
+;; to halfway point and draw the edge
+to draw-line-between [p1 p2 col]
+  ;; set a visible colour
+  let pen-color col
+  ask p1 [
+    ;; make a turtle to do the drawing
+    sprout 1 [
+      set color pen-color
+      ;; move to the boundary
+      face p2
+      jump 0.5
+      ;; face the corner and move there
+      rt 90
+      jump 0.495
+      ;; turn around and draw the edge
+      rt 180
+      pd
+      jump .99
+      ;; and die...
+      die
+    ]
+  ]
+end
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-24 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.

@@ -1,0 +1,208 @@
+;; -----------------------------------------
+;; landscape setup
+;; NOTE: this includes the farmers not just
+;;       LUC codes
+;; -----------------------------------------
+to setup-geography
+  with-local-randomness [
+    ifelse setup-geography-from-files?
+    [ setup-geography-from-files ]
+    [ setup-random-geography ]
+    ;; assign patches to farmers to make farms
+    colour-patches true
+  ]
+end
+
+to setup-geography-from-files
+  carefully [
+    print (word "Reading LUC data from " spatial-data-folder "luc.asc")
+    set luc-data gis:load-dataset word spatial-data-folder "luc.asc"
+    print (word "Reading farm data from " spatial-data-folder "parcels.shp")
+    set parcels-data gis:load-dataset word spatial-data-folder "parcels.shp"
+  ]
+  [
+    print "ERROR: problem reading spatial data"
+  ]
+  gis:apply-raster luc-data luc-code
+  set farm-land patches with [not is-nan? luc-code and luc-code > 0]
+  colour-patches false
+  display ;; do this early for reassurance...
+  let bgcolor table:get colour-key "background"
+  set not-farm-land patches with [pcolor = bgcolor]
+
+  ;; setup farms based on distinct parcels identified by ID in the parcels data
+  ;; This relies on a STR_ID variable which is unique string for each farm parcel
+  ;; String is IMPORTANT because of automatic interpolation that GIS extension applies
+  ;; when assigning values from a shapefile to patches only partly contained in polygons
+  gis:apply-coverage parcels-data "STR_ID" temp-ID
+  ;; might get some new NaN values, so clean up farm-land and not-farm-land patch-sets
+  let more-not-farm-land farm-land with [not is-string? temp-ID]
+  ask more-not-farm-land [ set pcolor bgcolor ]
+  set not-farm-land (patch-set not-farm-land more-not-farm-land)
+  ;; could use not-farm-land membership in border drawing but it is slow, so...
+  ask not-farm-land [ set the-owner nobody ]
+  set farm-land farm-land with [not member? self more-not-farm-land]
+  ask farm-land [ set temp-ID read-from-string temp-ID ]
+end
+
+to setup-random-geography
+  ifelse seed-geography-rng?
+  [ random-seed rng-geography ]
+  [ random-seed random timer ]
+  set farm-land patch-set patches
+  set not-farm-land patch-set nobody
+  setup-random-luc-codes
+  create-farmers 250 [ initialise-farmer ]
+  colour-patches false
+  display
+  ;; make the farms proximity polygons based on farmer locations
+  ask patches [ set temp-ID [who] of min-one-of (farmers with-min [distance myself]) [who] ]
+;  ask patches [ set the-owner min-one-of farmers [distance myself] ]
+end
+
+;; use a simple voter model to set up LUC codes for now eventually
+;; replace this with reading from GIS files or perhaps use a different
+;; method (hence it is separate function)
+to setup-random-luc-codes
+  set farm-land patches
+  ifelse random-landscape-method = "averaging" [
+    ask patches [ set luc-code random-normal 0 1 ]
+    repeat luc-aggregation-steps [ diffuse4 luc-code 0.8 ]
+    let min-x min [luc-code] of patches
+    let max-x max [luc-code] of patches
+    ask patches [
+      set luc-code round rescale luc-code min-x max-x 0.5 8.4999
+    ]
+  ]
+  [ ;; voter model method
+    ask patches [ set luc-code 1 + random 8 ]
+    repeat luc-aggregation-steps [
+      ask patches [ set luc-code [luc-code] of one-of neighbors4 ]
+    ]
+  ]
+  colour-patches false
+  display
+end
+
+to assign-patches-to-farmers
+  ;; do this with a list to ensure assignment is repeatable
+  clear-drawing
+  foreach remove-duplicates [temp-ID] of farm-land [ id ->
+    let this-farms-land farm-land with [temp-ID = id]
+    if any? this-farms-land [
+      let this-farmer nobody
+      ifelse setup-geography-from-files? [
+        ask approximate-centroid this-farms-land [
+          sprout-farmers 1 [
+            initialise-farmer
+            set this-farmer self
+          ]
+        ]
+      ]
+      [ set this-farmer farmer id
+        ask this-farmer [ move-to approximate-centroid this-farms-land ]
+      ]
+      ask this-farms-land [
+        set the-owner this-farmer
+      ]
+    ]
+  ]
+  draw-borders table:get colour-key "border"
+end
+
+;; returns approximate centroid of a patch-set
+to-report approximate-centroid [poly]
+  let centroid nobody
+  with-local-randomness [
+    let mean-x mean [pxcor] of poly
+    let mean-y mean [pycor] of poly
+    set centroid one-of poly with-min [distancexy mean-x mean-y]
+  ]
+  report centroid
+end
+
+to assign-farms-to-farmers
+  ;; do this with a list to ensure assignment is repeatable
+  ask farmers [
+    let this-farm nobody
+    hatch-farms 1 [
+      initialise-farm
+      set this-farm self
+    ]
+    set my-farm this-farm
+    set hidden? true
+  ]
+end
+
+;; this works OK, but might not be sensible to do...
+;; note that set-world-size kills all turtles so this must
+;; be done BEFORE any turtles are initialised
+to setup-world-dimensions
+  let cell-size 3
+  let ncols 270
+  let nrows 400
+  let raster-pixel-resolution 3
+  ;; if initialising from geospatial data we override some of these defaults
+  if setup-geography-from-files? [
+    print "Getting model dimensions from GIS data"
+    ;; read dimensions of the raster from header of an Esri raster .asc file
+    ;; which looks like this
+    ;;
+    ;; ncols         623
+    ;; nrows         1201
+    ;; xllcorner     1883097.0153
+    ;; yllcorner     5676986.4123
+    ;; cellsize      100
+    ;; NODATA_value  -9999
+    ;;
+    carefully [
+      file-open word spatial-data-folder "luc.asc"
+      set ncols read-from-string item 1 split-string file-read-line " "
+      set nrows read-from-string item 1 split-string file-read-line " "
+      let skip file-read-line
+      set skip file-read-line
+      set raster-pixel-resolution read-from-string item 1 split-string file-read-line " "
+      file-close
+    ]
+    [
+      file-close
+      print (word "Problem reading " spatial-data-folder "luc.asc")
+    ]
+  ]
+  let x-extent ncols * raster-pixel-resolution
+  let y-extent nrows * raster-pixel-resolution
+  let x-scale x-extent / max-dimension
+  let y-scale y-extent / max-dimension
+  let sf max (list x-scale y-scale)
+  let x (list 0 (round (x-extent / sf) - 1))
+  let y (list 0 (round (y-extent / sf) - 1))
+  show csv:to-row (list ncols nrows raster-pixel-resolution x-extent y-extent x-scale y-scale sf x y)
+  resize-world item 0 x item 1 x item 0 y item 1 y
+  print (word "Setting model dimensions to " x " by " y )
+  set-patch-size cell-size * max-dimension / max (list world-width world-height)
+  ask patches [ set pcolor grey ]
+end
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-24 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.

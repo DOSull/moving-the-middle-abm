@@ -3,12 +3,61 @@
 ;; NOTE: this includes the farmers not just
 ;;       LUC codes
 ;; -----------------------------------------
+
+;; this works OK, but might not be sensible to do...
+;; note that set-world-size kills all turtles so this must
+;; be done BEFORE any turtles are initialised
+to setup-world-dimensions
+  let cell-size 3
+  let ncols 270
+  let nrows 400
+  let raster-pixel-resolution 3
+  ;; if initialising from geospatial data we override some of these defaults
+  if setup-geography-from-files? [
+    print "Getting model dimensions from GIS data"
+    ;; read dimensions of the raster from header of an Esri raster .asc file
+    ;; which looks like this
+    ;;
+    ;; ncols         623
+    ;; nrows         1201
+    ;; xllcorner     1883097.0153
+    ;; yllcorner     5676986.4123
+    ;; cellsize      100
+    ;; NODATA_value  -9999
+    ;;
+    carefully [
+      file-open word spatial-data-folder "luc.asc"
+      set ncols read-from-string item 1 split-string file-read-line " "
+      set nrows read-from-string item 1 split-string file-read-line " "
+      let skip file-read-line
+      set skip file-read-line
+      set raster-pixel-resolution read-from-string item 1 split-string file-read-line " "
+      file-close
+    ]
+    [
+      file-close
+      print (word "Problem reading " spatial-data-folder "luc.asc")
+    ]
+  ]
+  let x-extent ncols * raster-pixel-resolution
+  let y-extent nrows * raster-pixel-resolution
+  let x-scale x-extent / max-dimension
+  let y-scale y-extent / max-dimension
+  let sf max (list x-scale y-scale)
+  let x (list 0 (round (x-extent / sf) - 1))
+  let y (list 0 (round (y-extent / sf) - 1))
+  show csv:to-row (list ncols nrows raster-pixel-resolution x-extent y-extent x-scale y-scale sf x y)
+  resize-world item 0 x item 1 x item 0 y item 1 y
+  print (word "Setting model dimensions to " x " by " y )
+  set-patch-size cell-size * max-dimension / max (list world-width world-height)
+  ask patches [ set pcolor grey ]
+end
+
 to setup-geography
   with-local-randomness [
     ifelse setup-geography-from-files?
     [ setup-geography-from-files ]
     [ setup-random-geography ]
-    ;; assign patches to farmers to make farms
     colour-patches true
   ]
 end
@@ -66,8 +115,9 @@ end
 to setup-random-luc-codes
   set farm-land patches
   ifelse random-landscape-method = "averaging" [
+    ;; averaging method
     ask patches [ set luc-code random-normal 0 1 ]
-    repeat luc-aggregation-steps [ diffuse4 luc-code 0.8 ]
+    repeat luc-aggregation-steps [ diffuse4 luc-code (4 / 5) ]
     let min-x min [luc-code] of patches
     let max-x max [luc-code] of patches
     ask patches [
@@ -100,14 +150,22 @@ to assign-patches-to-farmers
         ]
       ]
       [ set this-farmer farmer id
-        ask this-farmer [ move-to approximate-centroid this-farms-land ]
       ]
       ask this-farms-land [
         set the-owner this-farmer
       ]
     ]
   ]
-  draw-borders table:get colour-key "border"
+  move-farmers-to-farm-centroids
+end
+
+to move-farmers-to-farm-centroids
+  ask farmers [
+    let this-farms-land farm-land with [the-owner = myself]
+    ifelse not any? this-farms-land
+    [ die ]
+    [ move-to approximate-centroid this-farms-land ]
+  ]
 end
 
 ;; returns approximate centroid of a patch-set
@@ -134,53 +192,68 @@ to assign-farms-to-farmers
   ]
 end
 
-;; this works OK, but might not be sensible to do...
-;; note that set-world-size kills all turtles so this must
-;; be done BEFORE any turtles are initialised
-to setup-world-dimensions
-  let cell-size 3
-  let ncols 270
-  let nrows 400
-  let raster-pixel-resolution 3
-  ;; if initialising from geospatial data we override some of these defaults
-  if setup-geography-from-files? [
-    print "Getting model dimensions from GIS data"
-    ;; read dimensions of the raster from header of an Esri raster .asc file
-    ;; which looks like this
-    ;;
-    ;; ncols         623
-    ;; nrows         1201
-    ;; xllcorner     1883097.0153
-    ;; yllcorner     5676986.4123
-    ;; cellsize      100
-    ;; NODATA_value  -9999
-    ;;
-    carefully [
-      file-open word spatial-data-folder "luc.asc"
-      set ncols read-from-string item 1 split-string file-read-line " "
-      set nrows read-from-string item 1 split-string file-read-line " "
-      let skip file-read-line
-      set skip file-read-line
-      set raster-pixel-resolution read-from-string item 1 split-string file-read-line " "
-      file-close
-    ]
-    [
-      file-close
-      print (word "Problem reading " spatial-data-folder "luc.asc")
-    ]
+;; this procedure tags occupied patches with cluster-ids based on
+;; their connection (orthogonal) to other occupied patches
+to identify-sub-farms
+  remove-isolates farm-land "the-owner"
+  ask farm-land [
+    set sub-farm-id -1
+    set who-luc-code 10 * [who] of the-owner + luc-code
   ]
-  let x-extent ncols * raster-pixel-resolution
-  let y-extent nrows * raster-pixel-resolution
-  let x-scale x-extent / max-dimension
-  let y-scale y-extent / max-dimension
-  let sf max (list x-scale y-scale)
-  let x (list 0 (round (x-extent / sf) - 1))
-  let y (list 0 (round (y-extent / sf) - 1))
-  show csv:to-row (list ncols nrows raster-pixel-resolution x-extent y-extent x-scale y-scale sf x y)
-  resize-world item 0 x item 1 x item 0 y item 1 y
-  print (word "Setting model dimensions to " x " by " y )
-  set-patch-size cell-size * max-dimension / max (list world-width world-height)
-  ask patches [ set pcolor grey ]
+  let sub-farm-count 0
+  ;; initialize a patch-set of the occupied patches
+  ;; that need to be tagged with sub-farm-id
+  foreach sort farms [ fm ->
+    let the-farm [the-land] of fm
+    let ids remove-duplicates [who-luc-code] of the-farm
+    foreach ids [ id -> 
+      let all-to-tag the-farm with [sub-farm-id = -1 and who-luc-code = id] 
+      while [ any? all-to-tag ] [
+        ;; start with a randomly selected untagged patch
+        let patches-to-tag (patch-set one-of all-to-tag)
+        ;; now, while there are any remaining patches to tag
+        ;; iteratively tag occupied neighbors of the starting patch
+        while [ any? patches-to-tag ] [
+          ask patches-to-tag [
+            ;; set sub-farm ID
+            set sub-farm-id sub-farm-count ;; 0 will be the first cluster ID
+          ]
+          ;; now get the next lot
+          set patches-to-tag (patch-set [neighbors4] of patches-to-tag) with [sub-farm-id = -1 and who-luc-code = id]
+        ]
+        set sub-farm-count sub-farm-count + 1
+        ;; update the all-to-tag patch-set
+        set all-to-tag all-to-tag with [ sub-farm-id = -1 ]
+      ]
+    ]
+;    let singletons filter [id -> count (the-farm with [sub-farm-id = id]) = 1] [sub-farm-id] of the-farm
+;    foreach singletons [ id ->
+;      ask the-farm with [sub-farm-id = id] [
+;        set sub-farm-id [sub-farm-id] of one-of (neighbors4 with [member? self the-farm])
+;      ] 
+;    ]
+  ]
+end
+
+to remove-isolates [pset var]
+  let isolates get-isolates pset var
+  while [any? isolates] [
+    ask isolates [
+      let non-isolate-neighbors neighbors4 with [member? self farm-land and not member? self isolates]
+      if any? non-isolate-neighbors [
+        match-x1-var-t0-x2-var self one-of non-isolate-neighbors "the-owner"
+      ]
+    ]
+    set isolates get-isolates pset var
+  ]
+end
+
+to-report get-isolates [pset var]
+  report farm-land with [not any? neighbors4 with [runresult var = [runresult var] of myself and member? self pset]]
+end
+
+to match-x1-var-t0-x2-var [x1 x2 var]
+  ask x1 [run (word "set " var "[" var"] of x2")]
 end
 
 

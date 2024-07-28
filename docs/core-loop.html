@@ -4996,6 +4996,7 @@ window.Quarto = {
   <li><a href="#the-effect-of-interventions" id="toc-the-effect-of-interventions" class="nav-link" data-scroll-target="#the-effect-of-interventions">The effect of interventions</a></li>
   <li><a href="#considering-interventions" id="toc-considering-interventions" class="nav-link" data-scroll-target="#considering-interventions">Considering interventions</a></li>
   <li><a href="#adopting-an-intervention" id="toc-adopting-an-intervention" class="nav-link" data-scroll-target="#adopting-an-intervention">Adopting an intervention</a></li>
+  <li><a href="#a-note-on-how-model-calculations-are-performed" id="toc-a-note-on-how-model-calculations-are-performed" class="nav-link" data-scroll-target="#a-note-on-how-model-calculations-are-performed">A note on how model calculations are performed</a></li>
   </ul>
 </nav>
     </div>
@@ -5058,20 +5059,28 @@ Update History
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">2024-07-02</td>
-<td style="text-align: left;">Initial post.</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">2024-07-03</td>
-<td style="text-align: left;">Added bar chart of farm income/costs estimates.</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">2024-07-04</td>
-<td style="text-align: left;">Added detail on calculation of relative change noting that profit can’t be handled this way because it is <span class="math inline">\pm</span> and relative change is meaningless for such variables.</td>
+<td style="text-align: left;">2024-07-28</td>
+<td style="text-align: left;">Correction in equation summarising full calculation of profit. Added note to consider the nudge calculation’s possible bias favouring changes <em>after</em> bad years.</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">2024-07-05</td>
 <td style="text-align: left;">Corrected relative change from a percentage to a proportion.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2024-07-05</td>
+<td style="text-align: left;">Corrected relative change from a percentage to a proportion.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2024-07-04</td>
+<td style="text-align: left;">Added detail on calculation of relative change noting that profit can’t be handled this way because it is <span class="math inline">\pm</span> and relative change is meaningless for such variables.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2024-07-03</td>
+<td style="text-align: left;">Added bar chart of farm income/costs estimates.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2024-07-02</td>
+<td style="text-align: left;">Initial post.</td>
 </tr>
 </tbody>
 </table>
@@ -5087,7 +5096,7 @@ Update History
 <p><span class="math display">
 \begin{array}{rcl}
 Y &amp;=&amp; pq \\
-X &amp;=&amp; \left(x+te\right)
+X &amp;=&amp; x+te
 \end{array}
 </span></p>
 <p>where</p>
@@ -6248,7 +6257,7 @@ x = x_{FL} + \sum_{i\in A} \Delta x_{iFL}
 e = e_{FL}\prod_{i\in A} \left(1+\Delta e_{iFL}\right)
 </span> Together these give us an overall profit for each hectare of landuse capability <span class="math inline">L</span> on a farm of type <span class="math inline">F</span> that has adopted a set of interventions <span class="math inline">A</span> <span class="math display">
 {
-Y_A = \underbrace{ p_Fq_{FL}\prod_{i\in A} \left( 1+\Delta q_{iFL} \right)}_{\mathrm{gross\thinspace income}\,Y} -
+Z_A = \underbrace{ p_Fq_{FL}\prod_{i\in A} \left( 1+\Delta q_{iFL} \right)}_{\mathrm{gross\thinspace income}\,Y} -
 \underbrace{
   \underbrace{\left( x_{FL} + \sum_{i\in A}\Delta x_{iFL} \right)}_{\mathrm{base\thinspace costs}} -
   \underbrace{te_{FL}\prod_{i\in A} \left(1+\Delta e_{iFL} \right)}_{\mathrm{carbon\thinspace costs}}
@@ -6272,7 +6281,7 @@ Y_A = \underbrace{ p_Fq_{FL}\prod_{i\in A} \left( 1+\Delta q_{iFL} \right)}_{\ma
 <p>Values for <span class="math inline">\Delta Y_i</span> and <span class="math inline">\Delta X_i</span> are calculated in this way and used to determine adjusted relative probabilities of adoption of each possible intervention. If we denote the baseline probability of adoption of each intervention on a particular farm type by <span class="math inline">P_{iF}</span> then we adjust this probability using the <span class="math inline">\Delta</span> values according to <span class="math display">
 {
   P&#39;_{iF}= \left. 1 \middle/
-  \left(1+e^{\ln\frac{P_{iF}}{1-P_{iF}} + \Delta Y_i - \Delta X_i} \right) \right.
+  \left(1+e^{-a\left[ \ln\frac{P_{iF}}{1-P_{iF}} + \Delta Y_i - \Delta X_i \right]} \right) \right.
 }
 </span></p>
 <p>This puts the adoption probability of any intervention on a sigmoid curve, given by <span class="math inline">P = 1/(1 + e^{-ax})</span> where <span class="math inline">x</span> is some ‘pressure for change’ and <span class="math inline">a</span> is a rate of change in the probability in response to changes in that pressure. We haven’t determined an appropriate setting for <span class="math inline">a</span>, but intuitively it is a kind of measure of the ‘elasticity’ of farmer responses to changes in the combination of pressures driving their decision making. At low <span class="math inline">a</span> large pushes are needed to make much difference to the probability of a particular intervention; at high <span class="math inline">a</span> smaller pushes (perhaps even nudges!) might suffice. In general an adoption probability will be at its most elastic when it is around <span class="math inline">0.5</span> with substantial pressure required to make a low probability event more likely, or to make an already probable outcome near certain.</p>
@@ -6364,6 +6373,7 @@ Y_A = \underbrace{ p_Fq_{FL}\prod_{i\in A} \left( 1+\Delta q_{iFL} \right)}_{\ma
 </div>
 </div>
 <p>The exact slope and configuration of the sigmoid function relative to these probabilities (which are themselves arbitrary at present) remains to be determined, and may be tuneable to yield plausible outcomes. The general principle is that nudges increase the presure on farmers to change and will move them to the right on these curves, but that increases to costs will act against such pressures.</p>
+<p><strong>NOTE: We have to consider if this approach is sensible given that it may mean that farmers are <em>less</em> likely to adopt interventions after a good year than they after a bad year…</strong></p>
 </section>
 <section id="adopting-an-intervention" class="level2">
 <h2 class="anchored" data-anchor-id="adopting-an-intervention">Adopting an intervention</h2>
@@ -6379,6 +6389,27 @@ P=\{0.1,0.1,0.1\}
 P=\{0.5,0.5,0.5\}
 </span> will give the selected intervention a 50% chance of adoption when it is considered.</p>
 <p>Once an intervention is adopted, it will no longer be available in the next decision round and its impacts will be factored into calculation of the new <span class="math inline">Y_0</span> and <span class="math inline">X_0</span> income and costs, serving as a new baseline for the determination of <span class="math inline">\Delta Y_i</span> and <span class="math inline">\Delta X_i</span> scores.</p>
+</section>
+<section id="a-note-on-how-model-calculations-are-performed" class="level2">
+<h2 class="anchored" data-anchor-id="a-note-on-how-model-calculations-are-performed">A note on how model calculations are performed</h2>
+<p>In the model, calculations are performed using matrices.</p>
+<p>All three of yields, costs, and emissions, are stored as a pair of matrices</p>
+<p><span class="math display">
+\begin{array}{rcl}
+\overline{\mathbf{M}} &amp; = &amp; \left[\overline{\circ}_{LF}\right]\\
+\widetilde{\mathbf{M}} &amp; = &amp; \left[\widetilde{\circ}_{LF}\right]
+\end{array}
+</span></p>
+<p>for the mean and standard deviations respectively, where <span class="math inline">\circ</span> stands in for one of <span class="math inline">q</span>, <span class="math inline">x</span>, or <span class="math inline">e</span>. Row entries record the values associate with a given landuse capability level, and column entries the values assoicated with a given farm type.</p>
+<p>Prices are stored as a prices vector, <span class="math inline">\mathbf{p}=\left[p_i\right]</span>, and the carbon tax as a scalar value, <span class="math inline">t</span>, since it is fixed tax irrespective of farm type.</p>
+<p>Ignoring for now the effect of adopted interventions, this gives us a matrix form of the income calculation for a farm</p>
+<p><span class="math display">
+Y = \mathbf{1}\left[\mathbf{L}\odot N\left(\overline{\mathbf{Q}},\frac{\widetilde{\mathbf{Q}}}{\sqrt{n_{LF}}}\right)\right]\mathbf{p}
+</span></p>
+<p>where <span class="math inline">\mathbf{L}</span> is a <em>landuse capability-landuse</em> profile matrix for the farm with row and column entries <span class="math inline">n_{LF}</span> giving the numbers of patches in each landuse capability and landuse category on that farm, and <span class="math inline">\odot</span> denotes <em>element-wise</em> multiplication of two matrices. A similar matrix equation is applicable to the costs for a farm.</p>
+<p>The most important thing to note here is the reduction in the standard deviation of the normal distribution from which yields <span class="math inline">q</span> are drawn by the factor <span class="math inline">\sqrt{n_{LF}}</span>. This allows only one random number draw for each landuse capability-landuse combination on a farm, rather than for every patch on the farm individually, and allows more rapid calculation of farms income, costs, and emissions. The penalty is that all patches in the model of the same landuse capability-landuse combination produce have the same mean yield, input cost, emissions every model tick, and that every landuse capability-landuse combination on each farm sees the same deviation from the mean applied each tick.</p>
+<p>Calculation of additional costs resulting from adoption of various interventions can also be formulated as a matrix calculation, using a row-matrix of adopted interventions where <span class="math inline">1</span> denotes adoption and <span class="math inline">0</span> non-adoption of each intervention.</p>
+<p>A more involved matrix formulation is required for the impact of adoption of interventions on emissions and yields because these are combined multiplicatively. The model code is the best guide to the details in this case. The code has been written to ensure that the equations detailed in the section on <a href="#the-effect-of-interventions">the effect of interventions</a> has been followed.</p>
 
 
 </section>

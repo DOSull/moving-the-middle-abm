@@ -205,16 +205,16 @@ end
 ;; drawing utilities (see netlogo-utils repo)
 ;; ------------------------------------------
 
-to draw-borders [col]
+to draw-borders [col var]
   with-local-randomness [
     let boundaries farm-land with [
-      any? neighbors4 with [the-owner != nobody and
-                            the-owner != [the-owner] of myself]
+      any? neighbors4 with [runresult var != nobody and
+                            runresult var != [runresult var] of myself]
     ]
     ask boundaries [
-      ask neighbors4 with [the-owner != nobody] [
+      ask neighbors4 with [runresult var != nobody] [
         ;; only those with different owner need to draw a line
-        if the-owner != [the-owner] of myself [
+        if runresult var != [runresult var] of myself [
           draw-line-between self myself col
         ]
       ]

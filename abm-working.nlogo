@@ -87,11 +87,15 @@ farmers-own [
 ]
 
 patches-own [
-  temp-ID
+  temp-ID                 ;; used during setup to assign to farmers / assemble farms
   the-owner               ;; the farmer who owns this patch
   luc-code                ;; LUC code where 1 = LUC1, 2 = LUC2, etc.
   landuse
+  sub-farm-id
+  who-luc-code
   landuse-0
+  sub-farm-id-0
+  who-luc-code-0
 ]
 
 ;; -----------------------------------------
@@ -120,7 +124,9 @@ to setup
   assign-patches-to-farmers
   assign-farms-to-farmers
   setup-economic-parameters
-  make-matrix-copies-of-data
+  identify-sub-farms  ;; this adds to start up time
+  move-farmers-to-farm-centroids
+  draw-borders table:get colour-key "border" "the-owner"
   redraw
   reset-ticks
   random-seed run-rng-seed
@@ -174,42 +180,6 @@ end
 ;; put any model clean up at end here
 to cleanup
   ;; any end of run tidying up
-end
-
-;; There is potential in matrix approaches for speeding up the calculations and
-;; perhaps even making them more 'sophisticated'. However some of this may come
-;; at the cost of (i) less readable code, and (ii) less variance. On (ii) specifically
-;; there is now no base patch level variance, i.e. the mean yield, emissions and
-;; input costs of every patch of given landuse and LUC combination is effectively
-;; identical - not initialised with the supplied SD. The SD is applied to patches
-;; each round BUT AT FARM LEVEL. That is, every patch on a given farm with given
-;; LU/LUC experiences same deviation from mean outcomes in a particular year. But a
-;; neighbouring farm might experience quite different deviations.
-to make-matrix-copies-of-data
-  ;; each of these is an 8-row 4-col matrix of the stated parameters by LUC and landuse/farm-type
-  set m-yield-means    matrix:from-row-list map [t -> table:values t] table:values commodity-yield-means
-  set m-yield-sds      matrix:from-row-list map [t -> table:values t] table:values commodity-yield-sds
-  set m-cost-means     matrix:from-row-list map [t -> table:values t] table:values input-cost-means
-  set m-cost-sds       matrix:from-row-list map [t -> table:values t] table:values input-cost-sds
-  set m-emission-means matrix:from-row-list map [t -> table:values t] table:values ghg-emission-means
-  set m-emission-sds   matrix:from-row-list map [t -> table:values t] table:values ghg-emission-sds
-
-  ;; a column matrix with one element per landuse/farm-type
-  set m-prices matrix:from-column-list (list table:values prices)
-
-  ;; each of the next three is a n-row 4-col of intervention impacts, where rows are
-  ;; the type of intervention and columns are landuse/farm-type
-  set m-intervention-cost-impacts matrix:from-row-list
-    map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
-              table:values table:get table:get interventions i "costs"] intervention-types
-
-  ;; note that these two are multiplicatively applied so add 1 to 0.05 -> 1.05, 0 -> 1, etc
-  set m-intervention-yield-impacts matrix:plus 1 matrix:from-row-list
-    map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
-              table:values table:get table:get interventions i "yields"] intervention-types
-  set m-intervention-emissions-impacts matrix:plus 1 matrix:from-row-list
-    map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
-              table:values table:get table:get interventions i "emissions"] intervention-types
 end
 
 
@@ -304,9 +274,9 @@ end
 ;; matching the farm-type, but some farmer actions may lead to this changing.
 ;; Run during initialisation and only altered if such changes in landuse are
 ;; undertaken.
-to-report get-farm-landuse-luc-profile
-  let luc-i map [p -> position [luc-code] of p range-from-to 1 9] sort the-land
-  let lu-j map [p -> position [landuse] of p farm-types] sort the-land
+to-report get-farm-landuse-luc-profile [poly]
+  let luc-i map [p -> position [luc-code] of p range-from-to 1 9] sort poly
+  let lu-j map [p -> position [landuse] of p farm-types] sort poly
   let nrow 8
   let ncol length farm-types
   let farm-profile matrix:make-constant nrow ncol 0
@@ -692,7 +662,7 @@ luc-aggregation-steps
 luc-aggregation-steps
 0
 250
-100.0
+145.0
 5
 1
 NIL
@@ -717,7 +687,7 @@ inhibition-distance
 inhibition-distance
 0
 sqrt (count patches / 100 / pi)
-2.8
+4.0
 0.1
 1
 NIL
@@ -971,7 +941,7 @@ SWITCH
 573
 seed-geography-rng?
 seed-geography-rng?
-0
+1
 1
 -1000
 

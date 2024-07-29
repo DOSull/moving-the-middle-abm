@@ -13,6 +13,7 @@ extensions [
   table    ;; dictionary like tables for storing lots of the input parameters
   rnd      ;; weighted random draws
   gis      ;; spatial data
+  nw
   profiler ;; in case we need to figure out why things are slow
 ]
 
@@ -62,6 +63,7 @@ globals [
 
 breed [farmers farmer]
 breed [farms farm]        ;; representative turtle for the farm - for data storage...
+breed [nodes node]
 
 farms-own [
   my-farmer               ;; the farmer who owns/runs this farm
@@ -87,16 +89,18 @@ farmers-own [
 ]
 
 patches-own [
-  temp-ID                 ;; used during setup to assign to farmers / assemble farms
+  temp-id                 ;; used during setup to assign to farmers / assemble farms
+  region-id
+  farm-id
+  who-luc-code
+  sub-farm-id
   the-owner               ;; the farmer who owns this patch
   luc-code                ;; LUC code where 1 = LUC1, 2 = LUC2, etc.
   landuse
-  sub-farm-id
-  who-luc-code
   landuse-0
-  sub-farm-id-0
   who-luc-code-0
 ]
+
 
 ;; -----------------------------------------
 ;; MAIN LOOP i.e., setup and go
@@ -121,11 +125,7 @@ to setup
   setup-colours
   ask patches [ set pcolor table:get colour-key "background" ]
   setup-geography
-  assign-patches-to-farmers
-  assign-farms-to-farmers
   setup-economic-parameters
-  identify-sub-farms  ;; this adds to start up time
-  move-farmers-to-farm-centroids
   draw-borders table:get colour-key "border" "the-owner"
   redraw
   reset-ticks
@@ -316,18 +316,6 @@ to initialise-farmer
   set color table:get colour-key "farmer"
   set shape "person"
   set hidden? true
-  ;; give everyone the default threshold matrix
-  ;; perhaps subject to modification later by sigmoid function
-  ;; contingent on farmer dispositions (pro-social, pro-environmental, etc.)
-  ;; if random setup then put them somewhere random
-  if not setup-geography-from-files? [ place-farmer ]
-end
-
-;; pick a random location for farmer (used in random initialisation)
-to place-farmer
-  while [any? other farmers in-radius inhibition-distance] [
-    setxy random-xcor random-ycor
-  ]
 end
 
 ;; farmer reporter
@@ -553,7 +541,7 @@ GRAPHICS-WINDOW
 -1
 3.0
 1
-7
+4
 1
 1
 1
@@ -662,7 +650,7 @@ luc-aggregation-steps
 luc-aggregation-steps
 0
 250
-145.0
+150.0
 5
 1
 NIL
@@ -687,7 +675,7 @@ inhibition-distance
 inhibition-distance
 0
 sqrt (count patches / 100 / pi)
-4.0
+2.5
 0.1
 1
 NIL

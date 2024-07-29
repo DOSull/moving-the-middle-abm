@@ -58,6 +58,14 @@ to setup-geography
     ifelse setup-geography-from-files?
     [ setup-geography-from-files ]
     [ setup-random-geography ]
+    label-regions farm-land "temp-id"
+    ask farm-land [set farm-id region-id]
+    merge-singletons farm-land "farm-id"
+    assign-patches-to-farmers
+    assign-farms-to-farmers
+    label-regions farm-land "who-luc-code"
+    ask farm-land [set sub-farm-id region-id]
+    move-farmers-to-farm-centroids
     colour-patches true
   ]
 end
@@ -83,15 +91,15 @@ to setup-geography-from-files
   ;; This relies on a STR_ID variable which is unique string for each farm parcel
   ;; String is IMPORTANT because of automatic interpolation that GIS extension applies
   ;; when assigning values from a shapefile to patches only partly contained in polygons
-  gis:apply-coverage parcels-data "STR_ID" temp-ID
+  gis:apply-coverage parcels-data "STR_ID" temp-id
   ;; might get some new NaN values, so clean up farm-land and not-farm-land patch-sets
-  let more-not-farm-land farm-land with [not is-string? temp-ID]
+  let more-not-farm-land farm-land with [not is-string? temp-id]
   ask more-not-farm-land [ set pcolor bgcolor ]
   set not-farm-land (patch-set not-farm-land more-not-farm-land)
   ;; could use not-farm-land membership in border drawing but it is slow, so...
   ask not-farm-land [ set the-owner nobody ]
   set farm-land farm-land with [not member? self more-not-farm-land]
-  ask farm-land [ set temp-ID read-from-string temp-ID ]
+  ask farm-land [ set temp-id read-from-string temp-id ]
 end
 
 to setup-random-geography
@@ -101,12 +109,16 @@ to setup-random-geography
   set farm-land patch-set patches
   set not-farm-land patch-set nobody
   setup-random-luc-codes
-  create-farmers 250 [ initialise-farmer ]
+  create-nodes 250 [ 
+    while [any? other nodes in-radius inhibition-distance] [
+      setxy random-xcor random-ycor 
+    ]
+  ]
+  ;; make the farms proximity polygons based on farmer locations
+  ask patches [ set temp-id [who] of min-one-of (nodes with-min [distance myself]) [who] ]
+  ask nodes [ die ]
   colour-patches false
   display
-  ;; make the farms proximity polygons based on farmer locations
-  ask patches [ set temp-ID [who] of min-one-of (farmers with-min [distance myself]) [who] ]
-;  ask patches [ set the-owner min-one-of farmers [distance myself] ]
 end
 
 ;; use a simple voter model to set up LUC codes for now eventually
@@ -137,34 +149,28 @@ end
 to assign-patches-to-farmers
   ;; do this with a list to ensure assignment is repeatable
   clear-drawing
-  foreach remove-duplicates [temp-ID] of farm-land [ id ->
-    let this-farms-land farm-land with [temp-ID = id]
+  foreach remove-duplicates [farm-id] of farm-land [ id ->
+    let this-farms-land farm-land with [farm-id = id]
     if any? this-farms-land [
       let this-farmer nobody
-      ifelse setup-geography-from-files? [
-        ask approximate-centroid this-farms-land [
-          sprout-farmers 1 [
-            initialise-farmer
-            set this-farmer self
-          ]
+      ask approximate-centroid this-farms-land [
+        sprout-farmers 1 [
+          initialise-farmer
+          set this-farmer self
         ]
-      ]
-      [ set this-farmer farmer id
       ]
       ask this-farms-land [
         set the-owner this-farmer
+        set who-luc-code 10 * [who] of this-farmer + luc-code
       ]
     ]
   ]
-  move-farmers-to-farm-centroids
 end
 
 to move-farmers-to-farm-centroids
   ask farmers [
     let this-farms-land farm-land with [the-owner = myself]
-    ifelse not any? this-farms-land
-    [ die ]
-    [ move-to approximate-centroid this-farms-land ]
+    move-to approximate-centroid this-farms-land
   ]
 end
 
@@ -192,67 +198,49 @@ to assign-farms-to-farmers
   ]
 end
 
-;; this procedure tags occupied patches with cluster-ids based on
-;; their connection (orthogonal) to other occupied patches
-to identify-sub-farms
-  remove-isolates farm-land "the-owner"
-  ask farm-land [
-    set sub-farm-id -1
-    set who-luc-code 10 * [who] of the-owner + luc-code
+to label-regions [context region-var]
+  ask context [ sprout-nodes 1 ]
+  ask nodes [
+    ask (nodes-on neighbors4) with [runresult region-var = [runresult region-var] of myself] [
+      create-link-with myself
+    ]
   ]
-  let sub-farm-count 0
-  ;; initialize a patch-set of the occupied patches
-  ;; that need to be tagged with sub-farm-id
-  foreach sort farms [ fm ->
-    let the-farm [the-land] of fm
-    let ids remove-duplicates [who-luc-code] of the-farm
-    foreach ids [ id -> 
-      let all-to-tag the-farm with [sub-farm-id = -1 and who-luc-code = id] 
-      while [ any? all-to-tag ] [
-        ;; start with a randomly selected untagged patch
-        let patches-to-tag (patch-set one-of all-to-tag)
-        ;; now, while there are any remaining patches to tag
-        ;; iteratively tag occupied neighbors of the starting patch
-        while [ any? patches-to-tag ] [
-          ask patches-to-tag [
-            ;; set sub-farm ID
-            set sub-farm-id sub-farm-count ;; 0 will be the first cluster ID
-          ]
-          ;; now get the next lot
-          set patches-to-tag (patch-set [neighbors4] of patches-to-tag) with [sub-farm-id = -1 and who-luc-code = id]
+  nw:set-context nodes links
+  let clusters nw:weak-component-clusters
+  (foreach clusters range length clusters [ [c i] ->
+    ask c [ set region-id i ]
+  ])
+  ask nodes [die]
+end
+
+to merge-singletons [pset var]
+  let singletons get-singletons pset var
+  while [any? singletons] [
+    ask singletons [
+      ifelse count pset = count singletons 
+      [ let p one-of pset
+        let others [ other pset ] of p
+        foreach sort others [ q ->
+          match-x1-var-to-x2-var p q var
         ]
-        set sub-farm-count sub-farm-count + 1
-        ;; update the all-to-tag patch-set
-        set all-to-tag all-to-tag with [ sub-farm-id = -1 ]
+      ]
+      [
+        let non-singleton-neighbours neighbors4 with [member? self pset and not member? self singletons]
+        if any? non-singleton-neighbours [
+          match-x1-var-to-x2-var self one-of non-singleton-neighbours var
+        ]
       ]
     ]
-;    let singletons filter [id -> count (the-farm with [sub-farm-id = id]) = 1] [sub-farm-id] of the-farm
-;    foreach singletons [ id ->
-;      ask the-farm with [sub-farm-id = id] [
-;        set sub-farm-id [sub-farm-id] of one-of (neighbors4 with [member? self the-farm])
-;      ] 
-;    ]
+    set singletons get-singletons pset var
   ]
 end
 
-to remove-isolates [pset var]
-  let isolates get-isolates pset var
-  while [any? isolates] [
-    ask isolates [
-      let non-isolate-neighbors neighbors4 with [member? self farm-land and not member? self isolates]
-      if any? non-isolate-neighbors [
-        match-x1-var-t0-x2-var self one-of non-isolate-neighbors "the-owner"
-      ]
-    ]
-    set isolates get-isolates pset var
-  ]
+;; this only detects singletons
+to-report get-singletons [pset var]
+  report pset with [not any? neighbors4 with [runresult var = [runresult var] of myself and member? self pset]]
 end
 
-to-report get-isolates [pset var]
-  report farm-land with [not any? neighbors4 with [runresult var = [runresult var] of myself and member? self pset]]
-end
-
-to match-x1-var-t0-x2-var [x1 x2 var]
+to match-x1-var-to-x2-var [x1 x2 var]
   ask x1 [run (word "set " var "[" var"] of x2")]
 end
 

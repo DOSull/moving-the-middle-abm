@@ -307,8 +307,6 @@ end
 to store-initial-values
   ask farm-land [
     set landuse-0 landuse
-    set sub-farm-id-0 sub-farm-id
-    set who-luc-code-0 who-luc-code
   ]
   ask farms [
     set farm-type-0 farm-type
@@ -324,8 +322,6 @@ end
 to restore-initial-values
   ask farm-land [
     set landuse landuse-0
-    set sub-farm-id sub-farm-id-0
-    set who-luc-code who-luc-code-0
   ]
   ask farms [
     set farm-type farm-type-0

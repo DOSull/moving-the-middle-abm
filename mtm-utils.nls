@@ -6,31 +6,30 @@
 ;; primitive introspection stuff
 ;; -----------------------------------------
 
-;; these are sufficiently opaque to make utility functions to replace them
+;; these are sufficiently opaque to make utility functions to access them
 ;; note that using run and runresult on anonymous procedures is allegedly quicker 
 ;; than on strings, although it is unclear to me if that is actually the case in this
 ;; application. In any case these are used infrequently, mainly in setup and I'm not
 ;; going to optimise to soon...
 
-to-report get-var [x var]
-  report (runresult var x)
-;  report [runresult var] of x
+;; report result of running anonymous reporter getter on x
+to-report get-var [x getter]
+  report (runresult getter x)
 end
 
-to set-var [x var val]
-  (run var x val)
-;  ask x [run (word "set " var " " val)]
+;; set attribute of x to val using anonymous procedure setter
+to set-var [x val setter]
+  (run setter x val)
 end
 
 ;; tests if the value of the named variable var matches between agents x1 and x2
-to-report x1-var-matches-x2-var? [x1 x2 var]
-  report get-var x1 var = get-var x2 var
+to-report x1-var-matches-x2-var? [x1 x2 getter]
+  report get-var x1 getter = get-var x2 getter
 end
 
-;; sets the value of named variable var of agent x1 to that of x2
-to set-x1-var-to-x2-var [x1 x2 var]
-  (run var x1 x2)
-;  set-var x1 var (get-var x2 var)
+;; set value of a variable of agent x1 to that of x2 using anonymous procedure setter
+to set-x1-var-to-x2-var [x1 x2 setter]
+  (run setter x1 x2)
 end
 
 
@@ -345,7 +344,7 @@ end
 ;; the supplied patch-set will be drawn
 to draw-borders [pset col reporter]
   with-local-randomness [
-    let boundaries farm-land with [
+    let boundaries pset with [
       any? neighbors4 with [get-var self reporter != nobody and 
                             not x1-var-matches-x2-var? self myself reporter]
     ]

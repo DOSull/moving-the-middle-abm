@@ -538,10 +538,11 @@ end
 ;; overflow/underflow even if introduces slight errors
 ;; but hey! nothing is impossible, nor a sure thing!
 to-report logit [p a]
-  if p = 0.5 [report 0]
-  if p = 1 [report logit (1 - epsilon) a]
-  if p = 0 [report logit epsilon a]
-  report ln (p / (1 - p)) / a
+  (ifelse
+    p = 0.5 [ report 0 ]
+    p = 1 [ report logit (1 - epsilon) a ]
+    p = 0 [ report logit epsilon a ]
+    [ report ln (p / (1 - p)) / a ])
 end
 
 ;; reports revised probability from 'nudging' initial
@@ -826,10 +827,10 @@ NIL
 1
 
 SLIDER
-852
-263
-1024
-296
+848
+264
+1020
+297
 max-dimension
 max-dimension
 100
@@ -930,10 +931,10 @@ Loss-making farms always red
 1
 
 TEXTBOX
-1030
-267
-1119
-328
+1026
+265
+1115
+326
 Longer dimension of map will be this many patches.
 11
 0.0

@@ -4,6 +4,8 @@
 
 to redraw
   colour-patches show-landuse?
+  clear-drawing
+  draw-borders farm-land table:get colour-key "border" [x -> [the-owner] of x] ;;"the-owner" 
   redraw-farms
   display
 end
@@ -53,8 +55,8 @@ to redraw-farm
 
   set label (word
     farm-type ": "
-    (length get-my-interventions) "/"
-    (length get-my-interventions + length get-available-interventions))
+    (length my-interventions-as-list) "/"
+    (length my-interventions-as-list + length available-interventions-as-list))
 end
 
 to redraw-farms

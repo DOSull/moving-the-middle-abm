@@ -282,7 +282,7 @@ to make-matrix-copies-of-data
   set m-emission-sds   matrix:from-row-list map [t -> table:values t] table:values ghg-emission-sds
 
   ;; a column matrix with one element per landuse/farm-type
-  set m-prices matrix:from-column-list (list table:values prices)
+  set m-prices col-matrix table:values prices
 
   ;; each of the next three is a n-row 4-col of intervention impacts, where rows are
   ;; the type of intervention and columns are landuse/farm-type
@@ -316,6 +316,7 @@ to store-initial-values
     ;; important to copy here to get a new matrix, not a reference to the old one
     set my-interventions-0 matrix:copy my-interventions
     set available-interventions-0 matrix:copy available-interventions
+    set landuse-luc-profile-0 matrix:copy landuse-luc-profile
   ]
 end
 
@@ -331,6 +332,7 @@ to restore-initial-values
     ;; important to copy here to get a new matrix, not a reference to the old one
     set my-interventions matrix:copy my-interventions-0
     set available-interventions matrix:copy available-interventions-0
+    set landuse-luc-profile matrix:copy landuse-luc-profile-0
   ]
   redraw-farms
   reset-ticks

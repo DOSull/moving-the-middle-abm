@@ -1,0 +1,107 @@
+;; -----------------------------------------
+;; model rendering
+;; -----------------------------------------
+
+to redraw
+  colour-patches show-landuse?
+  clear-drawing
+  draw-borders farm-land table:get colour-key "border" [x -> [the-owner] of x] ;;"the-owner" 
+  redraw-farms
+  display
+end
+
+;; colour in the map by landuse and LUC
+to colour-patches [colour-by-type?]
+  with-local-randomness [
+    ifelse colour-by-type? and show-landuse? [
+      ifelse show-luc-codes? [
+        foreach table:to-list table:get colour-key "farm-type-palettes" [ farm-type-palette ->
+          let ft item 0 farm-type-palette
+          let pal-name item 1 farm-type-palette
+          ask farm-land with [landuse = ft] [
+            set pcolor palette:scale-scheme "Sequential" pal-name 9 luc-code 9 0
+          ]
+        ]
+      ]
+      [
+        foreach table:to-list table:get colour-key "farm-type" [ farm-type-colours ->
+          let ft item 0 farm-type-colours
+          let col item 1 farm-type-colours
+          ask farm-land with [landuse = ft] [
+            set pcolor col
+          ]
+        ]
+      ]
+    ]
+    [
+      let pal table:get colour-key "LUC-palette"
+      ifelse show-luc-codes?
+      [ ask farm-land [ set pcolor palette:scale-scheme "Sequential" pal 9 luc-code 9 0 ] ]
+      [ ask farm-land [ set pcolor green + 2 ] ]
+    ]
+  ]
+end
+
+to redraw-farm
+  set size (abs current-profit / 250) ^ 0.333 ;; scaling size of net profit circle
+  ifelse current-profit > 0 [
+    ifelse farm-type-colours?
+    [ set color table:get table:get colour-key "farm-type" farm-type
+      set color color palette:with-alpha 160
+    ]
+    [ set color table:get colour-key "profit" ]
+  ]
+  [ set color table:get colour-key "loss" ]
+
+  set label (word
+    farm-type ": "
+    (length my-interventions-as-list) "/"
+    (length my-interventions-as-list + length available-interventions-as-list))
+end
+
+to redraw-farms
+  with-local-randomness [
+    ask farms [ redraw-farm ]
+  ]
+end
+
+to setup-colours
+  set colour-key table:make
+  table:put colour-key "farmer" black
+  table:put colour-key "farmer-label" black
+  table:put colour-key "farm-type"
+    table:from-list zip ["SNB" "Dairy" "Forest" "Crop"] (list (orange - 2) (grey + 2) (green - 2) (yellow + 2))
+  table:put colour-key "farm-type-palettes" (
+    table:from-list zip ["SNB" "Dairy" "Forest" "Crop"] ["YlOrBr" "Greys" "PuBuGn" "YlGn"])
+  table:put colour-key "owner-link" [0 0 0 180]
+  table:put colour-key "border" red
+  table:put colour-key "LUC-palette" "Greens"
+  table:put colour-key "profit" grey - 3
+  table:put colour-key "loss" [255 0 0 180]
+  table:put colour-key "label" violet - 2
+  table:put colour-key "background" grey
+end
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-24 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.

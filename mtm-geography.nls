@@ -63,19 +63,27 @@ to setup-geography
     [ setup-geography-from-files ]
     [ setup-random-geography ]
     ;; the above will return patches tagged with temp-id which we use to determine farms
-    label-connected-regions (list farm-land) [x -> [temp-id] of x] ;;"temp-id"
+    label-connected-regions (list farm-land) [x -> [temp-id] of x] true ;;"temp-id"
     ;; after labelling farm id is in region-id patch variable so apply it to farm-id
     ask farm-land [set farm-id region-id]
     ;; remove farms of one pixel
     merge-singletons farm-land [x -> [farm-id] of x] [[x y] -> ask x [set farm-id [farm-id] of y]] ;;"farm-id"
-    ;; now set up patch and farm relations
-    assign-patches-to-farmers
-    assign-farms-to-farmers
     ;; label sub-farms by luc-code - this could be based on something else
     ;; not that here we send each farm as a separate patch-set 
-    label-connected-regions [the-land] of farms [x -> [luc-code] of x] ;;"luc-code"
+    let psets map [id -> farm-land with [farm-id = id]] remove-duplicates [farm-id] of farm-land
+    label-connected-regions psets [p -> [luc-code] of p] false
+    ask farm-land [set holding-id region-id]
+    ;; now set up patch, farmer, farm, holding relations
+    setup-farmers
+    setup-farms
+    setup-holdings
+    ;; assign-patches-to-farmers
+    ;; assign-farms-to-farmers
+    ;; label sub-farms by luc-code - this could be based on something else
+    ;; not that here we send each farm as a separate patch-set 
+    ;; label-connected-regions [the-land] of farms [x -> [luc-code] of x] ;;"luc-code"
     ;; set the sub-farm-id to the region-id tags produced by the labelling
-    ask farm-land [set sub-farm-id region-id]
+    ask farm-land [set holding-id region-id]
     colour-patches true
   ]
 end
@@ -170,6 +178,58 @@ to setup-random-luc-codes
   display
 end
 
+to setup-farmers 
+  let ids remove-duplicates [farm-id] of farm-land
+  let psets map [id -> farm-land with [farm-id = id]] ids
+  (foreach psets ids [ [pset id] ->
+    let this-farmer nobody
+    ask approximate-centroid pset [
+      sprout-farmers 1 [
+        initialise-farmer
+        set the-land pset
+        set this-farmer self
+      ]
+      ask pset [
+        set the-owner this-farmer
+        set landuse [farm-type] of this-farmer
+      ]
+    ]
+  ])
+end
+
+to setup-farms
+  ask farmers [
+    let this-farm nobody
+    hatch-farms 1 [
+      initialise-farm
+      set this-farm self
+    ]
+    set my-farm this-farm
+  ]
+end
+
+to setup-holdings
+  ask farms [
+    let this-holding nobody
+    let these-holdings (turtle-set nobody)
+    let ids remove-duplicates [holding-id] of the-land
+    let psets map [id -> the-land with [holding-id = id]] ids 
+    (foreach psets ids [ [pset id] ->
+      hatch-holdings 1 [
+        initialise-holding
+        set the-land pset
+        move-to approximate-centroid pset
+        set this-holding self
+      ]
+      set these-holdings (turtle-set these-holdings this-holding)
+    ])
+    ask my-farmer [ 
+      set my-holdings these-holdings 
+      ask my-farm [ set my-holdings these-holdings ]
+    ]
+  ]
+end
+
 ;; use temp-id to assign sets of patches to farmers - actually happens the other way
 ;; around: patches already have a farm-id label that is use to collect them into
 ;; patch sets for farmers, who are then placed at the approximate centroid of the
@@ -184,6 +244,7 @@ to assign-patches-to-farmers
       ask approximate-centroid this-farms-land [
         sprout-farmers 1 [
           initialise-farmer
+          set the-land this-farms-land
           set this-farmer self
         ]
       ]
@@ -233,21 +294,28 @@ end
 ;; The resulting label is stored in the region-id attribute and IS NOT merely the value of the 
 ;; supplied variable (that would be trivial!) because regions that share a value of that 
 ;; variable may not be orthogonally connected.
-to label-connected-regions [patch-sets region-var]
+to label-connected-regions [patch-sets region-var n4?]
   let i 0
   foreach patch-sets [ ps ->
-    set i label-connected-region ps region-var i
+    set i label-connected-region ps region-var i n4?
   ]
 end
 
 ;; Labels the supplied patchset pset with respect to the region-var attribute, starting from id0
 ;; reports 'where it got to' so that the calling context can continue on to label more patchsets
 ;; starting from the next value. Implementation uses the nw:weak-component-clusters reporter
-to-report label-connected-region [pset region-var id0]
+to-report label-connected-region [pset region-var id0 n4?]
   ask pset [ sprout-nodes 1 ]
   ask nodes [
-    ask (nodes-on neighbors4) with [x1-var-matches-x2-var? self myself region-var] [
-      create-link-with myself
+    ifelse n4? [
+      ask (nodes-on neighbors4) with [x1-var-matches-x2-var? self myself region-var] [
+        create-link-with myself
+      ]
+    ]
+    [
+      ask (nodes-on neighbors) with [x1-var-matches-x2-var? self myself region-var] [
+        create-link-with myself
+      ]
     ]
   ]
   nw:set-context nodes links

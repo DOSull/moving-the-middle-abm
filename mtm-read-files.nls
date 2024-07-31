@@ -160,7 +160,6 @@ to setup-economic-parameters
     [ random-seed rng-economics ]
     [ random-seed timer ]
     read-production-function-parameters
-    ask farms [ set landuse-luc-profile get-farm-landuse-luc-profile the-land ]
     make-matrix-copies-of-data
   ]
 end
@@ -308,7 +307,7 @@ to store-initial-values
   ask farm-land [
     set landuse-0 landuse
   ]
-  ask farms [
+  ask holdings [
     set farm-type-0 farm-type
     set current-profit-0 current-profit
     set current-income-0 current-income
@@ -318,13 +317,23 @@ to store-initial-values
     set available-interventions-0 matrix:copy available-interventions
     set landuse-luc-profile-0 matrix:copy landuse-luc-profile
   ]
+  ask farms [
+    set farm-type-0 farm-type
+    set current-profit-0 current-profit
+    set current-income-0 current-income
+    set current-costs-0 current-costs
+    set landuse-luc-profile-0 matrix:copy landuse-luc-profile
+  ]
+  ask farmers [
+    set farm-type-0 farm-type
+  ]
 end
 
 to restore-initial-values
   ask farm-land [
     set landuse landuse-0
   ]
-  ask farms [
+  ask holdings [
     set farm-type farm-type-0
     set current-profit current-profit-0
     set current-income current-income-0
@@ -334,7 +343,17 @@ to restore-initial-values
     set available-interventions matrix:copy available-interventions-0
     set landuse-luc-profile matrix:copy landuse-luc-profile-0
   ]
-  redraw-farms
+  ask farms [
+    set farm-type farm-type-0
+    set current-profit current-profit-0
+    set current-income current-income-0
+    set current-costs current-costs-0
+    set landuse-luc-profile matrix:copy landuse-luc-profile-0
+  ]
+  ask farmers [
+    set landuse landuse-0
+  ]
+  redraw-farms-and-holdings
   reset-ticks
   tick
   if run-rng-seed != 0 [ random-seed run-rng-seed ]

@@ -75,37 +75,12 @@ globals [
 
 breed [farmers farmer]    ;; one farmer per farm
 breed [farms farm]        ;; turtle where most of the action happens
-breed [holdings holding]
 breed [nodes node]        ;; a utility turtle type mostly used for cluster detection using nw extension
 
-farmers-own [
-  the-land                ;; patch-set of patches of this farmer, this farm, or this holding
-  farm-type
-  my-farm                 ;; farm turtle of this farmer's farm
-  my-holdings
-  farm-type-0
-]
-
 farms-own [
-  the-land                ;; patch-set of patches of this farmer, this farm, or this holding
-  farm-type               ;; farm type of farm - one of farm-types global
-  my-holdings
   my-farmer               ;; farmer who owns/runs farm
-  landuse-luc-profile     ;; matrix of counts of LUC - farm-type (i.e. landuse) combinations of the-land
-  current-profit          ;; most recent profit of farm summed across patches
-  current-income          ;; most recent income of farm summed across patches
-  current-costs           ;; most recent costs of farm summed across patches
-  farm-type-0
-  landuse-luc-profile-0
-  current-profit-0
-  current-income-0
-  current-costs-0
-]
-
-holdings-own [
-  the-land                ;; patch-set of patches of this farmer, this farm, or this holding
   farm-type               ;; farm type of farm - one of farm-types global
-  my-farmer               ;; farmer who owns/runs farm
+  the-land                ;; patch-set of patches on farm
   landuse-luc-profile     ;; matrix of counts of LUC - farm-type (i.e. landuse) combinations of the-land
   current-profit          ;; most recent profit of farm summed across patches
   current-income          ;; most recent income of farm summed across patches
@@ -122,12 +97,16 @@ holdings-own [
   available-interventions-0
 ]
 
+farmers-own [
+  my-farm                 ;; farm turtle of this farmer's farm
+]
+
 patches-own [
   temp-id                 ;; used during setup to assign to farmers / assemble farms
   region-id               ;; generic variable for labelling any time we are clustering/regionalising patches
   farm-id                 ;; farm-id supercedes temp-id after clean up of empty farms etc. during set up
                           ;; NOTE: farm-id is not the same as [who] of the-owner farmer
-  holding-id              ;; sub farm level id partitioning farms into areas for possible landuse conversion
+  sub-farm-id             ;; sub farm level id partitioning farms into areas for possible landuse conversion
   the-owner               ;; farmer who owns this patch
   luc-code                ;; LUC code where 1 = LUC1, 2 = LUC2, etc. (1 is best, 8 is worst)
   landuse                 ;; one of global farm-types - initially will match farm but may change over time
@@ -179,30 +158,26 @@ to go
   ]
   [
     ;; update farm status
-    ask holdings [
-      update-profit-of-holding
-    ]
     ask farms [
       update-profit-of-farm
     ]
-    ask farmers with [any? my-holdings with [any-interventions-to-do?]] [
-      ;; this reports a [holding [intervention-type probability]] list
-      let potential-changes consider-interventions false
-      foreach potential-changes [ pc ->
-        let the-holding item 0 pc
-        let i-type item 0 item 1 pc
-        let prob item 1 item 1 pc
-        if random-float 1 < prob [
+    ask farmers [
+      if [length available-interventions-as-list] of my-farm > 0 [
+        ;; this reports a [intervention-type probability] pair
+        let potential-change consider-interventions false
+        if random-float 1 < last potential-change [
           if show-events? [
-            print (word "Farmer " who " implementing " i-type " on " the-holding)
+            print (
+              word "Farmer " who " implementing "
+              first potential-change " on "
+              [farm-type] of my-farm " " [who] of my-farm)
           ]
-          ask the-holding [
-            implement-intervention i-type
+          ask my-farm [
+            implement-intervention first potential-change
           ]
         ]
       ]
       ask my-farm [ redraw-farm ]
-      ask my-holdings [ redraw-holding ]
     ]
     tick
   ]
@@ -210,12 +185,12 @@ end
 
 ;; any model stop condition goes here
 to-report stop-model?
-  ifelse any? holdings with [matrix-sum-elements available-interventions > 0] [
-    report false
+  ifelse all-true? [matrix-sum-elements available-interventions = 0] of farms [
+    show "Stopping model: all possible interventions implemented on all farms!"
+    report true
   ]
   [
-    show "Stopping model: all possible interventions implemented on all holdings!"
-    report true
+    report false
   ]
 end
 
@@ -233,31 +208,31 @@ end
 to initialise-farm
   ;; will be called by the farmer who is 'myself' in this context
   set my-farmer myself
-  set shape "circle 3"
-  set hidden? false
-  set landuse-luc-profile get-landuse-luc-profile the-land
-  set label farm-type
-  set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
-end
-
-;; farm 'constructor'
-to initialise-holding
-  ;; will be called by the farmer who is 'myself' in this context
-  set my-farmer myself
-  move-to approximate-centroid the-land
-  set shape "square 3"
-  set hidden? false
-  set landuse-luc-profile get-landuse-luc-profile the-land
-  set label farm-type
-  set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
-  ;; interventions are a 1 row matrix of 0s to start
-  set my-interventions matrix:make-constant 1 (length intervention-types) 0
-  set available-interventions possible-interventions
+  set the-land farm-land with [the-owner = [my-farmer] of myself]
+  ifelse not any? the-land [
+    ;; a null farm (which can happen due to random placement of farmers
+    ;; or parcels in GIS data below resolution of the patch grid
+    ask my-farmer [ die ]
+    die
+  ]
+  [
+    setxy mean [pxcor] of the-land mean [pycor] of the-land
+    set shape "square 3"
+    set hidden? false
+    set farm-type one-of farm-types
+    ask the-land [ set landuse [farm-type] of myself ]
+    set label farm-type
+    set label-color table:get colour-key "label"
+    set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
+    ;; interventions are a 1 row matrix of 0s to start
+    set my-interventions matrix:make-constant 1 (length intervention-types) 0
+    set available-interventions possible-interventions
+  ]
 end
 
 ;; for this farm's type returns 0/1 row matrix indicating which are possible on this type of farm
 to-report possible-interventions
-  report row-matrix map [i -> ifelse-value is-applicable-to-landuse? i [1] [0]] intervention-types
+  report row-matrix map [i -> ifelse-value is-applicable-to-farm-type? i [1] [0]] intervention-types
 end
 
 ;; update my-interventions and available-interventions matrices
@@ -268,20 +243,10 @@ to implement-intervention [i-type]
   matrix:set available-interventions 0 col 0
 end
 
-to-report any-interventions-to-do?
-  report matrix-sum-elements available-interventions > 0
-end
-
 ;; this always applies year-on-year variance so no 'with-var?' parameter required
 to update-profit-of-farm
-  set current-income sum [current-income] of my-holdings
-  set current-costs sum [current-costs] of my-holdings
-  set current-profit sum [current-profit] of my-holdings
-end
-
-to update-profit-of-holding
-  set current-income get-holding-income true
-  set current-costs get-holding-costs true
+  set current-income get-farm-income true
+  set current-costs get-farm-costs true
   set current-profit current-income - current-costs
 end
 
@@ -301,19 +266,19 @@ end
 
 ;; reports a column matrix from the column sums of current landuse-luc-profile matrix
 ;; farm reporter
-to-report get-landuse-profile
+to-report get-farm-landuse-profile
   report matrix:from-column-list (list matrix-column-sums landuse-luc-profile)
 end
 
 ;; reports a column matrix from the row sums of current landuse-luc-profile matrix
 ;; farm reporter
-to-report get-luc-profile
+to-report get-farm-luc-profile
   report matrix:from-column-list (list matrix-row-sums landuse-luc-profile)
 end
 
 ;; tests if intervention is applicable by checking if the result is in interventions table
 ;; farm reporter
-to-report is-applicable-to-landuse? [i-type]
+to-report is-applicable-to-farm-type? [i-type]
   report get-impact farm-type "costs" i-type != na-value
 end
 
@@ -326,8 +291,8 @@ to-report get-intervention-score [i-type show-messages?]
   let col (position i-type intervention-types)
   matrix:set my-interventions 0 col 1
   ;; get long-term expect costs and incomes, i.e. without variance
-  let new-costs get-holding-costs false
-  let new-income get-holding-income false
+  let new-costs get-farm-costs false
+  let new-income get-farm-income false
   let delta-costs relative-change current-costs new-costs
   let delta-income relative-change current-income new-income
   if show-messages? [
@@ -348,7 +313,7 @@ end
 ;; Run during initialisation and only altered if such changes in landuse are
 ;; undertaken.
 ;; not a farm reporter but usually run on the-land of farm turtles
-to-report get-landuse-luc-profile [poly]
+to-report get-farm-landuse-luc-profile [poly]
   let luc-i [position luc-code range-from-to 1 9] of poly
   let lu-j [position landuse farm-types] of poly
   let nrow 8
@@ -378,34 +343,33 @@ to initialise-farmer
   set color table:get colour-key "farmer"
   set shape "person"
   set hidden? true
-  set farm-type one-of farm-types
 end
 
 ;; returns threshold for the supplied intervention
 ;; this or a wrapper for this could include farmer demography 'shifts'
 ;; or social/geographic network shifts
+;; farmer reporter due to dependency on my-farm attribute
 to-report get-adoption-probability [i-type]
   report table:get (
     table:get base-thresholds i-type
-  ) farm-type
+  ) [farm-type] of my-farm
 end
 
 ;; loop through the available interventions scoring their probabilities
 ;; then select one in a random draw weighted by those probabilities
 to-report consider-interventions [show-messages?]
-  let choices []
-  ask my-holdings with [any-interventions-to-do?] [
-    let ft farm-type
-    ;; list the interevention types that are to be considered
-    let to-consider available-interventions-as-list
+  let fm my-farm
+  ;; list the interevention types that are to be considered
+  let to-consider [available-interventions-as-list] of fm
+  ifelse length to-consider > 0 [
     ;; get nudge score for this intervention from the farm
-    let scores map [poss -> [get-intervention-score poss show-messages?] of self] to-consider
+    let scores map [poss -> [get-intervention-score poss show-messages?] of fm] to-consider
     ;; get the base probabilities for this farmer (which might be changeable over time)
     let base-probs map [poss -> get-adoption-probability poss] to-consider
     ;; adjust probabilities using the sigmoid function
     let new-probs (map [[prob score] -> nudged-probability prob score] base-probs scores)
     if show-messages? [
-      show farm-type
+      show [farm-type] of fm
       show to-consider
       show map [s -> precision s 4] scores
       show map [p -> precision p 4] base-probs
@@ -414,9 +378,9 @@ to-report consider-interventions [show-messages?]
     ;; put results in a list of tuples [[<INTERVENTION> <PROBABILITY>], select one
     ;; by weighted random draw and return it to the calling context
     let changes zip to-consider new-probs
-    set choices lput (list self rnd:weighted-one-of-list changes [ [p] -> last p ]) choices
+    report rnd:weighted-one-of-list changes [ [p] -> last p ]
   ]
-  report choices
+  [ report nobody ]
 end
 
 
@@ -427,7 +391,7 @@ end
 ;; which it would be inefficient to reassemble on the fly and which is rarely updated anyway
 
 ;; farm reporter due to landuse-luc-profile
-to-report get-holding-income [with-var?]
+to-report get-farm-income [with-var?]
   ;; calculation here is SUM [ LUC/LU * Yield * Impact of interventions * Prices ]
   ;; Yield component optionally includes variance
   ;; Multiplications are all element-wise except for last step * Prices
@@ -435,7 +399,7 @@ to-report get-holding-income [with-var?]
     report round matrix-sum-elements (
       ( matrix:map [[a b c] -> a * b * c]
         landuse-luc-profile
-        matrix:plus m-yield-means get-holding-yield-variance
+        matrix:plus m-yield-means get-farm-yield-variance
         get-yield-after-interventions ) matrix:* m-prices )
   ]
   [ report round matrix-sum-elements (
@@ -447,7 +411,7 @@ to-report get-holding-income [with-var?]
 end
 
 ;; farm reporter due to landuse-luc-profile
-to-report get-holding-costs [with-var?]
+to-report get-farm-costs [with-var?]
   ;; calculation here is
   ;; Cost of interventions + SUM [ LUC/LU * (Costs + (Emissions * Impact of interventions) * tax) ]
   ;; Emissions optionally includes variance
@@ -457,10 +421,10 @@ to-report get-holding-costs [with-var?]
       ( matrix:map *
         landuse-luc-profile
         ( m-cost-means matrix:+
-          get-holding-cost-variance matrix:+
+          get-farm-cost-variance matrix:+
           ( matrix:map *
               ;; here with variance
-              ( matrix:plus m-emission-means get-holding-emissions-variance )
+              ( matrix:plus m-emission-means get-farm-emissions-variance )
               get-emissions-after-interventions ) matrix:* carbon-price
         )
       )
@@ -496,19 +460,19 @@ end
 
 ;; reports a matrix of yield deviates suppressed by the number of patches
 ;; farm reporter due to landuse-luc-profile
-to-report get-holding-yield-variance
+to-report get-farm-yield-variance
   report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] m-yield-sds landuse-luc-profile)
 end
 
 ;; reports a matrix of cost deviates suppressed by the number of patches
 ;; farm reporter due to landuse-luc-profile
-to-report get-holding-cost-variance
+to-report get-farm-cost-variance
   report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] m-cost-sds landuse-luc-profile)
 end
 
 ;; reports a matrix of emissions deviate suppressed by the number of patches
 ;; farm reporter due to landuse-luc-profile
-to-report get-holding-emissions-variance
+to-report get-farm-emissions-variance
   report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] m-emission-sds landuse-luc-profile)
 end
 
@@ -522,7 +486,7 @@ to-report get-cost-after-interventions
   report round matrix-sum-elements
          ( my-interventions matrix:*
            m-intervention-cost-impacts matrix:*
-           get-landuse-profile )
+           get-farm-landuse-profile )
 end
 
 ;; reports a matrix for use in multiplication of yields dependent on on-farm interventions.
@@ -615,7 +579,7 @@ end
 GRAPHICS-WINDOW
 215
 12
-691
+832
 921
 -1
 -1
@@ -630,7 +594,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-155
+202
 0
 299
 1
@@ -717,7 +681,7 @@ SWITCH
 257
 setup-geography-from-files?
 setup-geography-from-files?
-0
+1
 1
 -1000
 
@@ -730,7 +694,7 @@ luc-aggregation-steps
 luc-aggregation-steps
 0
 250
-125.0
+150.0
 5
 1
 NIL
@@ -747,10 +711,10 @@ Random landscape
 1
 
 SWITCH
-36
-603
-200
-636
+39
+661
+203
+694
 show-luc-codes?
 show-luc-codes?
 0
@@ -768,10 +732,10 @@ Model process RNGs
 1
 
 BUTTON
-125
-680
-199
-713
+128
+738
+202
+771
 redraw
 redraw
 NIL
@@ -829,10 +793,10 @@ region
 0
 
 BUTTON
-50
-722
-199
-755
+53
+780
+202
+813
 toggle-labels
 set show-labels? not show-labels?\nifelse show-labels?\n[ ask turtles \n  [ set label-color table:get colour-key \"label\" ] ]\n[ ask turtles\n  [ set label-color [0 0 0 0] ] ]\n
 NIL
@@ -846,10 +810,10 @@ NIL
 1
 
 BUTTON
-50
-763
-199
-796
+53
+821
+202
+854
 toggle-farmers
 ask farmers [\n  set hidden? not hidden?\n]
 NIL
@@ -895,21 +859,21 @@ NIL
 1
 
 SWITCH
-37
-405
-201
-438
+40
+463
+204
+496
 show-landuse?
 show-landuse?
-0
+1
 1
 -1000
 
 SWITCH
-36
-540
-200
-573
+39
+598
+203
+631
 farm-type-colours?
 farm-type-colours?
 0
@@ -937,30 +901,30 @@ You'll need the named regional spatial subfolder
 1
 
 TEXTBOX
-37
-640
-205
-669
+40
+698
+208
+727
 More intense colours are lower LUC values (better land).
 11
 0.0
 1
 
 TEXTBOX
-40
-442
-192
-526
+43
+500
+195
+584
 Colour key (applies to both landuse and farm symbols)\n  SNB - Brown\n  Dairy - Grey\n  Forestry - Blue-Green \n  Crop - Yellow-Green
 11
 0.0
 1
 
 TEXTBOX
-37
-577
-205
-595
+40
+635
+208
+653
 Loss-making farms always red
 11
 0.0
@@ -1051,10 +1015,10 @@ TEXTBOX
 1
 
 BUTTON
-50
-804
-200
-837
+53
+862
+203
+895
 toggle-farms
 ask farms [set hidden? not hidden?]
 NIL
@@ -1147,40 +1111,6 @@ TEXTBOX
 Use this to force model steps even if stop condition is met
 11
 0.0
-1
-
-BUTTON
-50
-844
-199
-877
-toggle-holdings
-ask holdings [set hidden? not hidden?]
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-32
-884
-199
-917
-farms-holdings-as-points
-ask holdings [set size 2]\nask farms [set size 5]
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
 1
 
 @#$#@#$#@
@@ -1290,7 +1220,8 @@ Circle -16777216 true false 30 30 240
 circle 3
 false
 0
-Circle -7500403 true true 2 2 295
+Circle -7500403 true true 2 2 297
+Circle -16777216 false false -1 -1 301
 
 cow
 false

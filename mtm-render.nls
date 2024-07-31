@@ -5,8 +5,9 @@
 to redraw
   colour-patches show-landuse?
   clear-drawing
-  draw-borders farm-land table:get colour-key "border" [x -> [the-owner] of x] ;;"the-owner" 
-  redraw-farms
+  draw-borders farm-land table:get colour-key "holding-boundary" [x -> [holding-id] of x] ;;"the-owner" 
+  draw-borders farm-land table:get colour-key "farm-boundary" [x -> [farm-id] of x] ;;"the-owner" 
+  redraw-farms-and-holdings
   display
 end
 
@@ -43,7 +44,7 @@ to colour-patches [colour-by-type?]
 end
 
 to redraw-farm
-  set size (abs current-profit / 250) ^ 0.333 ;; scaling size of net profit circle
+  set size (abs current-profit / 500) ^ 0.333 ;; scaling size of net profit circle
   ifelse current-profit > 0 [
     ifelse farm-type-colours?
     [ set color table:get table:get colour-key "farm-type" farm-type
@@ -52,16 +53,28 @@ to redraw-farm
     [ set color table:get colour-key "profit" ]
   ]
   [ set color table:get colour-key "loss" ]
+end
 
+to redraw-holding
+  set size (abs current-profit / 2000) ^ 0.333 ;; scaling size of net profit circle
+  ifelse current-profit > 0 [
+    ifelse farm-type-colours?
+    [ set color table:get table:get colour-key "farm-type" farm-type
+      set color color palette:with-alpha 160
+    ]
+    [ set color table:get colour-key "profit" ]
+  ]
+  [ set color table:get colour-key "loss" ]
   set label (word
     farm-type ": "
     (length my-interventions-as-list) "/"
     (length my-interventions-as-list + length available-interventions-as-list))
 end
 
-to redraw-farms
+to redraw-farms-and-holdings
   with-local-randomness [
     ask farms [ redraw-farm ]
+    ask holdings [ redraw-holding ]
   ]
 end
 
@@ -74,7 +87,8 @@ to setup-colours
   table:put colour-key "farm-type-palettes" (
     table:from-list zip ["SNB" "Dairy" "Forest" "Crop"] ["YlOrBr" "Greys" "PuBuGn" "YlGn"])
   table:put colour-key "owner-link" [0 0 0 180]
-  table:put colour-key "border" red
+  table:put colour-key "farm-boundary" grey - 3
+  table:put colour-key "holding-boundary" grey
   table:put colour-key "LUC-palette" "Greens"
   table:put colour-key "profit" grey - 3
   table:put colour-key "loss" [255 0 0 180]

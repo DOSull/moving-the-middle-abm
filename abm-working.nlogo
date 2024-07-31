@@ -190,8 +190,8 @@ to go
       let potential-changes consider-interventions false
       foreach potential-changes [ pc ->
         let the-holding item 0 pc
-        let i-type item 0 item 1 pc
-        let prob item 1 item 1 pc
+        let i-type      item 0 item 1 pc
+        let prob        item 1 item 1 pc
         if random-float 1 < prob [
           if show-events? [
             print (word "Farmer " who " implementing " i-type " on " the-holding)
@@ -621,7 +621,7 @@ GRAPHICS-WINDOW
 -1
 3.0
 1
-8
+6
 1
 1
 1

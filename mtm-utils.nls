@@ -342,7 +342,16 @@ end
 ;; draws a line colour col between patches in the supplied patchset pset
 ;; that differ in the value of the (string) reporter. Only borders internal to
 ;; the supplied patch-set will be drawn
-to draw-borders [pset col reporter]
+to draw-borders [psets col reporter]
+  if not is-list? psets [
+    set psets (list psets)
+  ]
+  foreach psets [ pset ->
+    draw-border pset col reporter
+  ]
+end    
+
+to draw-border [pset col reporter]
   with-local-randomness [
     let boundaries pset with [
       any? neighbors4 with [get-var self reporter != nobody and 

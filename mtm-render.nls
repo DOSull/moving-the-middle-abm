@@ -5,8 +5,6 @@
 to redraw
   colour-patches show-landuse?
   clear-drawing
-  draw-borders farm-land table:get colour-key "holding-boundary" [x -> [holding-id] of x] ;;"the-owner" 
-  draw-borders farm-land table:get colour-key "farm-boundary" [x -> [farm-id] of x] ;;"the-owner" 
   redraw-farms-and-holdings
   display
 end
@@ -75,6 +73,8 @@ to redraw-farms-and-holdings
   with-local-randomness [
     ask farms [ redraw-farm ]
     ask holdings [ redraw-holding ]
+    draw-borders farm-land table:get colour-key "farm-boundary" [x -> [farm-id] of x]
+    draw-borders [the-land] of farms table:get colour-key "holding-boundary" [x -> [holding-id] of x]
   ]
 end
 

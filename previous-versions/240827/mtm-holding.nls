@@ -1,0 +1,262 @@
+holdings-own [
+  the-land                ;; patch-set of patches of this farmer, this farm, or this holding
+  farm-type               ;; farm type of farm - one of farm-types global
+  farm-type-0
+
+  my-farmer               ;; farmer who owns/runs farm
+  my-farm
+  
+  landuse-luc-profile     ;; matrix of counts of LUC - farm-type (i.e. landuse) combinations of the-land
+  landuse-luc-profile-0
+
+  current-profit          ;; most recent profit of farm summed across patches
+  current-profit-0
+  current-income          ;; most recent income of farm summed across patches
+  current-income-0
+  current-costs           ;; most recent costs of farm summed across patches
+  current-costs-0
+  
+  my-interventions        ;; row matrix of 0/1s indicating adoption of intervention-types
+  my-interventions-0
+  available-interventions ;; row matrix of 0/1s indicating interventions still open contingent on farm-type
+  available-interventions-0
+]
+
+;; farm 'constructor'
+to initialise-holding
+  ;; will be called by the farm which is 'myself' in this context
+  set my-farm myself
+  move-to approximate-centroid the-land
+  set shape "square 3"
+  set hidden? false
+  set landuse-luc-profile get-landuse-luc-profile the-land
+  set label farm-type
+  set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
+  ;; interventions are a 1 row matrix of 0s to start
+  set my-interventions matrix:make-constant 1 (length intervention-types) 0
+  set available-interventions possible-interventions
+end
+
+;; for this farm's type returns 0/1 row matrix indicating which are possible on this type of farm
+to-report possible-interventions
+  report row-matrix map [i -> ifelse-value is-applicable-to-landuse? i [1] [0]] intervention-types
+end
+
+;; update my-interventions and available-interventions matrices
+;; to reflect implementation of intervention i-type
+to implement-intervention [i-type]
+  let col position i-type intervention-types
+  matrix:set my-interventions 0 col 1
+  matrix:set available-interventions 0 col 0
+end
+
+to-report any-interventions-to-do?
+  report matrix-sum-elements available-interventions > 0
+end
+
+to update-profit-of-holding
+  set current-income get-holding-income true
+  set current-costs get-holding-costs true
+  set current-profit current-income - current-costs
+end
+
+;; reports my-interventions as a list of intervention-type names for convenience
+;; farm reporter
+to-report my-interventions-as-list
+  ;; slice by ones returns items in the first list that match 1s in the second
+  ;; so e.g. ["A" "B" "C" "D"] [0 1 1 0] -> ["B" "C"]
+  report slice-by-ones intervention-types (matrix:get-row my-interventions 0)
+end
+
+;; reports available-interventions as a list of intervention-type names for convenience
+;; farm reporter
+to-report available-interventions-as-list
+  report slice-by-ones intervention-types (matrix:get-row available-interventions 0)
+end
+
+;; scores a potential intervention by comparing expected income and costs
+;; were it to be implemented relative to current income and costs
+;; TODO: consider if this actually makes sense... in a good year when current income was high
+;; and current costs low the score might be lower which is slightly counter-intuitive.
+;; farm reporter because the cost and income reporters invoked are farm reporters
+to-report get-intervention-score [i-type show-messages?]
+  let col (position i-type intervention-types)
+  matrix:set my-interventions 0 col 1
+  ;; get long-term expect costs and incomes, i.e. without variance
+  let new-costs get-holding-costs false
+  let new-income get-holding-income false
+  let delta-costs relative-change current-costs new-costs
+  let delta-income relative-change current-income new-income
+  if show-messages? [
+    show i-type
+    show (word "Current costs: " current-costs " Current income: " current-income)
+    show (word "New costs    : " new-costs     " New income    : " new-income)
+    show (word "Delta costs  : " delta-costs   " Delta income  : " delta-income)
+  ]
+  ;; undo the intervention... we are only trying them on for size here!
+  matrix:set my-interventions 0 col 0
+  report delta-income - delta-costs
+end
+
+
+;; -----------------------------------------
+;; matrix calculations of holding income etc.
+;; -----------------------------------------
+;; these are holding reporters because they rely on the luc-landuse-profile matrix
+;; which it would be inefficient to reassemble on the fly and which is rarely updated anyway
+
+;; farm reporter due to landuse-luc-profile
+to-report get-holding-income [with-var?]
+  ;; calculation here is SUM [ LUC/LU * Yield * Impact of interventions * Prices ]
+  ;; Yield component optionally includes variance
+  ;; Multiplications are all element-wise except for last step * Prices
+  ifelse with-var? [
+    report round matrix-sum-elements (
+      ( matrix:map [[a b c] -> a * b * c]
+        landuse-luc-profile
+        matrix:plus m-yield-means get-holding-yield-variance
+        get-yield-after-interventions ) matrix:* m-prices )
+  ]
+  [ report round matrix-sum-elements (
+      ( matrix:map [[a b c] -> a * b * c]
+        landuse-luc-profile
+        m-yield-means  ;; no variance
+        get-yield-after-interventions ) matrix:* m-prices )
+  ]
+end
+
+;; farm reporter due to landuse-luc-profile
+to-report get-holding-costs [with-var?]
+  ;; calculation here is
+  ;; Cost of interventions + SUM [ LUC/LU * (Costs + (Emissions * Impact of interventions) * tax) ]
+  ;; Emissions optionally includes variance
+  ;; Multiplications are all element-wise except for last step * Prices
+  ifelse with-var? [
+    report round ( get-cost-after-interventions + matrix-sum-elements
+      ( matrix:map *
+        landuse-luc-profile
+        ( m-cost-means matrix:+
+          get-holding-cost-variance matrix:+
+          ( matrix:map *
+              ;; here with variance
+              ( matrix:plus m-emission-means get-holding-emissions-variance )
+              get-emissions-after-interventions ) matrix:* carbon-price
+        )
+      )
+    )
+  ]
+  [ report round ( get-cost-after-interventions + matrix-sum-elements
+      ( matrix:map *
+        landuse-luc-profile
+        ( m-cost-means matrix:+
+          ( matrix:map *
+              m-emission-means ;; no variance
+              get-emissions-after-interventions ) matrix:* carbon-price
+        )
+      )
+    )
+  ]
+end
+
+;; Reduced variance normal deviates for sample size n
+;; This simulates the central tendency effect of deviations from mean
+;; across farms of varying size. So a small farm with only a single patch
+;; of given LU/LUC might see a very large negative or positive deviation
+;; from mean outcomes. But a large farm with n patches of LU/LUC has the
+;; deviation downscaled by √n -- this is of course summed across n patches
+;; so the overall deviation will be larger, but appropriately 'suppressed'
+;; for the larger holding. This also allows us to avoid div 0 errors...
+to-report reduced-normal-deviate [m s n]
+  (ifelse
+    n = 0 [ report 0 ] ;; n = 0 is meaningless
+    n = 1 [ report random-normal m s ]
+    [ report random-normal m (s / sqrt(n)) ])
+end
+
+;; reports a matrix of yield deviates suppressed by the number of patches
+;; farm reporter due to landuse-luc-profile
+to-report get-holding-yield-variance
+  report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] m-yield-sds landuse-luc-profile)
+end
+
+;; reports a matrix of cost deviates suppressed by the number of patches
+;; farm reporter due to landuse-luc-profile
+to-report get-holding-cost-variance
+  report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] m-cost-sds landuse-luc-profile)
+end
+
+;; reports a matrix of emissions deviate suppressed by the number of patches
+;; farm reporter due to landuse-luc-profile
+to-report get-holding-emissions-variance
+  report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] m-emission-sds landuse-luc-profile)
+end
+
+;; farm reporter due to get-farm-landuse-profile
+to-report get-cost-after-interventions
+  ;; the calculation here is
+  ;;                       [       costs        ]   [   col-matrix    ]
+  ;; [interventions 0/1] * [ rows: intervention ] * [                 ]
+  ;;                       [ cols: farm-type    ]   [ rows: farm-type ]
+  ;;
+  report round matrix-sum-elements
+         ( my-interventions matrix:*
+           m-intervention-cost-impacts matrix:*
+           get-landuse-profile )
+end
+
+;; reports a matrix for use in multiplication of yields dependent on on-farm interventions.
+;; This is a non-standard matrix operation where desired result is the cumulative product of
+;; each column in the matrix but not all row entries in the matrix are applicable (because not a
+;; all interventions will have been adopted).
+;;
+;; farm reporter due to my-interventions
+to-report get-yield-after-interventions
+  report matrix:transpose
+           matrix-duplicate-cols (
+             matrix-column-products ( ;; cumulative product of adopted impacts
+             ( matrix:map [[a b] -> ifelse-value a = 0 [1] [b]] ;; map non-adopted interventions to 1
+               matrix-duplicate-cols matrix:transpose my-interventions length farm-types ;; dup for each farm-type
+               m-intervention-yield-impacts )
+             )
+           ) 8 ;; duplicated for each LUC
+end
+
+;; as above but for emissions
+;;
+;; farm reporter due to my-interventions
+to-report get-emissions-after-interventions
+  report matrix:transpose
+           matrix-duplicate-cols (
+             matrix-column-products (
+             ( matrix:map [[a b] -> ifelse-value a = 0 [1] [b]]
+               matrix-duplicate-cols matrix:transpose my-interventions length farm-types
+               m-intervention-emissions-impacts )
+             )
+           ) 8
+end
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-24 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.
+
+

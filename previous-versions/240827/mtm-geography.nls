@@ -62,26 +62,28 @@ to setup-geography
     ifelse setup-geography-from-files?
     [ setup-geography-from-files ]
     [ setup-random-geography ]
-
     ;; the above will return patches tagged with temp-id which we use to determine farms
-    ;; first, find all the connected sets of patches based on temp-id
     label-connected-regions (list farm-land) [x -> [temp-id] of x] true ;;"temp-id"
     ;; after labelling farm id is in region-id patch variable so apply it to farm-id
     ask farm-land [set farm-id region-id]
     ;; remove farms of one pixel
     merge-singletons farm-land [x -> [farm-id] of x] [[x y] -> ask x [set farm-id [farm-id] of y]] ;;"farm-id"
-    
-    ;; now label sub-farm holdings by luc-code - this could be based on something else
-    ;; note that here we send each farm as a separate patch-set 
+    ;; label sub-farms by luc-code - this could be based on something else
+    ;; not that here we send each farm as a separate patch-set 
     let psets map [id -> farm-land with [farm-id = id]] remove-duplicates [farm-id] of farm-land
     label-connected-regions psets [p -> [luc-code] of p] false
     ask farm-land [set holding-id region-id]
-    
     ;; now set up patch, farmer, farm, holding relations
     setup-farmers
     setup-farms
     setup-holdings
-
+    ;; assign-patches-to-farmers
+    ;; assign-farms-to-farmers
+    ;; label sub-farms by luc-code - this could be based on something else
+    ;; not that here we send each farm as a separate patch-set 
+    ;; label-connected-regions [the-land] of farms [x -> [luc-code] of x] ;;"luc-code"
+    ;; set the sub-farm-id to the region-id tags produced by the labelling
+    ask farm-land [set holding-id region-id]
     colour-patches true
   ]
 end
@@ -193,10 +195,6 @@ to setup-farmers
       ]
     ]
   ])
-  ask farmers [
-    make-farmer-local-links
-    make-farmer-industry-links
-  ]
 end
 
 to setup-farms

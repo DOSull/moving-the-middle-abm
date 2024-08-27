@@ -51,8 +51,6 @@ to redraw-farm
     [ set color table:get colour-key "profit" ]
   ]
   [ set color table:get colour-key "loss" ]
-  ask local-links [ set hidden? not show-local-links? ]
-  ask industry-links [ set hidden? not show-industry-links? ]
 end
 
 to redraw-holding
@@ -85,7 +83,7 @@ to setup-colours
   table:put colour-key "farmer" black
   table:put colour-key "farmer-label" black
   table:put colour-key "farm-type"
-    table:from-list zip ["SNB" "Dairy" "Forest" "Crop"] (list (orange - 2) (grey + 1) (green - 2) (yellow + 2))
+    table:from-list zip ["SNB" "Dairy" "Forest" "Crop"] (list (orange - 2) (grey + 2) (green - 2) (yellow + 2))
   table:put colour-key "farm-type-palettes" (
     table:from-list zip ["SNB" "Dairy" "Forest" "Crop"] ["YlOrBr" "Greys" "PuBuGn" "YlGn"])
   table:put colour-key "owner-link" [0 0 0 180]
@@ -96,8 +94,6 @@ to setup-colours
   table:put colour-key "loss" [255 0 0 180]
   table:put colour-key "label" violet - 2
   table:put colour-key "background" grey
-  table:put colour-key "local-link" red
-  table:put colour-key "industry-link" blue
 end
 
 

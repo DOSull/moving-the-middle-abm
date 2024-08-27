@@ -7,8 +7,6 @@ __includes [
   "mtm-farmer.nls"
   "mtm-farm.nls"
   "mtm-holding.nls"
-  "distribution-utils.nls"
-  "list-utils.nls"
 ]
 
 extensions [
@@ -20,7 +18,6 @@ extensions [
   nw       ;; networks for cluster/connectivity detection
   rnd      ;; weighted random draws
   profiler ;; in case we need to figure out why things are slow
-  sr
 ]
 
 globals [
@@ -41,12 +38,8 @@ globals [
   not-farm-land           ;; and patches that are not - esp. important for GIS data
 
   farm-types              ;; list of named farm types - likely fixed at 4: Crop Dairy Forestry SNB
-  ;; TO ADD
-  ; farm-type-suitabilities ;; table of list of suitabilities by LUC for each farm-type
-  ; farm-type-conversion-probabilities
   intervention-types      ;; list of named interventions - more likely to change over time
   interventions           ;; table of tables of intervention impacts
-  dispositions            ;; list of farmer dispositions
 
   ;; model parameters are read into tables as follows, but...
   commodity-yield-means   ;; table of mean yields by LUC and farm-type
@@ -83,8 +76,6 @@ globals [
   colour-key              ;; table of colour settings
 ]
 
-undirected-link-breed [industry-links industry-link]
-undirected-link-breed [local-links local-link]
 breed [farmers farmer]    ;; one farmer per farm
 breed [farms farm]        ;; turtle where most of the action happens
 breed [holdings holding]
@@ -124,7 +115,6 @@ to setup
   setup-world-dimensions
 
   setup-farmer-parameters
-  set dispositions [ "for-profit" "pro-social" "pro-environmental" ]
   setup-colours ;; must come after reading farmer parameters since it depends on farm types
   ask patches [ set pcolor table:get colour-key "background" ]
 
@@ -173,7 +163,6 @@ to go
       ask my-farm [ redraw-farm ]
       ask my-holdings [ redraw-holding ]
     ]
-    ask farmers [ age-and-succeed-farmer ]
     tick
   ]
 end
@@ -413,13 +402,13 @@ Random landscape
 1
 
 SWITCH
-32
-560
-196
-593
+36
+603
+200
+636
 show-luc-codes?
 show-luc-codes?
-1
+0
 1
 -1000
 
@@ -434,10 +423,10 @@ Model process RNGs
 1
 
 BUTTON
-121
-637
-195
-670
+125
+680
+199
+713
 redraw
 redraw
 NIL
@@ -495,10 +484,10 @@ region
 0
 
 BUTTON
-46
-679
-195
-712
+50
+722
+199
+755
 toggle-labels
 set show-labels? not show-labels?\nifelse show-labels?\n[ ask turtles \n  [ set label-color table:get colour-key \"label\" ] ]\n[ ask turtles\n  [ set label-color [0 0 0 0] ] ]\n
 NIL
@@ -512,10 +501,10 @@ NIL
 1
 
 BUTTON
-46
-720
-195
-753
+50
+763
+199
+796
 toggle-farmers
 ask farmers [\n  set hidden? not hidden?\n]
 NIL
@@ -561,10 +550,10 @@ NIL
 1
 
 SWITCH
-33
-362
-197
-395
+37
+405
+201
+438
 show-landuse?
 show-landuse?
 1
@@ -572,10 +561,10 @@ show-landuse?
 -1000
 
 SWITCH
-32
-497
-196
-530
+36
+540
+200
+573
 farm-type-colours?
 farm-type-colours?
 0
@@ -603,30 +592,30 @@ You'll need the named regional spatial subfolder
 1
 
 TEXTBOX
-33
-597
-201
-626
+37
+640
+205
+669
 More intense colours are lower LUC values (better land).
 11
 0.0
 1
 
 TEXTBOX
-36
-399
-188
-483
+40
+442
+192
+526
 Colour key (applies to both landuse and farm symbols)\n  SNB - Brown\n  Dairy - Grey\n  Forestry - Blue-Green \n  Crop - Yellow-Green
 11
 0.0
 1
 
 TEXTBOX
-33
-534
-201
-552
+37
+577
+205
+595
 Loss-making farms always red
 11
 0.0
@@ -717,10 +706,10 @@ TEXTBOX
 1
 
 BUTTON
-46
-761
-196
-794
+50
+804
+200
+837
 toggle-farms
 ask farms [set hidden? not hidden?]
 NIL
@@ -734,10 +723,10 @@ NIL
 1
 
 SWITCH
-33
-267
-199
-300
+37
+310
+203
+343
 show-events?
 show-events?
 1
@@ -745,10 +734,10 @@ show-events?
 -1000
 
 TEXTBOX
-40
-303
-190
-331
+44
+346
+194
+374
 Turn off messages to speed things up!
 11
 0.0
@@ -816,10 +805,10 @@ Use this to force model steps even if stop condition is met
 1
 
 BUTTON
-46
-801
-195
-834
+50
+844
+199
+877
 toggle-holdings
 ask holdings [set hidden? not hidden?]
 NIL
@@ -832,27 +821,22 @@ NIL
 NIL
 1
 
-SWITCH
-29
-846
-197
-879
-show-local-links?
-show-local-links?
-0
+BUTTON
+32
+884
+199
+917
+farms-holdings-as-points
+ask holdings [set size 2]\nask farms [set size 5]
+NIL
 1
--1000
-
-SWITCH
-29
-883
-197
-916
-show-industry-links?
-show-industry-links?
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
 1
-1
--1000
 
 @#$#@#$#@
 ## WHAT IS IT?

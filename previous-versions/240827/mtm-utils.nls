@@ -37,6 +37,12 @@ end
 ;; math stuff
 ;; -----------------------------------------
 
+;; rescales x from the range min-x to max-x into the equivalent
+;; position in the range new-min-x to new-max-x
+to-report rescale [x min-x max-x new-min-x new-max-x]
+  report new-min-x + (new-max-x - new-min-x) * (x - min-x) / (max-x - min-x)
+end
+
 ;; this formulation of relative change avoids overflows when
 ;; the base value is close to 0, and is symmetrical relative to the
 ;; direction of change ie the absolute value when x0 and x1 are
@@ -172,10 +178,6 @@ to-report get-raw-order [lst sorted-lst]
   report map [a -> position a sorted-lst] lst
 end
 
-to-report flatten-list [lst]
-  report reduce [[a b] -> sentence a b] lst
-end
-
 ;; reports a complete ordering of elements of lst in sorted-lst
 ;; duplicates are ranked uniquely so we have
 ;;
@@ -213,10 +215,10 @@ to-report reorder [lst order]
   report map [i -> item i lst] order
 end
 
-;;; zip two lists into a list of tuples (cf. python function)
-;to-report zip [l1 l2]
-;  report (map list l1 l2)
-;end
+;; zip two lists into a list of tuples (cf. python function)
+to-report zip [l1 l2]
+  report (map list l1 l2)
+end
 
 ;; reports the cumulative product of elements in numbers list i.e.
 ;; > product [1 2 3 4]
@@ -238,62 +240,62 @@ to-report as-list-of-lists [lst n-sublists]
   report (map [[a b] -> sublist lst a b] butlast breaks butfirst breaks)
 end
 
-;;; reports a list starting at start, ending before finish, in steps of stepsize
-;;; analogous with python's range(start, end, step) function
-;to-report range-from-to-by [start finish stepsize]
-;  let n ceiling ((finish - start) / stepsize)
-;  if (stepsize * (finish - start)) < 0 [
-;    user-message "***WARNING: step in sequence reporter is wrong sign. Returning empty list***"
-;    report []
-;  ]
-;  report n-values n [i -> start + stepsize * i]
-;end
-;
-;;; reports a list from start to before finish in steps of 1 or -1 as appropriate
-;to-report range-from-to [start finish]
-;  ifelse finish > start
-;  [ report range-from-to-by start finish 1 ]
-;  [ report range-from-to-by start finish -1 ]
-;end
-;
-;;; reports a list from 0 to before finish in steps of by
-;to-report range-by [finish by]
-;  report range-from-to-by 0 finish by
-;end
-;
-;;; reports a list repeating the supplied list n times, either 'in-line' or 'each'
-;;; analogous with R's rep(<vector>, n, each) function but with the sense of the flag
-;;; reversed, e.g.
-;;;
-;;; > rep-list [1 2 3] 2 true
-;;; [1 2 3 1 2 3]
-;;; > rep-list [1 2 3] 2 false
-;;; [1 1 2 2 3 3]
-;;;
-;to-report rep-list [lst n inline?]
-;  ifelse inline?
-;  [ report rep-list-inline lst n]
-;  [ report rep-list-each lst n]
-;end
-;
-;;; reports a list repeating each element in the supplied list n times
-;;;
-;;; > rep-list-each [1 2 3] 2
-;;; [1 1 2 2 3 3]
-;;;
-;to-report rep-list-each [lst n]
-;  report reduce [[a b] -> sentence a b ] map [i -> n-values n [j -> i] ] lst
-;end
-;
-;;; reports a list repeating the supplied lst n times end to end (as it were)
-;;; 
-;;; > rep-list-inline [1 2 3] 2
-;;; [1 2 3 1 2 3]
-;;;
-;to-report rep-list-inline [lst n]
-;  report reduce [[a b] -> sentence a b ] map [i -> lst] range n
-;end
-;
+;; reports a list starting at start, ending before finish, in steps of stepsize
+;; analogous with python's range(start, end, step) function
+to-report range-from-to-by [start finish stepsize]
+  let n ceiling ((finish - start) / stepsize)
+  if (stepsize * (finish - start)) < 0 [
+    user-message "***WARNING: step in sequence reporter is wrong sign. Returning empty list***"
+    report []
+  ]
+  report n-values n [i -> start + stepsize * i]
+end
+
+;; reports a list from start to before finish in steps of 1 or -1 as appropriate
+to-report range-from-to [start finish]
+  ifelse finish > start
+  [ report range-from-to-by start finish 1 ]
+  [ report range-from-to-by start finish -1 ]
+end
+
+;; reports a list from 0 to before finish in steps of by
+to-report range-by [finish by]
+  report range-from-to-by 0 finish by
+end
+
+;; reports a list repeating the supplied list n times, either 'in-line' or 'each'
+;; analogous with R's rep(<vector>, n, each) function but with the sense of the flag
+;; reversed, e.g.
+;;
+;; > rep-list [1 2 3] 2 true
+;; [1 2 3 1 2 3]
+;; > rep-list [1 2 3] 2 false
+;; [1 1 2 2 3 3]
+;;
+to-report rep-list [lst n inline?]
+  ifelse inline?
+  [ report rep-list-inline lst n]
+  [ report rep-list-each lst n]
+end
+
+;; reports a list repeating each element in the supplied list n times
+;;
+;; > rep-list-each [1 2 3] 2
+;; [1 1 2 2 3 3]
+;;
+to-report rep-list-each [lst n]
+  report reduce [[a b] -> sentence a b ] map [i -> n-values n [j -> i] ] lst
+end
+
+;; reports a list repeating the supplied lst n times end to end (as it were)
+;; 
+;; > rep-list-inline [1 2 3] 2
+;; [1 2 3 1 2 3]
+;;
+to-report rep-list-inline [lst n]
+  report reduce [[a b] -> sentence a b ] map [i -> lst] range n
+end
+
 to-report slice-by-ones [lst ones]
   report map [t -> item 0 t] filter [t -> item 1 t = 1] zip lst ones
 end
@@ -338,33 +340,28 @@ end
 ;; ------------------------------------------
 
 ;; draws a line colour col between patches in the supplied patchset pset
-;; that differ in the value of the reporter. Only borders internal to
+;; that differ in the value of the (string) reporter. Only borders internal to
 ;; the supplied patch-set will be drawn
 to draw-borders [psets col reporter]
   if not is-list? psets [
     set psets (list psets)
   ]
-  ;; make a 'pen' turtle to do the drawing
-  create-turtles 1 [
-    set color col
-    foreach psets [ pset ->
-      draw-border pset self reporter
-    ]
-    die
+  foreach psets [ pset ->
+    draw-border pset col reporter
   ]
 end    
 
-to draw-border [pset pen reporter]
+to draw-border [pset col reporter]
   with-local-randomness [
-    let borders pset with [
+    let boundaries pset with [
       any? neighbors4 with [get-var self reporter != nobody and 
                             not x1-var-matches-x2-var? self myself reporter]
     ]
-    ask borders [
+    ask boundaries [
       ask neighbors4 with [get-var self reporter != nobody] [
         ;; only those with different owner need to draw a line
         if not x1-var-matches-x2-var? self myself reporter [
-          draw-line-between self myself pen
+          draw-line-between self myself col
         ]
       ]
     ]
@@ -374,21 +371,26 @@ end
 ;; draw line between two patches p1 and p2
 ;; by sprouting a turtle and having it move
 ;; to halfway point and draw the edge
-to draw-line-between [p1 p2 pen]
-  ;; ask supplied pen turtle to do the drawing
-  ask pen [
-    pen-up
-    move-to p1
-    ;; move to the boundary
-    face p2
-    jump 0.5
-    ;; face the corner and move there
-    rt 90
-    jump 0.4995
-    ;; turn around and draw the line
-    rt 180
-    pen-down
-    jump .999
+to draw-line-between [p1 p2 col]
+  ;; set a visible colour
+  let pen-color col
+  ask p1 [
+    ;; make a turtle to do the drawing
+    sprout 1 [
+      set color pen-color
+      ;; move to the boundary
+      face p2
+      jump 0.5
+      ;; face the corner and move there
+      rt 90
+      jump 0.4995
+      ;; turn around and draw the edge
+      rt 180
+      pd
+      jump .999
+      ;; and die...
+      die
+    ]
   ]
 end
 

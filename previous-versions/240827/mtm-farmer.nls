@@ -1,0 +1,112 @@
+farmers-own [
+  the-land                ;; patch-set of patches of this farmer, this farm, or this holding
+  farm-type
+  farm-type-0
+
+  my-farm                 ;; farm turtle of this farmer's farm
+  my-holdings
+]
+
+;; farmer 'constructor'
+to initialise-farmer
+  set size 2
+  set color table:get colour-key "farmer"
+  set shape "person"
+  set hidden? true
+  set farm-type one-of farm-types
+end
+
+;; returns threshold for the supplied intervention
+;; this or a wrapper for this could include farmer demography 'shifts'
+;; or social/geographic network shifts
+to-report get-adoption-probability [i-type]
+  report table:get (
+    table:get base-thresholds i-type
+  ) farm-type
+end
+
+;; loop through the available interventions scoring their probabilities
+;; then select one in a random draw weighted by those probabilities
+to-report consider-interventions [show-messages?]
+  let choices []
+  ask my-holdings with [any-interventions-to-do?] [
+    let ft farm-type
+    ;; list the interevention types that are to be considered
+    let to-consider available-interventions-as-list
+    ;; get nudge score for this intervention from the farm
+    let scores map [poss -> [get-intervention-score poss show-messages?] of self] to-consider
+    ;; get the base probabilities for this farmer (which might be changeable over time)
+    let base-probs map [poss -> get-adoption-probability poss] to-consider
+    ;; adjust probabilities using the sigmoid function
+    let new-probs (map [[prob score] -> nudged-probability prob score] base-probs scores)
+    if show-messages? [
+      show farm-type
+      show to-consider
+      show map [s -> precision s 4] scores
+      show map [p -> precision p 4] base-probs
+      show map [p -> precision p 4] new-probs
+    ]
+    ;; put results in a list of tuples [[<INTERVENTION> <PROBABILITY>], select one
+    ;; by weighted random draw and return it to the calling context
+    let changes zip to-consider new-probs
+    set choices lput (list self rnd:weighted-one-of-list changes [ [p] -> last p ]) choices
+  ]
+  report choices
+end
+
+
+;; -----------------------------------------
+;; sigmoid function related
+;; -----------------------------------------
+
+;; see https://en.wikipedia.org/wiki/Sigmoid_function
+;; the argument a increases the slope at (0, 0.5)
+to-report sigmoid [x a]
+  report 1 / (1 + exp (a * (- x)))
+end
+
+;; see https://en.wikipedia.org/wiki/Logit
+;; inverse of the sigmoid function - used to determine
+;; where on the sigmoid a given probability lies
+;; The 'epsilon correction' for 0 and 1 avoids errors from
+;; overflow/underflow even if introduces slight errors
+;; but hey! nothing is impossible, nor a sure thing!
+to-report logit [p a]
+  (ifelse
+    p = 0.5 [ report 0 ]
+    p = 1 [ report logit (1 - epsilon) a ]
+    p = 0 [ report logit epsilon a ]
+    [ report ln (p / (1 - p)) / a ])
+end
+
+;; reports revised probability from 'nudging' initial
+;; initial probability p along a sigmoid curve
+to-report nudged-probability [p nudge]
+  let centre logit p sigmoid-slope
+  report sigmoid (centre + nudge) sigmoid-slope
+end
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-24 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.
+

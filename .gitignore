@@ -9,3 +9,6 @@ data/spatial/*
 *_cache/
 
 /.quarto/
+*.tif
+*.gpkg
+data/

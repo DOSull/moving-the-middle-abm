@@ -14,10 +14,12 @@ to setup-farmer-parameters
   ;; Farm_Plan        , 0.7, 0.85,  0.4,    0.6
   ;; Join_ETS         , 0.2, 0.2,   0.9,    0.4
   ;;
-  read-farm-types-from-file word market-data-folder "farmer-threshold-matrix.csv"
-  read-interventions-from-file word market-data-folder "farmer-threshold-matrix.csv"
-  read-farmer-thresholds-from-file word market-data-folder "farmer-threshold-matrix.csv"
-  read-intervention-impacts-from-file word market-data-folder "intervention-impacts.csv"
+  read-farm-types-from-file              word market-data-folder "farmer-threshold-matrix.csv"
+  read-interventions-from-file           word market-data-folder "farmer-threshold-matrix.csv"
+  read-farmer-thresholds-from-file       word market-data-folder "farmer-threshold-matrix.csv"
+  read-intervention-impacts-from-file    word market-data-folder "intervention-impacts.csv"
+  read-farm-type-suitabilities-from-file word market-data-folder "suitabilities.csv"
+  read-farm-type-change-costs-from-file  word market-data-folder "conversion-costs.csv"
 end
 
 ;; setup farm types and interventions
@@ -29,7 +31,7 @@ to read-farm-types-from-file [file]
     file-close
   ]
   [
-    print "ERROR: problem reading farm types from thresholds data file"
+    print "***** ERROR: problem reading farm types from thresholds data file"
     file-close
   ]
 end
@@ -41,18 +43,13 @@ to read-interventions-from-file [file]
     print word "Reading intervention types from " file
     file-open file
     let skip file-read-line
-    while [not file-at-end?] [
-      set names lput item 0 csv:from-row file-read-line names
-;      create-interventions 1 [
-;        initialise-intervention item 0 csv:from-row file-read-line
-;      ]
-    ]
+    while [not file-at-end?] [ set names lput item 0 csv:from-row file-read-line names ]
     file-close
-    set intervention-types sort names
-    foreach intervention-types [ i -> output-print i ]
+    set mgmt-intervention-types sort names
+    foreach mgmt-intervention-types [ i -> output-print i ]
   ]
   [
-    print "ERROR: problem reading intervention types from thresholds data file"
+    print "***\n*** ERROR: problem reading intervention types from thresholds data file\n***"
     file-close
   ]
 end
@@ -85,7 +82,7 @@ to read-farmer-thresholds-from-file [file]
     file-close
   ]
   [
-    print "ERROR: problem reading the farmer thresholds data file"
+    print "***\n*** ERROR: problem reading the farmer thresholds data file\n***"
     file-close
   ]
 end
@@ -133,15 +130,81 @@ to read-intervention-impacts-from-file [file]
       set i-list fput table:from-list zip e-types e-impacts i-list
     ]
     file-close
-    set order get-order i-types intervention-types
-    set interventions table:from-list reorder zip i-types i-list order
+    set order get-order i-types mgmt-intervention-types
+    set mgmt-interventions table:from-list reorder zip i-types i-list order
   ]
   [
-    print "ERROR: problem reading the interventions effects file"
+    print "***\n*** ERROR: problem reading the interventions effects file\n***"
     file-close
   ]
 end
 
+to read-farm-type-suitabilities-from-file [file]
+  ;;    , SNB, Dairy, Forest, Crop
+  ;;LUC1,   1,     1,      1,    1
+  ;;LUC2,   1,     1,      1,    1
+  ;;LUC3,   1,     1,      1,    1
+  ;;LUC4,   1,     1,      1,    0
+  ;;LUC5,   1,     1,      1,    0
+  ;;LUC6,   1,     0,      1,    0
+  ;;LUC7,   1,     0,      1,    0
+  ;;LUC8,   1,     0,      1,    0
+  set farm-type-suitabilities table:make
+  carefully [
+    print word "Reading farm type suitabilities from file " file
+    file-open file
+    let the-farm-types but-first csv:from-row file-read-line
+    let order get-order the-farm-types farm-types
+    let luc 1
+    while [not file-at-end?] [
+      ;; read the LUCx_Mean line
+      let data but-first csv:from-row file-read-line
+      let suitabilities table:from-list reorder zip the-farm-types data order
+      table:put farm-type-suitabilities luc suitabilities
+      set luc luc + 1
+    ]
+    file-close
+  ]
+  [
+    print "***\n*** ERROR: problem reading farm type suitabilities file\n***"
+    file-close
+  ]
+end
+
+to read-farm-type-change-costs-from-file [file]
+  ;; These are <something like> the impact on profit of switching from the type
+  ;; in the row name to the type in the column name
+  ;; Farm types may be in any order, but ROWS AND COLUMNS MUST BE IN SAME ORDER
+  ;;       , SNB, Dairy, Forest, Crop
+  ;; SNB   ,   0,   0.5,    0.1,  0.8
+  ;; Dairy , 0.5,     0,    0.2,  0.8
+  ;; Forest,   1,   0.5,      0,    1
+  ;; Crop  , 0.8,     1,    0.2,    0
+  let row-names []
+  let rows-data []
+  carefully [
+    print word "Reading farm type change costs from file " file
+    file-open file
+    let the-farm-types but-first csv:from-row file-read-line
+    let order get-order the-farm-types farm-types
+    while [not file-at-end?] [
+      let data csv:from-row file-read-line
+      let from-type item 0 data
+      set row-names lput from-type row-names
+      set rows-data lput table:from-list reorder zip the-farm-types (but-first data) order rows-data
+    ]
+    file-close
+    set farm-type-change-costs table:make
+    foreach reorder zip row-names rows-data order [ ft-data ->
+      table:put farm-type-change-costs item 0 ft-data item 1 ft-data
+    ]
+  ]
+  [
+    print "***\n*** ERROR: problem reading farm type change costs data file\n***"
+    file-close
+  ]
+end
+  
 to-report replace-na [x]
   report ifelse-value x = "NA" [na-value] [x]
 end
@@ -160,7 +223,6 @@ to setup-economic-parameters
     [ random-seed rng-economics ]
     [ random-seed timer ]
     read-production-function-parameters
-    make-matrix-copies-of-data
   ]
 end
 
@@ -177,10 +239,7 @@ to read-production-function-parameters
   set ghg-emission-means    item 0 emissions
   set ghg-emission-sds      item 1 emissions
 
-;  let prices-data           get-prices word market-data-folder "prices.csv"
-;  set prices                item 0 prices-data
-;  set environmental-taxes   item 1 prices-data
-  set prices           get-prices word market-data-folder "prices.csv"
+  set prices get-prices word market-data-folder "prices.csv"
 end
 
 ;; return mean and sd tables for a parameter from a file
@@ -223,7 +282,7 @@ to-report get-parameter-from-file [file]
     file-close
   ]
   [
-    print word "ERROR: failed while reading parameter file " file
+    print word "***\n*** ERROR: failed while reading parameter file\n***" file
     file-close
   ]
   report (list means-table sds-table)
@@ -234,11 +293,11 @@ to-report get-prices [file]
   ;; (spacing addded for clarity). No checking that the rows
   ;; are in this order
   ;;
-  ;;               ,SNB,Dairy, Forest, Crop
-  ;;Price_Commodity,  5,  7.5,   157,   0.5
-  ;;Price_GhG      , 25, 25  ,    25,  25
-  ;;Price_Nleach   ,  0,  0  ,     0,   0
-  ;; ... other redundant lines ...
+  ;;                ,SNB,Dairy, Forest, Crop
+  ;; Price_Commodity,  5,  7.5,   157,   0.5
+  ;; Price_GhG      , 25, 25  ,    25,  25
+  ;; Price_Nleach   ,  0,  0  ,     0,   0
+  ;;  ... other redundant lines ...
   ;;
   ;; NOTE: the taxes part of this has been replaced by a slider
   ;; since carbon taxes are a fixed price across all landuses
@@ -255,7 +314,7 @@ to-report get-prices [file]
     file-close
   ]
   [
-    print "ERROR: problem reading prices file"
+    print "***\n*** ERROR: problem reading prices file\n***"
     file-close
   ]
 ;  report list prices-table taxes-table
@@ -279,23 +338,25 @@ to make-matrix-copies-of-data
   set m-cost-sds       matrix:from-row-list map [t -> table:values t] table:values input-cost-sds
   set m-emission-means matrix:from-row-list map [t -> table:values t] table:values ghg-emission-means
   set m-emission-sds   matrix:from-row-list map [t -> table:values t] table:values ghg-emission-sds
+  set m-suitabilities  matrix:from-row-list map [t -> table:values t] table:values farm-type-suitabilities
+  set m-change-costs   matrix:from-row-list map [t -> table:values t] table:values farm-type-change-costs
 
   ;; a column matrix with one element per landuse/farm-type
   set m-prices col-matrix table:values prices
 
   ;; each of the next three is a n-row 4-col of intervention impacts, where rows are
   ;; the type of intervention and columns are landuse/farm-type
-  set m-intervention-cost-impacts matrix:from-row-list
+  set m-mgmt-intervention-cost-impacts matrix:from-row-list
     map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
-              table:values table:get table:get interventions i "costs"] intervention-types
+              table:values table:get table:get mgmt-interventions i "costs"] mgmt-intervention-types
 
   ;; note that these two are multiplicatively applied so add 1 to 0.05 -> 1.05, 0 -> 1, etc
-  set m-intervention-yield-impacts matrix:plus 1 matrix:from-row-list
+  set m-mgmt-intervention-yield-impacts matrix:plus 1 matrix:from-row-list
     map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
-              table:values table:get table:get interventions i "yields"] intervention-types
-  set m-intervention-emissions-impacts matrix:plus 1 matrix:from-row-list
+              table:values table:get table:get mgmt-interventions i "yields"] mgmt-intervention-types
+  set m-mgmt-intervention-emissions-impacts matrix:plus 1 matrix:from-row-list
     map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
-              table:values table:get table:get interventions i "emissions"] intervention-types
+              table:values table:get table:get mgmt-interventions i "emissions"] mgmt-intervention-types
 end
 
 

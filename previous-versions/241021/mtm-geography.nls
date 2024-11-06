@@ -82,7 +82,7 @@ to setup-geography
     setup-farms
     setup-holdings
 
-    colour-all-patches true
+    colour-patches true
   ]
 end
 
@@ -102,7 +102,7 @@ to setup-geography-from-files
   ;; see https://github.com/NetLogo/GIS-Extension/issues/5
   ;;     https://github.com/NetLogo/NetLogo/issues/894   
   set farm-land patches with [not is-nan? luc-code and luc-code > 0]
-  colour-all-patches false
+  colour-patches false
   display ;; do this early for reassurance...
   let bgcolor table:get colour-key "background"
   set not-farm-land patches with [pcolor = bgcolor]
@@ -172,7 +172,7 @@ to setup-random-luc-codes
       ask patches [ set luc-code [luc-code] of one-of neighbors4 ]
     ]
   ]
-  colour-all-patches false
+  colour-patches false
   display
 end
 
@@ -193,11 +193,9 @@ to setup-farmers
       ]
     ]
   ])
-  if include-networks? [
-    ask farmers [
-      make-farmer-local-links
-      make-farmer-industry-links
-    ]
+  ask farmers [
+    make-farmer-local-links
+    make-farmer-industry-links
   ]
 end
 

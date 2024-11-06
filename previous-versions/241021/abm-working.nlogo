@@ -42,10 +42,10 @@ globals [
 
   farm-types              ;; list of named farm types - likely fixed at 4: Crop Dairy Forestry SNB
   ;; TO ADD
-  farm-type-suitabilities ;; table of list of suitabilities by LUC for each farm-type
-  farm-type-change-costs  ;; table of costs to convert between farm types
-  mgmt-intervention-types ;; list of named management interventions - more likely to change over time
-  mgmt-interventions      ;; table of tables of management intervention impacts
+  ; farm-type-suitabilities ;; table of list of suitabilities by LUC for each farm-type
+  ; farm-type-conversion-probabilities
+  intervention-types      ;; list of named interventions - more likely to change over time
+  interventions           ;; table of tables of intervention impacts
   dispositions            ;; list of farmer dispositions
 
   ;; model parameters are read into tables as follows, but...
@@ -71,15 +71,13 @@ globals [
   m-cost-sds
   m-emission-means
   m-emission-sds
-  m-suitabilities
-  m-change-costs
   ;; a column matrix ordered by farm-types list
   m-prices
   ;; rows-cols entries for intervention-type - farm-type respectively
   ;; ordered by intervention-types and farm-types lists
-  m-mgmt-intervention-cost-impacts
-  m-mgmt-intervention-yield-impacts
-  m-mgmt-intervention-emissions-impacts
+  m-intervention-cost-impacts
+  m-intervention-yield-impacts
+  m-intervention-emissions-impacts
 
   ;; colour settings - these can be changed in one place, see setup-key-colours procedure
   colour-key              ;; table of colour settings
@@ -127,14 +125,11 @@ to setup
 
   setup-farmer-parameters
   set dispositions [ "for-profit" "pro-social" "pro-environmental" ]
-
   setup-colours ;; must come after reading farmer parameters since it depends on farm types
   ask patches [ set pcolor table:get colour-key "background" ]
 
   setup-geography
   setup-economic-parameters
-  make-matrix-copies-of-data
-
   redraw
   reset-ticks
   if run-rng-seed != 0 [ random-seed run-rng-seed ]
@@ -152,44 +147,39 @@ to go
     stop
   ]
   [ ;; update farm status
-    ask farmers [ age-and-succeed-farmer ]
-    ask holdings [ update-profit-of-holding ]
-    ask farms [ update-profit-of-farm ]
-    ask farmers [
-      let loss-making-holdings get-loss-making-holdings
-      ifelse any? loss-making-holdings [
-;        ifelse count loss-making-holdings = count my-holdings [
-;          let x consider-changes "landuse" true
-;        ]
-;        [
-          let x consider-changes "forestry" true
-;        ]
-      ]
-      [
-        if any? my-holdings with [any-interventions-to-do?] [
-          ;; this reports a [holding [intervention-type probability]] list
-          let potential-changes consider-interventions false
-          foreach potential-changes [ potential-change ->
-            let the-holding        item 0 potential-change
-            let i-type      item 0 item 1 potential-change
-            let prob        item 1 item 1 potential-change
-            if random-float 1 < prob [
-              if show-events? [ print (word "Farmer " who " implementing " i-type " on " the-holding) ]
-              ask the-holding [ implement-intervention i-type ]
-            ]
+    ask holdings [
+      update-profit-of-holding
+    ]
+    ask farms [
+      update-profit-of-farm
+    ]
+    ask farmers with [any? my-holdings with [any-interventions-to-do?]] [
+      ;; this reports a [holding [intervention-type probability]] list
+      let potential-changes consider-interventions false
+      foreach potential-changes [ pc ->
+        let the-holding item 0 pc
+        let i-type      item 0 item 1 pc
+        let prob        item 1 item 1 pc
+        if random-float 1 < prob [
+          if show-events? [
+            print (word "Farmer " who " implementing " i-type " on " the-holding)
+          ]
+          ask the-holding [
+            implement-intervention i-type
           ]
         ]
       ]
+      ask my-farm [ redraw-farm ]
+      ask my-holdings [ redraw-holding ]
     ]
-    ask farms [redraw-farm]
-    ask holdings [redraw-holding]
+    ask farmers [ age-and-succeed-farmer ]
     tick
   ]
 end
 
 ;; any model stop condition goes here
 to-report stop-model?
-  ifelse any? holdings with [any-interventions-to-do?] [
+  ifelse any? holdings with [matrix-sum-elements available-interventions > 0] [
     report false
   ]
   [
@@ -206,20 +196,20 @@ end
 
 ;; -----------------------------------------
 ;; reset code
-;; these procedures store the initial state
-;; of the model to allow quick reset
 ;; -----------------------------------------
 
 to store-initial-values
-  ask farm-land [ set landuse-0 landuse ]
+  ask farm-land [
+    set landuse-0 landuse
+  ]
   ask holdings [
     set farm-type-0 farm-type
     set current-profit-0 current-profit
     set current-income-0 current-income
     set current-costs-0 current-costs
-    ;; important to COPY here to get a new matrix, not a reference to the old one
-    set my-mgmt-interventions-0 matrix:copy my-mgmt-interventions
-    set avail-mgmt-interventions-0 matrix:copy avail-mgmt-interventions
+    ;; important to copy here to get a new matrix, not a reference to the old one
+    set my-interventions-0 matrix:copy my-interventions
+    set available-interventions-0 matrix:copy available-interventions
     set landuse-luc-profile-0 matrix:copy landuse-luc-profile
   ]
   ask farms [
@@ -227,22 +217,25 @@ to store-initial-values
     set current-profit-0 current-profit
     set current-income-0 current-income
     set current-costs-0 current-costs
-    ;; important to COPY here to get a new matrix, not a reference to the old one
     set landuse-luc-profile-0 matrix:copy landuse-luc-profile
   ]
-  ask farmers [ set farm-type-0 farm-type ]
+  ask farmers [
+    set farm-type-0 farm-type
+  ]
 end
 
 to restore-initial-values
-  ask farm-land [ set landuse landuse-0 ]
+  ask farm-land [
+    set landuse landuse-0
+  ]
   ask holdings [
     set farm-type farm-type-0
     set current-profit current-profit-0
     set current-income current-income-0
     set current-costs current-costs-0
-    ;; important to COPY here to get a new matrix, not a reference to the old one
-    set my-mgmt-interventions matrix:copy my-mgmt-interventions-0
-    set avail-mgmt-interventions matrix:copy avail-mgmt-interventions-0
+    ;; important to copy here to get a new matrix, not a reference to the old one
+    set my-interventions matrix:copy my-interventions-0
+    set available-interventions matrix:copy available-interventions-0
     set landuse-luc-profile matrix:copy landuse-luc-profile-0
   ]
   ask farms [
@@ -250,10 +243,11 @@ to restore-initial-values
     set current-profit current-profit-0
     set current-income current-income-0
     set current-costs current-costs-0
-    ;; important to COPY here to get a new matrix, not a reference to the old one
     set landuse-luc-profile matrix:copy landuse-luc-profile-0
   ]
-  ask farmers [ set landuse landuse-0 ]
+  ask farmers [
+    set landuse landuse-0
+  ]
   redraw-farms-and-holdings
   reset-ticks
   tick
@@ -286,7 +280,7 @@ end
 GRAPHICS-WINDOW
 215
 12
-832
+691
 921
 -1
 -1
@@ -301,7 +295,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-202
+155
 0
 299
 1
@@ -388,7 +382,7 @@ SWITCH
 257
 setup-geography-from-files?
 setup-geography-from-files?
-1
+0
 1
 -1000
 
@@ -418,10 +412,10 @@ Random landscape
 1
 
 SWITCH
-31
-524
-195
-557
+32
+560
+196
+593
 show-luc-codes?
 show-luc-codes?
 0
@@ -439,10 +433,10 @@ Model process RNGs
 1
 
 BUTTON
-123
-597
-197
-630
+121
+637
+195
+670
 redraw
 redraw
 NIL
@@ -500,10 +494,10 @@ region
 0
 
 BUTTON
-48
-639
-197
-672
+46
+679
+195
+712
 toggle-labels
 set show-labels? not show-labels?\nifelse show-labels?\n[ ask turtles \n  [ set label-color table:get colour-key \"label\" ] ]\n[ ask turtles\n  [ set label-color [0 0 0 0] ] ]\n
 NIL
@@ -517,10 +511,10 @@ NIL
 1
 
 BUTTON
-48
-680
-197
-713
+46
+720
+195
+753
 toggle-farmers
 ask farmers [\n  set hidden? not hidden?\n]
 NIL
@@ -566,10 +560,10 @@ NIL
 1
 
 SWITCH
-32
-326
-196
-359
+33
+362
+197
+395
 show-landuse?
 show-landuse?
 0
@@ -577,10 +571,10 @@ show-landuse?
 -1000
 
 SWITCH
-31
-461
-195
-494
+32
+497
+196
+530
 farm-type-colours?
 farm-type-colours?
 0
@@ -608,30 +602,30 @@ You'll need the named regional spatial subfolder
 1
 
 TEXTBOX
-32
-561
-200
-590
+33
+597
+201
+626
 More intense colours are lower LUC values (better land).
 11
 0.0
 1
 
 TEXTBOX
-35
-363
-187
-447
+36
+399
+188
+483
 Colour key (applies to both landuse and farm symbols)\n  SNB - Brown\n  Dairy - Grey\n  Forestry - Blue-Green \n  Crop - Yellow-Green
 11
 0.0
 1
 
 TEXTBOX
-32
-498
-200
-516
+33
+534
+201
+552
 Loss-making farms always red
 11
 0.0
@@ -722,10 +716,10 @@ TEXTBOX
 1
 
 BUTTON
-48
-721
-198
-754
+46
+761
+196
+794
 toggle-farms
 ask farms [set hidden? not hidden?]
 NIL
@@ -740,9 +734,9 @@ NIL
 
 SWITCH
 33
-258
+267
 199
-291
+300
 show-events?
 show-events?
 1
@@ -751,9 +745,9 @@ show-events?
 
 TEXTBOX
 40
-294
+303
 190
-322
+331
 Turn off messages to speed things up!
 11
 0.0
@@ -821,10 +815,10 @@ Use this to force model steps even if stop condition is met
 1
 
 BUTTON
-48
-761
-197
-794
+46
+801
+195
+834
 toggle-holdings
 ask holdings [set hidden? not hidden?]
 NIL
@@ -838,34 +832,23 @@ NIL
 1
 
 SWITCH
-28
-805
-196
-838
+29
+846
+197
+879
 show-local-links?
 show-local-links?
-1
+0
 1
 -1000
 
 SWITCH
-28
-842
-196
-875
+29
+883
+197
+916
 show-industry-links?
 show-industry-links?
-1
-1
--1000
-
-SWITCH
-27
-878
-196
-911
-include-networks?
-include-networks?
 1
 1
 -1000
@@ -977,8 +960,7 @@ Circle -16777216 true false 30 30 240
 circle 3
 false
 0
-Circle -7500403 true true 2 2 300
-Circle -16777216 false false 0 0 300
+Circle -7500403 true true 2 2 295
 
 cow
 false

@@ -27,11 +27,10 @@ to initialise-farm
   set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
 end
 
-;; changes farm-type of farm (i.e. SNB -> Dairy or similar)
-;to farm-change-farm-type [ft]
-;  set farm-type ft
-;  set landuse-luc-profile get-landuse-luc-profile the-land
-;end  
+to farm-change-farm-type [ft]
+  set farm-type ft
+  set landuse-luc-profile get-landuse-luc-profile the-land
+end  
 
 ;; this always applies year-on-year variance so no 'with-var?' parameter required
 to update-profit-of-farm
@@ -81,8 +80,9 @@ end
 ;; returns impact by farm-type, effect-type, and intervention-type
 ;; not a farm reporter but most often run by a farm turtle
 to-report get-impact [f-type e-type i-type]
-  report table:get (table:get (table:get mgmt-interventions i-type) e-type) f-type
+  report table:get (table:get (table:get interventions i-type) e-type) f-type
 end
+
 
 ;; The MIT License (MIT)
 ;;

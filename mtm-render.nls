@@ -91,9 +91,9 @@ to setup-colours
   table:put colour-key "farmer" black
   table:put colour-key "farmer-label" black
   table:put colour-key "farm-type"
-    table:from-list zip ["SNB" "Dairy" "Forest" "Crop"] (list (orange - 2) (grey - 1) (green - 2) (violet + 2))
+    table:from-list (map list ["SNB" "Dairy" "Forest" "Crop"] (list (orange - 2) (blue - 1) (green - 2) (violet + 2)))
   table:put colour-key "farm-type-palettes" (
-    table:from-list zip ["SNB" "Dairy" "Forest" "Crop"] ["Oranges" "Greys" "Greens" "Purples"])
+    table:from-list (map list ["SNB" "Dairy" "Forest" "Crop"] ["Oranges" "Blues" "Greens" "Purples"]))
   table:put colour-key "owner-link" [0 0 0 180]
   table:put colour-key "farm-boundary" grey - 3
   table:put colour-key "holding-boundary" grey

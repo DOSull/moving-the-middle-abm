@@ -29,7 +29,6 @@ knitr:
 |:-|:--------|
 | 2024-07-28 | Correction in equation summarising full calculation of profit. Added note to consider the nudge calculation's possible bias favouring changes _after_ bad years.
 | 2024-07-05 | Corrected relative change from a percentage to a proportion.
-| 2024-07-05 | Corrected relative change from a percentage to a proportion.
 | 2024-07-04 | Added detail on calculation of relative change noting that profit can't be handled this way because it is $\pm$ and relative change is meaningless for such variables.
 | 2024-07-03 | Added bar chart of farm income/costs estimates. 
 | 2024-07-02 | Initial post.                       
@@ -42,6 +41,7 @@ library(dplyr)
 library(stringr)
 library(ggplot2)
 library(kableExtra)
+library(here)
 ```
 
 These notes are intended to make it easier to discuss with colleagues if we are approaching the core decision loop in the agent-based model (ABM) for 'Moving the Middle' (MtM) in a coherent and reasonable way.
@@ -81,7 +81,7 @@ The parameter values are stored in a number of CSV files which are read in by th
 $p_F$ and the greenhouse gas tax (i.e. carbon price), $t$, are in the `prices.csv` file:
 
 ```{r}
-prices <- read.csv("data/market/prices.csv", 
+prices <- read.csv(str_glue("{here()}/data/market/prices.csv"), 
                    header = T, row.names = 1) |> 
   slice(1:2) # only rows 1 & 2 relevant
 prices |> 
@@ -93,7 +93,7 @@ prices |>
 Yields by farm type and landuse capability, $q_{FL}$, are in the `commodity-yields.csv` file:
 
 ```{r}
-yields <- read.csv("data/market/commodity-yields.csv", 
+yields <- read.csv(str_glue("{here()}/data/market/commodity-yields.csv"), 
                    header = T, row.names = 1)
 yields |> 
   kable() |> 
@@ -105,7 +105,7 @@ yields |>
 Base costs per ha. by farm type and landuse capability, $x_{FL}$, are in the `input-costs.csv` file:
 
 ```{r}
-costs <- read.csv("data/market/input-costs.csv", 
+costs <- read.csv(str_glue("{here()}/data/market/input-costs.csv"), 
                    header = T, row.names = 1)
 costs |> 
   kable() |> 
@@ -117,7 +117,7 @@ costs |>
 Emissions per ha. by farm type and landuse capability, $e_{FL}$, are in the `ghg-emissions.csv` file:
 
 ```{r}
-emissions <- read.csv("data/market/ghg-emissions.csv", 
+emissions <- read.csv(str_glue("{here()}/data/market/ghg-emissions.csv"), 
                       header = T, row.names = 1)
 emissions |> 
   kable() |> 

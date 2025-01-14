@@ -3,6 +3,7 @@ title: "Notes on the core loop of the ABM"
 author: David O'Sullivan
 date: 2 July 2024
 execute: 
+  eval: false
   cache: true
   freeze: auto
 format:

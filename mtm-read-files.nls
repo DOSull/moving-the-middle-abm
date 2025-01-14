@@ -19,7 +19,7 @@ to setup-farmer-parameters
   read-farmer-thresholds-from-file       word market-data-folder "farmer-threshold-matrix.csv"
   read-intervention-impacts-from-file    word market-data-folder "intervention-impacts.csv"
   read-farm-type-suitabilities-from-file word market-data-folder "suitabilities.csv"
-  read-farm-type-change-costs-from-file  word market-data-folder "conversion-costs.csv"
+  read-farm-type-change-costs-from-file  word market-data-folder "conversion-probabilities.csv"
 end
 
 ;; setup farm types and interventions
@@ -76,7 +76,7 @@ to read-farmer-thresholds-from-file [file]
     while [not file-at-end?] [
       let data csv:from-row file-read-line
       let the-intervention item 0 data
-      let vals table:from-list reorder zip the-farm-types (but-first data) order
+      let vals table:from-list reorder (map list the-farm-types (but-first data)) order
       table:put base-thresholds the-intervention vals
     ]
     file-close
@@ -124,14 +124,14 @@ to read-intervention-impacts-from-file [file]
         let e-type item 0 data
         set e-types lput e-type e-types
         set e-impacts lput table:from-list 
-          reorder zip the-farm-types (but-first map [x -> replace-na x] data) order e-impacts
+          reorder (map list the-farm-types (but-first map [x -> replace-na x] data)) order e-impacts
         set i i + 1
       ]
-      set i-list fput table:from-list zip e-types e-impacts i-list
+      set i-list fput table:from-list (map list e-types e-impacts) i-list
     ]
     file-close
     set order get-order i-types mgmt-intervention-types
-    set mgmt-interventions table:from-list reorder zip i-types i-list order
+    set mgmt-interventions table:from-list reorder (map list i-types i-list) order
   ]
   [
     print "***\n*** ERROR: problem reading the interventions effects file\n***"
@@ -159,7 +159,7 @@ to read-farm-type-suitabilities-from-file [file]
     while [not file-at-end?] [
       ;; read the LUCx_Mean line
       let data but-first csv:from-row file-read-line
-      let suitabilities table:from-list reorder zip the-farm-types data order
+      let suitabilities table:from-list reorder (map list the-farm-types data) order
       table:put farm-type-suitabilities luc suitabilities
       set luc luc + 1
     ]
@@ -191,12 +191,12 @@ to read-farm-type-change-costs-from-file [file]
       let data csv:from-row file-read-line
       let from-type item 0 data
       set row-names lput from-type row-names
-      set rows-data lput table:from-list reorder zip the-farm-types (but-first data) order rows-data
+      set rows-data lput table:from-list reorder (map list the-farm-types (but-first data)) order rows-data
     ]
     file-close
-    set farm-type-change-costs table:make
-    foreach reorder zip row-names rows-data order [ ft-data ->
-      table:put farm-type-change-costs item 0 ft-data item 1 ft-data
+    set farm-type-change-probs table:make
+    foreach reorder (map list row-names rows-data) order [ ft-data ->
+      table:put farm-type-change-probs item 0 ft-data item 1 ft-data
     ]
   ]
   [
@@ -271,11 +271,11 @@ to-report get-parameter-from-file [file]
     while [not file-at-end?] [
       ;; read the LUCx_Mean line
       let means-data but-first csv:from-row file-read-line
-      let means table:from-list reorder zip the-farm-types means-data order
+      let means table:from-list reorder (map list the-farm-types means-data) order
       table:put means-table luc means
       ;; read the LUCx_SD line
       let sds-data but-first csv:from-row file-read-line
-      let sds table:from-list reorder zip the-farm-types sds-data order
+      let sds table:from-list reorder (map list the-farm-types sds-data) order
       table:put sds-table luc sds
       set luc luc + 1
     ]
@@ -310,7 +310,7 @@ to-report get-prices [file]
     let the-farm-types but-first csv:from-row file-read-line
     let order get-order the-farm-types farm-types
     let price-data but-first csv:from-row file-read-line
-    set prices-table table:from-list reorder zip the-farm-types price-data order
+    set prices-table table:from-list reorder (map list the-farm-types price-data) order
     file-close
   ]
   [
@@ -339,7 +339,7 @@ to make-matrix-copies-of-data
   set m-emission-means matrix:from-row-list map [t -> table:values t] table:values ghg-emission-means
   set m-emission-sds   matrix:from-row-list map [t -> table:values t] table:values ghg-emission-sds
   set m-suitabilities  matrix:from-row-list map [t -> table:values t] table:values farm-type-suitabilities
-  set m-change-costs   matrix:from-row-list map [t -> table:values t] table:values farm-type-change-costs
+  set m-change-costs   matrix:from-row-list map [t -> table:values t] table:values farm-type-change-probs
 
   ;; a column matrix with one element per landuse/farm-type
   set m-prices col-matrix table:values prices

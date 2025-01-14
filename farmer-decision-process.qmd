@@ -1,0 +1,63 @@
+---
+title: "Farmer decision making process"
+author: David O'Sullivan
+date: 17 December 2024
+execute: 
+  cache: true
+  freeze: auto
+format:
+  html:
+    toc: false
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+knitr:
+  opts_chunk: 
+    warning: false
+    message: false
+    # echo: false
+    R.options: 
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date       | Changes
+|:-          |:--------
+| 2024-12-17 | Initial post.                       
+
+:::
+
+## Top level farmer decision flowchart
+```{mermaid}
+flowchart TB
+  A((START)) 
+  B{Farm in<br>profit?}
+  C[Change<br>farm<br>type]
+  D{Any<br>loss-making<br>holdings?}
+  E[Consider land use<br>change on one<br>holding]
+  F{Any<br>management<br>interventions<br>to do?}
+  G[Possibly<br>implement an<br>intervention]
+  Z((END))
+  A --> B
+  B -->|N| C 
+  B -->|Y| D
+  D -->|Y| E
+  D -->|N| F
+  F -->|Y| G
+  F -->|N| Z
+  C --> Z
+  E --> Z
+  G --> Z
+  click C href "#change-farm-type" "Go to detailed flowchart"
+  click E href "#consider-land-use-change-on-one-holding" "Go to detailed flowchart"
+  click G href "#possibly-implement-an-intervention" "Go to detailed flowchart"
+```
+
+## Change farm type
+
+## Consider land use change on one holding
+
+## Possibly implement an intervention
+Details of this evaluation provided in [this document](core-loop.qmd).

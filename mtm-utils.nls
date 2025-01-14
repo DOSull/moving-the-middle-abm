@@ -10,7 +10,7 @@
 ;; note that using run and runresult on anonymous procedures is allegedly quicker 
 ;; than on strings, although it is unclear to me if that is actually the case in this
 ;; application. In any case these are used infrequently, mainly in setup and I'm not
-;; going to optimise to soon...
+;; going to optimise too soon...
 
 ;; report result of running anonymous reporter getter on x
 to-report get-var [x getter]
@@ -238,62 +238,6 @@ to-report as-list-of-lists [lst n-sublists]
   report (map [[a b] -> sublist lst a b] butlast breaks butfirst breaks)
 end
 
-;;; reports a list starting at start, ending before finish, in steps of stepsize
-;;; analogous with python's range(start, end, step) function
-;to-report range-from-to-by [start finish stepsize]
-;  let n ceiling ((finish - start) / stepsize)
-;  if (stepsize * (finish - start)) < 0 [
-;    user-message "***WARNING: step in sequence reporter is wrong sign. Returning empty list***"
-;    report []
-;  ]
-;  report n-values n [i -> start + stepsize * i]
-;end
-;
-;;; reports a list from start to before finish in steps of 1 or -1 as appropriate
-;to-report range-from-to [start finish]
-;  ifelse finish > start
-;  [ report range-from-to-by start finish 1 ]
-;  [ report range-from-to-by start finish -1 ]
-;end
-;
-;;; reports a list from 0 to before finish in steps of by
-;to-report range-by [finish by]
-;  report range-from-to-by 0 finish by
-;end
-;
-;;; reports a list repeating the supplied list n times, either 'in-line' or 'each'
-;;; analogous with R's rep(<vector>, n, each) function but with the sense of the flag
-;;; reversed, e.g.
-;;;
-;;; > rep-list [1 2 3] 2 true
-;;; [1 2 3 1 2 3]
-;;; > rep-list [1 2 3] 2 false
-;;; [1 1 2 2 3 3]
-;;;
-;to-report rep-list [lst n inline?]
-;  ifelse inline?
-;  [ report rep-list-inline lst n]
-;  [ report rep-list-each lst n]
-;end
-;
-;;; reports a list repeating each element in the supplied list n times
-;;;
-;;; > rep-list-each [1 2 3] 2
-;;; [1 1 2 2 3 3]
-;;;
-;to-report rep-list-each [lst n]
-;  report reduce [[a b] -> sentence a b ] map [i -> n-values n [j -> i] ] lst
-;end
-;
-;;; reports a list repeating the supplied lst n times end to end (as it were)
-;;; 
-;;; > rep-list-inline [1 2 3] 2
-;;; [1 2 3 1 2 3]
-;;;
-;to-report rep-list-inline [lst n]
-;  report reduce [[a b] -> sentence a b ] map [i -> lst] range n
-;end
-;
 to-report slice-by-ones [lst ones]
   report map [t -> item 0 t] filter [t -> item 1 t = 1] zip lst ones
 end

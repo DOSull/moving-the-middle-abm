@@ -5,9 +5,7 @@ farms-own [
   
   my-farmer               ;; farmer who owns/runs farm
   my-holdings
-  
-  landuse-luc-profile     ;; matrix of counts of LUC - farm-type (i.e. landuse) combinations of the-land
-  landuse-luc-profile-0
+
   current-profit          ;; most recent profit of farm summed across patches
   current-profit-0
   current-income          ;; most recent income of farm summed across patches
@@ -22,16 +20,9 @@ to initialise-farm
   set my-farmer myself
   set shape "circle 3"
   set hidden? false
-  set landuse-luc-profile get-landuse-luc-profile the-land
   set label farm-type
   set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
 end
-
-;; changes farm-type of farm (i.e. SNB -> Dairy or similar)
-;to farm-change-farm-type [ft]
-;  set farm-type ft
-;  set landuse-luc-profile get-landuse-luc-profile the-land
-;end  
 
 ;; this always applies year-on-year variance so no 'with-var?' parameter required
 to update-profit-of-farm

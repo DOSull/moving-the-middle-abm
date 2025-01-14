@@ -20,7 +20,7 @@ extensions [
   nw       ;; networks for cluster/connectivity detection
   rnd      ;; weighted random draws
   profiler ;; in case we need to figure out why things are slow
-  sr
+  ;; sr
 ]
 
 globals [
@@ -43,7 +43,7 @@ globals [
   farm-types              ;; list of named farm types - likely fixed at 4: Crop Dairy Forestry SNB
   ;; TO ADD
   farm-type-suitabilities ;; table of list of suitabilities by LUC for each farm-type
-  farm-type-change-costs  ;; table of costs to convert between farm types
+  farm-type-change-probs  ;; table of costs to convert between farm types
   mgmt-intervention-types ;; list of named management interventions - more likely to change over time
   mgmt-interventions      ;; table of tables of management intervention impacts
   dispositions            ;; list of farmer dispositions
@@ -151,33 +151,29 @@ to go
     cleanup
     stop
   ]
-  [ ;; update farm status
+  [ ;; update farm status - note that succession may lead to change of farm type
     ask farmers [ age-and-succeed-farmer ]
     ask holdings [ update-profit-of-holding ]
     ask farms [ update-profit-of-farm ]
     ask farmers [
       let loss-making-holdings get-loss-making-holdings
       ifelse any? loss-making-holdings [
-;        ifelse count loss-making-holdings = count my-holdings [
-;          let x consider-changes "landuse" true
-;        ]
-;        [
-          let x consider-changes "forestry" true
-;        ]
+        ;; we're making some losses, so consider wholesale change and/or piecemeal change
+        ;; probability of wholesale change is down-weighted by how much of the land is losing money
+        let down-weight sum [count the-land] of loss-making-holdings / count the-land
+        ;; collect the whole farm change options
+        let options consider-farm-type-change [] down-weight "Losing money: " false
+        ;; add in the holdings change to forestry options
+        set options consider-forestry options "Some holdings losing money: " false
+        ;; evaluate and act
+        make-farm-type-changes options
       ]
-      [
+      [ ;; we're doing OK so think about management interventions instead
         if any? my-holdings with [any-interventions-to-do?] [
           ;; this reports a [holding [intervention-type probability]] list
-          let potential-changes consider-interventions false
-          foreach potential-changes [ potential-change ->
-            let the-holding        item 0 potential-change
-            let i-type      item 0 item 1 potential-change
-            let prob        item 1 item 1 potential-change
-            if random-float 1 < prob [
-              if show-events? [ print (word "Farmer " who " implementing " i-type " on " the-holding) ]
-              ask the-holding [ implement-intervention i-type ]
-            ]
-          ]
+          let potential-changes consider-management-changes "Management change: " false
+          ;; which we pass to make-management-changes
+          make-management-changes potential-changes
         ]
       ]
     ]
@@ -186,6 +182,7 @@ to go
     tick
   ]
 end
+
 
 ;; any model stop condition goes here
 to-report stop-model?
@@ -227,8 +224,6 @@ to store-initial-values
     set current-profit-0 current-profit
     set current-income-0 current-income
     set current-costs-0 current-costs
-    ;; important to COPY here to get a new matrix, not a reference to the old one
-    set landuse-luc-profile-0 matrix:copy landuse-luc-profile
   ]
   ask farmers [ set farm-type-0 farm-type ]
 end
@@ -250,8 +245,6 @@ to restore-initial-values
     set current-profit current-profit-0
     set current-income current-income-0
     set current-costs current-costs-0
-    ;; important to COPY here to get a new matrix, not a reference to the old one
-    set landuse-luc-profile matrix:copy landuse-luc-profile-0
   ]
   ask farmers [ set landuse landuse-0 ]
   redraw-farms-and-holdings
@@ -349,7 +342,7 @@ SWITCH
 712
 seed-setup-rng?
 seed-setup-rng?
-1
+0
 1
 -1000
 
@@ -401,7 +394,7 @@ luc-aggregation-steps
 luc-aggregation-steps
 0
 250
-125.0
+90.0
 5
 1
 NIL
@@ -622,7 +615,7 @@ TEXTBOX
 363
 187
 447
-Colour key (applies to both landuse and farm symbols)\n  SNB - Brown\n  Dairy - Grey\n  Forestry - Blue-Green \n  Crop - Yellow-Green
+Colour key (applies to both landuse and farm symbols)\n  SNB - Brown\n  Dairy - Blue\n  Forestry - Green \n  Crop -Purple
 11
 0.0
 1
@@ -653,7 +646,7 @@ INPUTBOX
 949
 645
 rng-geography
-0.0
+2.0
 1
 0
 Number
@@ -665,7 +658,7 @@ SWITCH
 576
 seed-geography-rng?
 seed-geography-rng?
-1
+0
 1
 -1000
 
@@ -695,7 +688,7 @@ run-rng-seed
 run-rng-seed
 0
 100
-0.0
+1.0
 1
 1
 NIL
@@ -977,8 +970,8 @@ Circle -16777216 true false 30 30 240
 circle 3
 false
 0
-Circle -7500403 true true 2 2 300
-Circle -16777216 false false 0 0 300
+Circle -7500403 true true 0 1 300
+Circle -1 false false 0 0 300
 
 cow
 false
@@ -1141,7 +1134,7 @@ square 3
 false
 0
 Rectangle -7500403 true true 0 0 300 300
-Rectangle -16777216 false false 0 0 300 300
+Rectangle -1 false false 0 0 300 300
 
 star
 false

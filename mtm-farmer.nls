@@ -49,21 +49,30 @@ to make-farmer-industry-links
 end
 
 to age-and-succeed-farmer
+  let new-farmer nobody
   set age age + 1
   if random 80 < age [
     hatch-farmers 1 [
       set disposition one-of dispositions
-      let x consider-changes "landuse" false
-      set-farmer-age
-      if include-networks? [
-        make-farmer-local-links
-        make-farmer-industry-links
-      ]
+      ;; successor farmer must replace dying farmer wrt farm and holdings
       ask my-farm [set my-farmer myself]
       ask my-holdings [set my-farmer myself]
+      set-farmer-age
     ]
     die
+    ask new-farmer [
+      let options consider-farm-type-change [] 1 "Succession: " false
+      if length options > 0 [ make-farm-type-changes options ]
+    ]
   ]
+end
+
+to-report majority-farm-type
+  let counts map [t -> count my-holdings with [farm-type = t]] farm-types
+  let max-count max counts
+  let max-indices filter [i -> item i counts = max-count] n-values length farm-types [i -> i]
+  let max-types map [i -> item i farm-types] max-indices
+  report one-of max-types
 end
 
 to-report get-loss-making-holdings
@@ -74,13 +83,6 @@ to-report all-holdings-loss-making?
   report count get-loss-making-holdings = count my-holdings
 end
 
-;to farmer-change-farm-type [ft]
-;  set farm-type ft
-;  ask the-land [ set landuse ft ]
-;  ask my-farm [ farm-change-farm-type ft ]
-;  ask my-holdings [ holding-change-farm-type ft ]
-;end
-
 ;; returns threshold for the supplied intervention
 ;; this or a wrapper for this could include farmer demography 'shifts'
 ;; or social/geographic network shifts
@@ -90,24 +92,90 @@ to-report get-adoption-probability [i-type]
   ) farm-type
 end
 
-to-report consider-changes [type-of-change show-messages?] 
-  if type-of-change = "management" [
-    report consider-interventions show-messages?
+;; adds additional options to the provided list
+;; the list items are
+;;
+;;   [[holdings-to-change-set "all-of-farm"|"one-holding" from-farm-type to-farm-type] relative-probability]
+;;
+to-report consider-farm-type-change [options down-weighting prefix show-messages?]
+  if show-messages? [
+    show (word prefix "Considering changing landuse because holdings profits are " 
+               [precision (current-profit / count the-land) 1] of get-loss-making-holdings)
   ]
-  if type-of-change = "forestry" [
-    report consider-forestry show-messages?
-  ]
-  if type-of-change = "landuse" [
-    report consider-landuse-change show-messages?
-  ]
-  report nobody
+  let ft farm-type
+  let new-options filter [t -> t != "Forest" and t != ft] farm-types
+  if length new-options = 0 [ report options ]
+  let worst-luc max map [p -> max [luc-code] of p] ([the-land] of (my-holdings with [farm-type = ft]))
+  set new-options filter [t -> table:get table:get farm-type-suitabilities worst-luc t = 1] new-options
+  let affected-holdings my-holdings with [farm-type = ft]
+  if length new-options = 0 [ report options ]
+  set new-options map [t -> (list (list affected-holdings "all-of-farm" ft t) 
+                                  (down-weighting * table:get table:get farm-type-change-probs ft t))] new-options
+  report (sentence options new-options)
 end
 
+;; adds additional options to the provided list
+;; the list items are
+;;
+;;   [[holdings-to-change-set "all-of-farm"|"one-holding" from-farm-type to-farm-type] relative-probability]
+;;
+to-report consider-forestry [options prefix show-messages?]
+  if show-messages? [
+    show (word prefix "Considering forestry on holdings with profits " 
+               [precision (current-profit / count the-land) 1] of get-loss-making-holdings)
+  ]
+  let new-options []
+  ask my-holdings with [current-profit < 0] [
+    let luc-boost mean [luc-code] of the-land / 8
+    set new-options lput (list (list (turtle-set self) "one-holding" farm-type "Forest") 
+                               (luc-boost * table:get table:get farm-type-change-probs farm-type "Forest")) new-options
+  ]
+  report (sentence options new-options)
+end
 
-;; loop through the available interventions scoring their probabilities
-;; then select one in a random draw weighted by those probabilities
-to-report consider-interventions [show-messages?]
-  let choices []
+to make-farm-type-changes [possible-changes] 
+  let changes-to-make rnd:weighted-one-of-list possible-changes [ [p] -> last p ]
+  if random-float 1 < last changes-to-make [
+    change-holdings-farm-types item 0 changes-to-make
+  ]
+  set farm-type majority-farm-type
+  ask my-farm [ set farm-type [ farm-type ] of myself ]
+end
+
+to change-holdings-farm-types [change-list]
+  let holdings-to-change item 0 change-list
+  let change-type item 1 change-list
+  let current-farm-type item 2 change-list
+  let new-farm-type item 3 change-list
+  ask holdings-to-change [
+    holding-change-farm-type new-farm-type
+  ]
+  if change-type = "all-of-farm" [
+    set farm-type new-farm-type
+    ask my-farm [ set farm-type new-farm-type ]
+  ]
+end
+
+to change-holdings-types [change-list]
+  let holdings-to-change item 0 change-list
+  let current-farm-type item 2 change-list
+  let new-farm-type item 3 change-list
+  ask holdings-to-change [
+    holding-change-farm-type new-farm-type
+  ]
+end
+
+;; loop through holdings with interventions remaining to be done
+;; calculate associated probability of adoption for all interventions remaining on each holding
+;; pick one by weighted probability and add it to the options output
+;; the list returned to the calling context will be
+;; [
+;;   [ holding1 [ intervention probability ] ]
+;;   [ holding2 [ intervention probability ] ]
+;;     ...
+;; ]
+to-report consider-management-changes [prefix show-messages?]
+  let options []
   ask my-holdings with [any-interventions-to-do?] [
     let ft farm-type
     ;; list the interevention types that are to be considered
@@ -127,32 +195,24 @@ to-report consider-interventions [show-messages?]
     ]
     ;; put results in a list of tuples [[<INTERVENTION> <PROBABILITY>]], select one
     ;; by weighted random draw and return it to the calling context
-    let changes zip to-consider new-probs
-    set choices lput (list self rnd:weighted-one-of-list changes [ [p] -> last p ]) choices
+    let management-changes (map list to-consider new-probs)
+    set options lput (list self rnd:weighted-one-of-list management-changes [ [p] -> last p ]) options
   ]
-  report choices
+  report options
 end
 
-to-report consider-forestry [show-messages?]
-  if show-messages? [
-    print (word "Placeholder message: farmer " who 
-                " considering forestry on holdings with profits " 
-                [precision (current-profit / count the-land) 1] of get-loss-making-holdings)
+;; probabilistically make changes in the supplied [holding [intervention prob]]
+;; list. All are considered but only applied on passing the associated probability test
+to make-management-changes [possible-changes] 
+  foreach possible-changes [ change ->
+    let the-holding        item 0 change
+    let i-type      item 0 item 1 change
+    let prob        item 1 item 1 change
+    if random-float 1 < prob [
+      if show-events? [ show (word "Implementing " i-type " on " the-holding) ]
+      ask the-holding [ implement-intervention i-type ]
+    ]
   ]
-  ask min-one-of get-loss-making-holdings [current-profit / count the-land] [
-    holding-change-farm-type "Forest"
-    
-  ]
-  report nobody
-end
-
-to-report consider-landuse-change [show-messages?]
-  if show-messages? [
-    print (word "Placeholder message: farmer " who 
-                " considering changing landuse because holdings profits are " 
-                [precision (current-profit / count the-land) 1] of get-loss-making-holdings)
-  ]
-  report nobody
 end
 
 

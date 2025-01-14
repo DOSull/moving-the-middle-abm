@@ -7,7 +7,9 @@ farmers-own [
   my-holdings
   
   disposition
+  disposition-0
   age
+  age-0
 ]
 
 ;; farmer 'constructor'
@@ -49,22 +51,29 @@ to make-farmer-industry-links
 end
 
 to age-and-succeed-farmer
+  ;; don't actually need to create a new farmer, just have to change age and
+  ;; consider some other changes
   let new-farmer nobody
   set age age + 1
-  if random 80 < age [
-    hatch-farmers 1 [
-      set disposition one-of dispositions
-      ;; successor farmer must replace dying farmer wrt farm and holdings
-      ask my-farm [set my-farmer myself]
-      ask my-holdings [set my-farmer myself]
-      set-farmer-age
-    ]
-    die
-    ask new-farmer [
-      let options consider-farm-type-change [] 1 "Succession: " false
-      if length options > 0 [ make-farm-type-changes options ]
-    ]
+  if (20 + random 60) < age [
+    set disposition one-of dispositions
+    set-farmer-age
+    let options consider-farm-type-change [] 1 "Succession: " false
+    if length options > 0 [ make-farm-type-changes options ]
   ]
+;    hatch-farmers 1 [
+;      set disposition one-of dispositions
+;      ;; successor farmer must replace dying farmer wrt farm and holdings
+;      ask my-farm [set my-farmer myself]
+;      ask my-holdings [set my-farmer myself]
+;      set-farmer-age
+;    ]
+;    die
+;    ask new-farmer [
+;      let options consider-farm-type-change [] 1 "Succession: " false
+;      if length options > 0 [ make-farm-type-changes options ]
+;    ]
+;  ]
 end
 
 to-report majority-farm-type

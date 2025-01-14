@@ -225,7 +225,11 @@ to store-initial-values
     set current-income-0 current-income
     set current-costs-0 current-costs
   ]
-  ask farmers [ set farm-type-0 farm-type ]
+  ask farmers [
+    set farm-type-0 farm-type
+    set disposition-0 disposition
+    set age-0 age
+  ]
 end
 
 to restore-initial-values
@@ -246,7 +250,11 @@ to restore-initial-values
     set current-income current-income-0
     set current-costs current-costs-0
   ]
-  ask farmers [ set landuse landuse-0 ]
+  ask farmers [
+    set farm-type farm-type-0
+    set disposition disposition-0
+    set age age-0
+  ]
   redraw-farms-and-holdings
   reset-ticks
   tick
@@ -342,7 +350,7 @@ SWITCH
 712
 seed-setup-rng?
 seed-setup-rng?
-0
+1
 1
 -1000
 
@@ -658,7 +666,7 @@ SWITCH
 576
 seed-geography-rng?
 seed-geography-rng?
-0
+1
 1
 -1000
 
@@ -688,7 +696,7 @@ run-rng-seed
 run-rng-seed
 0
 100
-1.0
+0.0
 1
 1
 NIL

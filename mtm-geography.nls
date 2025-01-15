@@ -140,7 +140,6 @@ to setup-random-geography
   print word "Setting inhibition distance for farm centres to " precision inhibition-distance 3
   create-nodes number-of-farms [ 
     ;; to avoid teeny tiny farms use sequential-spatial inhibition
-    ;; first check that the set distance is reasonable
     while [any? other nodes in-radius inhibition-distance] [
       setxy random-xcor random-ycor 
     ]
@@ -168,7 +167,7 @@ to setup-random-luc-codes
   ]
   [ ;; voter model method - this may yield wildly uneven distributions!
     ask patches [ set luc-code 1 + random 8 ]
-    repeat luc-aggregation-steps [
+    repeat luc-aggregation-steps * 3 [
       ask patches [ set luc-code [luc-code] of one-of neighbors4 ]
     ]
   ]
@@ -183,9 +182,9 @@ to setup-farmers
     let this-farmer nobody
     ask approximate-centroid pset [
       sprout-farmers 1 [
-        initialise-farmer
         set the-land pset
         set this-farmer self
+        initialise-farmer
       ]
       ask pset [
         set the-owner this-farmer

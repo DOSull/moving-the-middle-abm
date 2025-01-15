@@ -87,9 +87,9 @@ globals [
 
 undirected-link-breed [industry-links industry-link]
 undirected-link-breed [local-links local-link]
-breed [farmers farmer]    ;; one farmer per farm
-breed [farms farm]        ;; turtle where most of the action happens
 breed [holdings holding]
+breed [farms farm]        ;; turtle where most of the action happens
+breed [farmers farmer]    ;; one farmer per farm
 breed [nodes node]        ;; a utility turtle type mostly used for cluster detection using nw extension
 
 patches-own [
@@ -156,29 +156,41 @@ to go
     ask holdings [ update-profit-of-holding ]
     ask farms [ update-profit-of-farm ]
     ask farmers [
+      let ft-now farm-type
       let loss-making-holdings get-loss-making-holdings
       ifelse any? loss-making-holdings [
-        ;; we're making some losses, so consider wholesale change and/or piecemeal change
-        ;; probability of wholesale change is down-weighted by how much of the land is losing money
-        let down-weight sum [count the-land] of loss-making-holdings / count the-land
-        ;; collect the whole farm change options
-        let options consider-farm-type-change [] down-weight "Losing money: " false
-        ;; add in the holdings change to forestry options
-        set options consider-forestry options "Some holdings losing money: " false
+        let farm-conversion-options []
+        if [current-profit < 0 and mean losses-record > bad-years-trigger] of my-farm [
+          ;; we're losing lots of money so consider changing direction completely
+          let down-weight ifelse-value apply-severity-of-losses?
+            [ sum [count the-land] of loss-making-holdings / count the-land ] [ 1 ]
+          set farm-conversion-options consider-farm-type-change down-weight "Losing money: " false
+        ]
+        ;; only some holdings are losing money so consider forestry on those
+        let forestry-set-aside-options consider-forestry "Some holdings losing money: " false
         ;; evaluate and act
-        make-farm-type-changes options
+        ifelse consider-all-landuse-change-options? [
+          make-farm-type-changes (sentence farm-conversion-options forestry-set-aside-options)
+        ]
+        [
+          ifelse length farm-conversion-options > 0
+          [ make-farm-type-changes farm-conversion-options ]
+          [ make-farm-type-changes forestry-set-aside-options ]
+        ]
       ]
       [ ;; we're doing OK so think about management interventions instead
         if any? my-holdings with [any-interventions-to-do?] [
           ;; this reports a [holding [intervention-type probability]] list
           let potential-changes consider-management-changes "Management change: " false
           ;; which we pass to make-management-changes
-          make-management-changes potential-changes
+          if length potential-changes > 0 [ make-management-changes potential-changes ]
         ]
       ]
+      set color ifelse-value farm-type = ft-now [ black ] [ red ]
     ]
     ask farms [redraw-farm]
     ask holdings [redraw-holding]
+    print (word "------------------------- tick " ticks " -------------------------")
     tick
   ]
 end
@@ -224,6 +236,7 @@ to store-initial-values
     set current-profit-0 current-profit
     set current-income-0 current-income
     set current-costs-0 current-costs
+    set losses-record-0 losses-record
   ]
   ask farmers [
     set farm-type-0 farm-type
@@ -249,6 +262,7 @@ to restore-initial-values
     set current-profit current-profit-0
     set current-income current-income-0
     set current-costs current-costs-0
+    set losses-record losses-record-0
   ]
   ask farmers [
     set farm-type farm-type-0
@@ -350,7 +364,7 @@ SWITCH
 712
 seed-setup-rng?
 seed-setup-rng?
-1
+0
 1
 -1000
 
@@ -666,7 +680,7 @@ SWITCH
 576
 seed-geography-rng?
 seed-geography-rng?
-1
+0
 1
 -1000
 
@@ -696,7 +710,7 @@ run-rng-seed
 run-rng-seed
 0
 100
-0.0
+1.0
 1
 1
 NIL
@@ -708,7 +722,7 @@ TEXTBOX
 1122
 827
 Set to any value in experiments, but only small range provided for interactive use
-11
+10
 0.0
 1
 
@@ -867,6 +881,151 @@ SWITCH
 911
 include-networks?
 include-networks?
+1
+1
+-1000
+
+PLOT
+1163
+412
+1471
+693
+Holding types
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"snb" 1.0 0 -955883 true "" "plot count holdings with [farm-type = \"SNB\"]"
+"dairy" 1.0 0 -13791810 true "" "plot count holdings with [farm-type = \"Dairy\"]"
+"forest" 1.0 0 -13840069 true "" "plot count holdings with [farm-type = \"Forest\"]"
+"crop" 1.0 0 -8630108 true "" "plot count holdings with [farm-type = \"Crop\"]"
+
+SWITCH
+1148
+157
+1359
+190
+apply-severity-of-losses?
+apply-severity-of-losses?
+1
+1
+-1000
+
+SLIDER
+1163
+315
+1335
+348
+bad-years-trigger
+bad-years-trigger
+0
+1
+0.0
+0.001
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1161
+356
+1337
+389
+years-to-remember
+years-to-remember
+0
+25
+10.0
+1
+1
+NIL
+HORIZONTAL
+
+SWITCH
+1148
+198
+1359
+231
+apply-suitability?
+apply-suitability?
+1
+1
+-1000
+
+SWITCH
+1149
+237
+1360
+270
+apply-luc-to-forest-decision?
+apply-luc-to-forest-decision?
+1
+1
+-1000
+
+TEXTBOX
+1367
+152
+1517
+191
+On = More severe losses make farm conversion more likely
+10
+0.0
+1
+
+TEXTBOX
+1367
+203
+1517
+229
+On = LUC suitability is applied to farm type conversion
+10
+0.0
+1
+
+TEXTBOX
+1367
+241
+1517
+267
+On = Forest conversion more likely on lower quality land
+10
+0.0
+1
+
+TEXTBOX
+1344
+366
+1494
+384
+Length of memory of losses
+10
+0.0
+1
+
+TEXTBOX
+1343
+309
+1514
+349
+Proportion of years of remembered losses to trigger considering conversion 
+10
+0.0
+1
+
+SWITCH
+1141
+80
+1440
+113
+consider-all-landuse-change-options?
+consider-all-landuse-change-options?
 1
 1
 -1000

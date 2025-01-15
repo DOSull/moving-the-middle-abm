@@ -14,11 +14,11 @@ farmers-own [
 
 ;; farmer 'constructor'
 to initialise-farmer
-  set size 2
+  set size 4
   set color table:get colour-key "farmer"
   set shape "person"
-  set hidden? true
-  set farm-type one-of farm-types
+  ;; set hidden? true
+  set farm-type one-of farm-types ;; this is temporary
   set disposition one-of dispositions
   set-farmer-age 
 end
@@ -58,8 +58,12 @@ to age-and-succeed-farmer
   if (20 + random 60) < age [
     set disposition one-of dispositions
     set-farmer-age
-    let options consider-farm-type-change [] 1 "Succession: " false
-    if length options > 0 [ make-farm-type-changes options ]
+    let ft-now farm-type
+    if any? my-holdings with [current-profit < 0] [
+      let options consider-farm-type-change 1 "Succession: " false
+      if length options > 0 [ make-farm-type-changes options ]
+    ]
+    set color ifelse-value farm-type = ft-now [ black ] [ yellow ]
   ]
 ;    hatch-farmers 1 [
 ;      set disposition one-of dispositions
@@ -106,21 +110,21 @@ end
 ;;
 ;;   [[holdings-to-change-set "all-of-farm"|"one-holding" from-farm-type to-farm-type] relative-probability]
 ;;
-to-report consider-farm-type-change [options down-weighting prefix show-messages?]
+to-report consider-farm-type-change [down-weighting prefix show-messages?]
   if show-messages? [
     show (word prefix "Considering changing landuse because holdings profits are " 
                [precision (current-profit / count the-land) 1] of get-loss-making-holdings)
   ]
   let ft farm-type
-  let new-options filter [t -> t != "Forest" and t != ft] farm-types
-  if length new-options = 0 [ report options ]
-  let worst-luc max map [p -> max [luc-code] of p] ([the-land] of (my-holdings with [farm-type = ft]))
-  set new-options filter [t -> table:get table:get farm-type-suitabilities worst-luc t = 1] new-options
+  let options filter [new-ft -> new-ft != ft and ft != "Forest"] farm-types
+  if apply-suitability? [
+    let luc-constraint max [luc-code] of (the-land with [landuse = ft])
+    set options filter [t -> table:get table:get farm-type-suitabilities luc-constraint t = 1] options
+  ]
   let affected-holdings my-holdings with [farm-type = ft]
-  if length new-options = 0 [ report options ]
-  set new-options map [t -> (list (list affected-holdings "all-of-farm" ft t) 
-                                  (down-weighting * table:get table:get farm-type-change-probs ft t))] new-options
-  report (sentence options new-options)
+  set options map [t -> (list (list affected-holdings "all-of-farm" ft t) 
+                              (down-weighting * table:get table:get farm-type-change-probs ft t))] options
+  report options
 end
 
 ;; adds additional options to the provided list
@@ -128,21 +132,22 @@ end
 ;;
 ;;   [[holdings-to-change-set "all-of-farm"|"one-holding" from-farm-type to-farm-type] relative-probability]
 ;;
-to-report consider-forestry [options prefix show-messages?]
+to-report consider-forestry [prefix show-messages?]
   if show-messages? [
     show (word prefix "Considering forestry on holdings with profits " 
                [precision (current-profit / count the-land) 1] of get-loss-making-holdings)
   ]
-  let new-options []
+  let options []
   ask my-holdings with [current-profit < 0] [
-    let luc-boost mean [luc-code] of the-land / 8
-    set new-options lput (list (list (turtle-set self) "one-holding" farm-type "Forest") 
-                               (luc-boost * table:get table:get farm-type-change-probs farm-type "Forest")) new-options
+    let luc-boost ifelse-value apply-luc-to-forest-decision? [ mean [luc-code] of the-land / 8 ] [ 1 ]
+    set options lput (list (list (turtle-set self) "one-holding" farm-type "Forest") 
+                           (luc-boost * table:get table:get farm-type-change-probs farm-type "Forest")) options
   ]
-  report (sentence options new-options)
+  report options
 end
 
 to make-farm-type-changes [possible-changes] 
+  ;; show map [pc -> sentence first pc precision last pc 4] possible-changes
   let changes-to-make rnd:weighted-one-of-list possible-changes [ [p] -> last p ]
   if random-float 1 < last changes-to-make [
     change-holdings-farm-types item 0 changes-to-make

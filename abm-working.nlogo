@@ -1,14 +1,14 @@
 __includes [
-  "mtm-read-files.nls"
-  "mtm-geography.nls"
-  "mtm-utils.nls"
-  "mtm-profile.nls"
-  "mtm-render.nls"
-  "mtm-farmer.nls"
-  "mtm-farm.nls"
-  "mtm-holding.nls"
-  "distribution-utils.nls"
-  "list-utils.nls"
+  "mtm-read-files.nls"     ;; reads the data files pertaining to markets, policy settings etc
+  "mtm-geography.nls"      ;; reads geospatial data or initialises a random landscape
+  "mtm-utils.nls"          ;; a range of useful maths, list, string, matrix etc. utilities
+  "mtm-render.nls"         ;; code to draw the map
+  "mtm-farmer.nls"         ;; code for farmer turtles
+  "mtm-farm.nls"           ;; code for farm turtles
+  "mtm-holding.nls"        ;; code for holding turtles
+  "distribution-utils.nls" ;; generic statistical function
+  "list-utils.nls"         ;; generic list utilities
+  "mtm-profile.nls"        ;; profiling stuff goes here
 ]
 
 extensions [
@@ -28,11 +28,11 @@ globals [
   output-data-folder
   market-data-folder
   spatial-data-folder
-  show-labels?
+  show-labels?            ;; generally don't want to see labels on turtles
 
   epsilon                 ;; for convenience - constant for 'smallest number'
   na-value                ;; matrices can only store numbers, unlike tables, so we need a sentinel
-                          ;; NA value. In time-honoured GIS tradition it will get set to -999
+                          ;; NA value. In time-honoured GIS tradition it will be set to -999
 
   parcels-data            ;; GIS functionality depends on reading the data into an object
   luc-data                ;; then acccessing it again later, so these do that for parcels and LUC
@@ -41,9 +41,9 @@ globals [
   not-farm-land           ;; and patches that are not - esp. important for GIS data
 
   farm-types              ;; list of named farm types - likely fixed at 4: Crop Dairy Forestry SNB
-  ;; TO ADD
+
   farm-type-suitabilities ;; table of list of suitabilities by LUC for each farm-type
-  farm-type-change-probs  ;; table of costs to convert between farm types
+  farm-type-change-probs  ;; table of probability of conversion between farm types
   mgmt-intervention-types ;; list of named management interventions - more likely to change over time
   mgmt-interventions      ;; table of tables of management intervention impacts
   dispositions            ;; list of farmer dispositions
@@ -55,16 +55,15 @@ globals [
   input-cost-sds          ;; table of sd of input costs by LUC and farm-type
   ghg-emission-means      ;; table of mean GHG emissions by LUC and farm-type
   ghg-emission-sds        ;; table of sd of GHG emissions by LUC and farm-type
-  prices                  ;; table of commodity prices
+  prices                  ;; table of commodity prices (per ha)
   base-thresholds         ;; table of default farmer decision thresholds for various interventions
 
   ;; ... matrix equivalents of the above tables, which have priority in running the model
   ;; it may, in time make sense to drop the tables entirely, although they are more self-documenting
-  ;; than the matrices where there is no information in the row-column ordering about what each
-  ;; refers to
+  ;; than the matrices which have no information about what each row-col refers to
 
-  ;; First 6 matrices have rows-cols entries for LUC - farm-type respectively
-  ;; rows order LUC1 to LUC8, cols ordered alphabetically by farm-type (per the list farm-types)
+  ;; First 6 matrices have rows - cols entries for LUC - farm-type respectively
+  ;; rows order LUC1 to LUC8, cols ordered alphabetically by farm-type
   m-yield-means
   m-yield-sds
   m-cost-means
@@ -72,8 +71,8 @@ globals [
   m-emission-means
   m-emission-sds
   m-suitabilities
-  m-change-costs
-  ;; a column matrix ordered by farm-types list
+  m-change-probs
+  ;; a column matrix of product prices (per ha) ordered by farm-types list
   m-prices
   ;; rows-cols entries for intervention-type - farm-type respectively
   ;; ordered by intervention-types and farm-types lists
@@ -81,14 +80,16 @@ globals [
   m-mgmt-intervention-yield-impacts
   m-mgmt-intervention-emissions-impacts
 
-  ;; colour settings - these can be changed in one place, see setup-key-colours procedure
+  ;; colour settings - these can be changed in one place, see mtm-render::setup-key-colours procedure
   colour-key              ;; table of colour settings
 ]
 
 undirected-link-breed [industry-links industry-link]
 undirected-link-breed [local-links local-link]
-breed [holdings holding]
-breed [farms farm]        ;; turtle where most of the action happens
+
+breed [holdings holding]  ;; where the action happens (profit calculated, landuse changed, interventions applied)
+                          ;; a farm consists of one or more holdings
+breed [farms farm]        ;; convenient aggregator of holdings information
 breed [farmers farmer]    ;; one farmer per farm
 breed [nodes node]        ;; a utility turtle type mostly used for cluster detection using nw extension
 
@@ -105,9 +106,9 @@ patches-own [
 ]
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; MAIN LOOP i.e., setup and go
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 to setup
   ;; Setup order is very sensitive to a number of interdependencies among the various
   ;; elements. So be VERY CAREFUL IF CHANGING THE SEQUENCE OF OPERATIONS in this procedure
@@ -122,13 +123,13 @@ to setup
   set market-data-folder word base-data-folder "market/"                ;; 'data/market/'
   set spatial-data-folder (word base-data-folder "spatial/" region "/") ;; 'data/spatial/REGION-NAME/'
 
-  ;; this really has to come first (and note that it will read the GIS data if in that mode
+  ;; this MUST come first (and note that it will read the GIS data if in that mode
   setup-world-dimensions
 
   setup-farmer-parameters
   set dispositions [ "for-profit" "pro-social" "pro-environmental" ]
 
-  setup-colours ;; must come after reading farmer parameters since it depends on farm types
+  setup-colours ;; must come AFTER reading farmer parameters since it depends on farm types
   ask patches [ set pcolor table:get colour-key "background" ]
 
   setup-geography
@@ -151,7 +152,9 @@ to go
     cleanup
     stop
   ]
-  [ ;; update farm status - note that succession may lead to change of farm type
+  [
+    print (word "------------------------------ tick " ticks " ------------------------------")
+    ;; update farm status - note that succession may also lead to change of farm type
     ask farmers [ age-and-succeed-farmer ]
     ask holdings [ update-profit-of-holding ]
     ask farms [ update-profit-of-farm ]
@@ -190,13 +193,11 @@ to go
     ]
     ask farms [redraw-farm]
     ask holdings [redraw-holding]
-    print (word "------------------------- tick " ticks " -------------------------")
     tick
   ]
 end
 
-
-;; any model stop condition goes here
+;; any desired model stop condition goes here
 to-report stop-model?
   ifelse any? holdings with [any-interventions-to-do?] [
     report false
@@ -213,11 +214,14 @@ to cleanup
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; reset code
 ;; these procedures store the initial state
 ;; of the model to allow quick reset
-;; -----------------------------------------
+;;
+;; DON'T FORGET UPDATE IF NEW VARIABLES ARE
+;; ADDED!
+;; ----------------------------------------------------------------------------
 
 to store-initial-values
   ask farm-land [ set landuse-0 landuse ]
@@ -277,7 +281,7 @@ end
 
 ;; The MIT License (MIT)
 ;;
-;; Copyright (c) 2023-24 David O'Sullivan
+;; Copyright (c) 2023-25 David O'Sullivan
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation
@@ -505,10 +509,10 @@ NIL
 1
 
 CHOOSER
-850
-305
-988
-350
+849
+306
+987
+351
 region
 region
 "Rangitaiki"
@@ -613,10 +617,10 @@ Bigger numbers amplify the impact of nudges (in both directions)
 1
 
 TEXTBOX
-854
-354
-1004
-382
+853
+355
+1003
+383
 You'll need the named regional spatial subfolder
 11
 0.0
@@ -886,10 +890,10 @@ include-networks?
 -1000
 
 PLOT
-1163
-412
-1471
-693
+1142
+411
+1497
+721
 Holding types
 NIL
 NIL

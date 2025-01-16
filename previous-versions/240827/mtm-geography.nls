@@ -1,8 +1,8 @@
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; landscape setup
 ;; NOTE: this includes the farmers not just
 ;;       LUC codes
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; this works OK, but might not be sensible to do... still considered EXPERIMENTAL!
 ;; note that set-world-size kills all turtles so this must
@@ -283,9 +283,9 @@ to assign-farms-to-farmers
   ]
 end
 
-;; ---------------------------------------
+;; ------------------------------------------------------------------------
 ;; labelling of connected sets of patches
-;; ---------------------------------------
+;; ------------------------------------------------------------------------
 
 ;; This can also be done by iterated assembly of neighbouring patches starting at some
 ;; root - however, the nw extension's weak clusters method provides a quicker and more
@@ -364,7 +364,7 @@ end
 
 ;; The MIT License (MIT)
 ;;
-;; Copyright (c) 2023-24 David O'Sullivan
+;; Copyright (c) 2023-25 David O'Sullivan
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation

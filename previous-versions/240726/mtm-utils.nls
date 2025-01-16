@@ -1,10 +1,10 @@
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; utilility functions
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; math stuff
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 to-report rescale [x min-x max-x new-min-x new-max-x]
   report new-min-x + (new-max-x - new-min-x) * (x - min-x) / (max-x - min-x)
 end
@@ -34,9 +34,9 @@ to-report is-nan? [x]
   report not (x <= 0 or x >= 0)
 end
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; logic stuff
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 to-report all-true? [lst]
   report is-boolean? position false lst
 end
@@ -45,9 +45,9 @@ to-report any-true? [lst]
   report not is-boolean? position true lst
 end
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; matrix to lists and back stuff
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 to print-matrix [m]
   print matrix:pretty-print-text m
 end
@@ -101,9 +101,9 @@ to-report matrix-from-list [lst nr nc byrow?]
   [ report matrix:from-column-list as-list-of-lists lst nc ]
 end
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; list stuff
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 to-report get-order [lst sorted-lst]
   report map [a -> position a sorted-lst] lst
 end
@@ -169,9 +169,9 @@ to-report slice-by-ones [lst ones]
   report map [t -> item 0 t] filter [t -> item 1 t = 1] zip lst ones
 end
 
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 ;; string stuff
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 ;; reports string into a list of characters
 to-report string-as-list [str]
   report n-values length str [i -> item i str]
@@ -201,9 +201,9 @@ to-report split-string [str sep]
 end
 
 
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 ;; drawing utilities (see netlogo-utils repo)
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 
 to draw-borders [col]
   with-local-randomness [
@@ -251,7 +251,7 @@ end
 
 ;; The MIT License (MIT)
 ;;
-;; Copyright (c) 2023-24 David O'Sullivan
+;; Copyright (c) 2023-25 David O'Sullivan
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation

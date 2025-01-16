@@ -1,8 +1,8 @@
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; farmer (behavioural) parameter setup
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
-;; we read the interventions by farm types file twice...
+;; we read the interventions by farm types file thrice...
 to setup-farmer-parameters
   ;; Assumes a CSV organised with farm types as column headings,
   ;; interventions as row names, i.e, (spaces added for clarity)
@@ -140,15 +140,17 @@ to read-intervention-impacts-from-file [file]
 end
 
 to read-farm-type-suitabilities-from-file [file]
-  ;;    , SNB, Dairy, Forest, Crop
-  ;;LUC1,   1,     1,      1,    1
-  ;;LUC2,   1,     1,      1,    1
-  ;;LUC3,   1,     1,      1,    1
-  ;;LUC4,   1,     1,      1,    0
-  ;;LUC5,   1,     1,      1,    0
-  ;;LUC6,   1,     0,      1,    0
-  ;;LUC7,   1,     0,      1,    0
-  ;;LUC8,   1,     0,      1,    0
+  ;; CSV file looks like this (spacing added for clarity)
+  ;;
+  ;;     , SNB, Dairy, Forest, Crop
+  ;; LUC1,   1,     1,      1,    1
+  ;; LUC2,   1,     1,      1,    1
+  ;; LUC3,   1,     1,      1,    1
+  ;; LUC4,   1,     1,      1,    0
+  ;; LUC5,   1,     1,      1,    0
+  ;; LUC6,   1,     0,      1,    0
+  ;; LUC7,   1,     0,      1,    0
+  ;; LUC8,   1,     0,      1,    0
   set farm-type-suitabilities table:make
   carefully [
     print word "Reading farm type suitabilities from file " file
@@ -157,7 +159,6 @@ to read-farm-type-suitabilities-from-file [file]
     let order get-order the-farm-types farm-types
     let luc 1
     while [not file-at-end?] [
-      ;; read the LUCx_Mean line
       let data but-first csv:from-row file-read-line
       let suitabilities table:from-list reorder (map list the-farm-types data) order
       table:put farm-type-suitabilities luc suitabilities
@@ -214,9 +215,9 @@ to-report replace [x y z]
 end 
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; economic setup procedures
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 to setup-economic-parameters
   with-local-randomness [
     ifelse seed-setup-rng?
@@ -317,7 +318,6 @@ to-report get-prices [file]
     print "***\n*** ERROR: problem reading prices file\n***"
     file-close
   ]
-;  report list prices-table taxes-table
   report prices-table
 end
 
@@ -339,7 +339,7 @@ to make-matrix-copies-of-data
   set m-emission-means matrix:from-row-list map [t -> table:values t] table:values ghg-emission-means
   set m-emission-sds   matrix:from-row-list map [t -> table:values t] table:values ghg-emission-sds
   set m-suitabilities  matrix:from-row-list map [t -> table:values t] table:values farm-type-suitabilities
-  set m-change-costs   matrix:from-row-list map [t -> table:values t] table:values farm-type-change-probs
+  set m-change-probs   matrix:from-row-list map [t -> table:values t] table:values farm-type-change-probs
 
   ;; a column matrix with one element per landuse/farm-type
   set m-prices col-matrix table:values prices
@@ -362,7 +362,7 @@ end
 
 ;; The MIT License (MIT)
 ;;
-;; Copyright (c) 2023-24 David O'Sullivan
+;; Copyright (c) 2023-25 David O'Sullivan
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation

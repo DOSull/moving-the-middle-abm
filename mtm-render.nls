@@ -1,6 +1,6 @@
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; model rendering
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 to redraw
   colour-all-patches show-landuse?
@@ -109,7 +109,7 @@ end
 
 ;; The MIT License (MIT)
 ;;
-;; Copyright (c) 2023-24 David O'Sullivan
+;; Copyright (c) 2023-25 David O'Sullivan
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation

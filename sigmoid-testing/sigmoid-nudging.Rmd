@@ -1,10 +1,10 @@
----
+-
 title: "Nudges and sigmoid function"
 output:
   pdf_document: default
   html_document: default
 date: "2023-06-27"
----
+-
 
 ```{r setup, include=FALSE, echo = FALSE}
 knitr::opts_chunk$set(echo = TRUE)

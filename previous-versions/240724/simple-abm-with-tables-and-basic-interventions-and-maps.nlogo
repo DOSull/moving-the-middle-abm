@@ -91,9 +91,9 @@ patches-own [
   emissions-sd-0
 ]
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; MAIN LOOP i.e., setup and go
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 to setup
   ;; Setup order is very sensitive to a number of interdependencies among the various
   ;; elements. So be VERY CAREFUL IF CHANGING THE SEQUENCE OF OPERATIONS in this procedure
@@ -171,11 +171,11 @@ to cleanup
   ;; any end of run tidying up
 end
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; ALL THE SETUP STUFF
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; farmer (behavioural) parameter setup
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; we read the interventions by farm types file twice...
 to setup-farmer-parameters
@@ -302,9 +302,9 @@ to read-intervention-impacts-from-file [file]
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; economic setup procedures
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 to setup-economic-parameters
   with-local-randomness [
     ifelse seed-setup-rng?
@@ -410,11 +410,11 @@ to-report get-prices [file]
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; landscape setup
 ;; NOTE: this includes the farmers not just
 ;;       LUC codes
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 to setup-geography
   with-local-randomness [
     ifelse setup-geography-from-files?
@@ -580,9 +580,9 @@ to setup-world-dimensions
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; patch specific functions
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; patch reporter
 to-report get-farm-of-patch
@@ -652,9 +652,9 @@ to-report get-costs-of-patch [with-var?]
   report cost + ghg * ghg-tax
 end
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; farm specific functions
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; farm 'constuctor'
 to initialise-farm
@@ -733,9 +733,9 @@ to-report get-farm-profile
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; farmer specific functions
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; farmer 'constructor'
 to initialise-farmer
@@ -797,9 +797,9 @@ to-report consider-interventions [show-messages?]
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; intervention specific
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; initialises an intervention with a name and blank table for effects
 to initialise-intervention [name]
@@ -840,9 +840,9 @@ to-report is-applicable-to-farm-type? [ft]
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; model rendering
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 to redraw
   colour-patches show-landuse?
@@ -922,9 +922,9 @@ to setup-colours
   table:put colour-key "background" grey
 end
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; reset code
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 to store-initial-values
   ask farm-land [
@@ -968,9 +968,9 @@ to restore-initial-values
   if run-rng-seed != 0 [ random-seed run-rng-seed ]
 end
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; convenience reporting functions
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; Convenience function for retrieving a parameter from one of
 ;; the global nested tables the values are stored in
@@ -995,9 +995,9 @@ to-report get-parameter [parameter mean-or-sd ft luc]
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; sigmoid function related
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; see https://en.wikipedia.org/wiki/Sigmoid_function
 ;; the argument a increases the slope at (0, 0.5)
@@ -1033,9 +1033,9 @@ to-report nudged-probability [p nudge]
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; utilility functions
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 to-report rescale [x min-x max-x new-min-x new-max-x]
   report new-min-x + (new-max-x - new-min-x) * (x - min-x) / (max-x - min-x)
@@ -1121,9 +1121,9 @@ to-report flatten-list [lst]
   report reduce [[a b] -> sentence a b] lst
 end
 
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 ;; string utilities (see netlogo-utils repo)
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 
 ;; reports string into a list of characters
 to-report string-as-list [str]
@@ -1154,9 +1154,9 @@ to-report split-string [str sep]
 end
 
 
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 ;; drawing utilities (see netlogo-utils repo)
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 
 to draw-borders [col]
   with-local-randomness [
@@ -1220,9 +1220,9 @@ to profile-go [n]
   profiler:reset         ;; clear the data
 end
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; farmer profit output for sanity check
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 to-report profit-summary [adopted-interventions]
   let result (list who farm-type table:get prices farm-type count the-land)
   let current-interventions my-interventions

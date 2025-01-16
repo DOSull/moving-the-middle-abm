@@ -1,10 +1,10 @@
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; utilility functions
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; primitive introspection stuff
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; these are sufficiently opaque to make utility functions to access them
 ;; note that using run and runresult on anonymous procedures is allegedly quicker 
@@ -33,9 +33,9 @@ to set-x1-var-to-x2-var [x1 x2 setter]
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; math stuff
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; rescales x from the range min-x to max-x into the equivalent
 ;; position in the range new-min-x to new-max-x
@@ -73,9 +73,9 @@ to-report is-nan? [x]
   report not (x <= 0 or x >= 0)
 end
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; logic stuff
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; true if all items in list are true
 to-report all-true? [lst]
@@ -87,9 +87,9 @@ to-report any-true? [lst]
   report not is-boolean? position true lst
 end
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; matrix to lists and back stuff
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; convenient to have this
 to print-matrix [m]
@@ -168,9 +168,9 @@ to-report matrix-from-list [lst nr nc byrow?]
   [ report matrix:from-column-list as-list-of-lists lst nc ]
 end
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; list stuff
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; gets a rough order of lst with respect to sorted-lst
 ;; all elements in lst should appear somewhere in sorted-lst
@@ -300,9 +300,9 @@ to-report slice-by-ones [lst ones]
   report map [t -> item 0 t] filter [t -> item 1 t = 1] zip lst ones
 end
 
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 ;; string stuff
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 
 ;; reports string as a list of characters
 to-report string-as-list [str]
@@ -335,9 +335,9 @@ to-report split-string [str sep]
 end
 
 
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 ;; drawing utilities (see netlogo-utils repo)
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 
 ;; draws a line colour col between patches in the supplied patchset pset
 ;; that differ in the value of the (string) reporter. Only borders internal to
@@ -397,7 +397,7 @@ end
 
 ;; The MIT License (MIT)
 ;;
-;; Copyright (c) 2023-24 David O'Sullivan
+;; Copyright (c) 2023-25 David O'Sullivan
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation

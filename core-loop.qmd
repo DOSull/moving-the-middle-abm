@@ -1,4 +1,4 @@
----
+-
 title: "Notes on the core loop of the ABM"
 author: David O'Sullivan
 date: 2 July 2024
@@ -20,7 +20,7 @@ knitr:
     # echo: false
     R.options: 
       knitr.table.html.attr: "quarto-disable-processing=true"
----
+-
 
 ::: {.callout-note collapse="true"}
 #### Update History

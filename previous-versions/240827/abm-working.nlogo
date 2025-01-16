@@ -94,9 +94,9 @@ patches-own [
 ]
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; MAIN LOOP i.e., setup and go
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 to setup
   ;; Setup order is very sensitive to a number of interdependencies among the various
   ;; elements. So be VERY CAREFUL IF CHANGING THE SEQUENCE OF OPERATIONS in this procedure
@@ -184,9 +184,9 @@ to cleanup
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; reset code
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 to store-initial-values
   ask farm-land [
@@ -246,7 +246,7 @@ end
 
 ;; The MIT License (MIT)
 ;;
-;; Copyright (c) 2023-24 David O'Sullivan
+;; Copyright (c) 2023-25 David O'Sullivan
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation

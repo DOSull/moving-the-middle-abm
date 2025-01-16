@@ -114,9 +114,9 @@ patches-own [
 ]
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; MAIN LOOP i.e., setup and go
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 to setup
   ;; Setup order is very sensitive to a number of interdependencies among the various
   ;; elements. So be VERY CAREFUL IF CHANGING THE SEQUENCE OF OPERATIONS in this procedure
@@ -200,9 +200,9 @@ to cleanup
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; farm specific functions
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; farm 'constructor'
 to initialise-farm
@@ -333,9 +333,9 @@ to-report get-impact [f-type e-type i-type]
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; farmer specific functions
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; farmer 'constructor'
 to initialise-farmer
@@ -384,9 +384,9 @@ to-report consider-interventions [show-messages?]
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; matrix calculations of farm income etc.
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; most of these are farm reporters because they rely on the luc-landuse-profile matrix
 ;; which it would be inefficient to reassemble on the fly and which is rarely updated anyway
 
@@ -521,9 +521,9 @@ to-report get-emissions-after-interventions
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; sigmoid function related
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; see https://en.wikipedia.org/wiki/Sigmoid_function
 ;; the argument a increases the slope at (0, 0.5)
@@ -555,7 +555,7 @@ end
 
 ;; The MIT License (MIT)
 ;;
-;; Copyright (c) 2023-24 David O'Sullivan
+;; Copyright (c) 2023-25 David O'Sullivan
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation

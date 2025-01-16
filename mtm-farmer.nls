@@ -1,14 +1,14 @@
 farmers-own [
-  the-land                ;; patch-set of patches of this farmer, this farm, or this holding
-  farm-type
-  farm-type-0
+  the-land         ;; patch-set of patches of this farmer, this farm, or this holding
+  farm-type        ;; farm-type - one of the global farm-types       
+  disposition      ;; for-profit, pro-environmental, pro-social (not used at present
+  age              ;; age controls succession probabilities see age-and-succeed-farmer
 
-  my-farm                 ;; farm turtle of this farmer's farm
-  my-holdings
+  my-farm          ;; farm turtle of this farmer's farm
+  my-holdings      ;; turtle-set of holdings of this farmer
   
-  disposition
+  farm-type-0      ;; initial values stored to allow easy reset
   disposition-0
-  age
   age-0
 ]
 
@@ -18,16 +18,21 @@ to initialise-farmer
   set color table:get colour-key "farmer"
   set shape "person"
   ;; set hidden? true
-  set farm-type one-of farm-types ;; this is temporary
+  ;; would be better if this were dependent on the LUC values of the-land
+  set farm-type one-of farm-types
   set disposition one-of dispositions
-  set-farmer-age 
+  set age get-new-farmer-age 
 end
 
-to set-farmer-age
+;; farmer age might be set by a relatively complex procedure so 
+;; delegate to this reporter
+to-report get-new-farmer-age
   ;; this gives us a reasonable(ish) age distribution at least for now
-  set age random-negative-binomial-with-mean-vmr 45 2.5
+  report random-negative-binomial-with-mean-vmr 45 2.5
 end
 
+;; not currently used
+;; make links between farmers based on proximity
 to make-farmer-local-links 
   let locals other (turtle-set [the-owner] of patch-set flatten-list [neighbors4] of the-land)
   if count locals < 10 [
@@ -42,6 +47,8 @@ to make-farmer-local-links
   ]
 end
 
+;; not currently used
+;; make links between farmers based on landuse/industry
 to make-farmer-industry-links
   let colleagues n-of 6 (other farmers with [ farm-type != [farm-type] of myself ])
   create-industry-links-with colleagues [ 
@@ -50,48 +57,41 @@ to make-farmer-industry-links
   ]
 end
 
+;; age farmer by 1 year, then determine if they die/leave/otherwise exit
+;; the 'new' farmer is not actually a new farmer, just the old one with a new age...
 to age-and-succeed-farmer
   ;; don't actually need to create a new farmer, just have to change age and
   ;; consider some other changes
   let new-farmer nobody
   set age age + 1
   if (20 + random 60) < age [
+    set age get-new-farmer-age
     set disposition one-of dispositions
-    set-farmer-age
     let ft-now farm-type
+    ;; new farmer considers changing the farm type if any holdings are loss-making
+    ;; without regard to how long losses have been happening, and with no 'down-weight'
     if any? my-holdings with [current-profit < 0] [
       let options consider-farm-type-change 1 "Succession: " false
       if length options > 0 [ make-farm-type-changes options ]
     ]
     set color ifelse-value farm-type = ft-now [ black ] [ yellow ]
   ]
-;    hatch-farmers 1 [
-;      set disposition one-of dispositions
-;      ;; successor farmer must replace dying farmer wrt farm and holdings
-;      ask my-farm [set my-farmer myself]
-;      ask my-holdings [set my-farmer myself]
-;      set-farmer-age
-;    ]
-;    die
-;    ask new-farmer [
-;      let options consider-farm-type-change [] 1 "Succession: " false
-;      if length options > 0 [ make-farm-type-changes options ]
-;    ]
-;  ]
 end
 
+;; reporter to get the plurality landuse type of the farmer
 to-report majority-farm-type
-  let counts map [t -> count my-holdings with [farm-type = t]] farm-types
+  let counts map [x -> sum x] transpose [matrix-column-sums landuse-luc-profile] of my-holdings
   let max-count max counts
   let max-indices filter [i -> item i counts = max-count] n-values length farm-types [i -> i]
-  let max-types map [i -> item i farm-types] max-indices
-  report one-of max-types
+  report one-of map [i -> item i farm-types] max-indices
 end
 
+;; report turtle set of all holdings losing money
 to-report get-loss-making-holdings
   report my-holdings with [current-profit < 0]
 end
 
+;; reports true if all holdings are loss making
 to-report all-holdings-loss-making?
   report count get-loss-making-holdings = count my-holdings
 end
@@ -100,34 +100,37 @@ end
 ;; this or a wrapper for this could include farmer demography 'shifts'
 ;; or social/geographic network shifts
 to-report get-adoption-probability [i-type]
-  report table:get (
-    table:get base-thresholds i-type
-  ) farm-type
+  report table:get table:get base-thresholds i-type farm-type
 end
 
-;; adds additional options to the provided list
+;; reports list of possible changes in landuse by holding and an associated probability
 ;; the list items are
 ;;
 ;;   [[holdings-to-change-set "all-of-farm"|"one-holding" from-farm-type to-farm-type] relative-probability]
 ;;
-to-report consider-farm-type-change [down-weighting prefix show-messages?]
+to-report consider-farm-type-change [down-weight prefix show-messages?]
   if show-messages? [
     show (word prefix "Considering changing landuse because holdings profits are " 
                [precision (current-profit / count the-land) 1] of get-loss-making-holdings)
   ]
+  ;; for convenience record this farmer's farmer-type
   let ft farm-type
+  ;; only other farm-types are options for change - and Forest is not an option
   let options filter [new-ft -> new-ft != ft and ft != "Forest"] farm-types
   if apply-suitability? [
+    ;; only landuses suitable for the worst land on the farm are considered
     let luc-constraint max [luc-code] of (the-land with [landuse = ft])
-    set options filter [t -> table:get table:get farm-type-suitabilities luc-constraint t = 1] options
+    set options filter [new-ft -> table:get table:get farm-type-suitabilities luc-constraint new-ft = 1] options
   ]
   let affected-holdings my-holdings with [farm-type = ft]
-  set options map [t -> (list (list affected-holdings "all-of-farm" ft t) 
-                              (down-weighting * table:get table:get farm-type-change-probs ft t))] options
+  set options map [new-ft -> 
+    (list (list affected-holdings "all-of-farm" ft new-ft) 
+          (down-weight * table:get table:get farm-type-change-probs ft new-ft))
+  ] options
   report options
 end
 
-;; adds additional options to the provided list
+;; reports options to switch to forestry as a list
 ;; the list items are
 ;;
 ;;   [[holdings-to-change-set "all-of-farm"|"one-holding" from-farm-type to-farm-type] relative-probability]
@@ -146,36 +149,26 @@ to-report consider-forestry [prefix show-messages?]
   report options
 end
 
+;; given a list of options per the consider-farm-type-change or consider-forestry reporters
+;; picks one and potentially applies it
 to make-farm-type-changes [possible-changes] 
-  ;; show map [pc -> sentence first pc precision last pc 4] possible-changes
   let changes-to-make rnd:weighted-one-of-list possible-changes [ [p] -> last p ]
   if random-float 1 < last changes-to-make [
-    change-holdings-farm-types item 0 changes-to-make
-  ]
-  set farm-type majority-farm-type
-  ask my-farm [ set farm-type [ farm-type ] of myself ]
-end
-
-to change-holdings-farm-types [change-list]
-  let holdings-to-change item 0 change-list
-  let change-type item 1 change-list
-  let current-farm-type item 2 change-list
-  let new-farm-type item 3 change-list
-  ask holdings-to-change [
-    holding-change-farm-type new-farm-type
-  ]
-  if change-type = "all-of-farm" [
-    set farm-type new-farm-type
-    ask my-farm [ set farm-type new-farm-type ]
-  ]
-end
-
-to change-holdings-types [change-list]
-  let holdings-to-change item 0 change-list
-  let current-farm-type item 2 change-list
-  let new-farm-type item 3 change-list
-  ask holdings-to-change [
-    holding-change-farm-type new-farm-type
+    let holdings-to-change item 0 first changes-to-make
+    let change-type        item 1 first changes-to-make
+    let current-farm-type  item 2 first changes-to-make
+    let new-farm-type      item 3 first changes-to-make
+    ask holdings-to-change [
+      holding-change-farm-type new-farm-type
+    ]
+    ifelse change-type = "all-of-farm" [
+      set farm-type new-farm-type
+      ask my-farm [ set farm-type new-farm-type ]
+    ]
+    [
+      set farm-type majority-farm-type
+      ask my-farm [ set farm-type [ farm-type ] of myself ]
+    ]  
   ]
 end
 
@@ -230,9 +223,9 @@ to make-management-changes [possible-changes]
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; sigmoid function related
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; see https://en.wikipedia.org/wiki/Sigmoid_function
 ;; the argument a increases the slope at (0, 0.5)
@@ -264,7 +257,7 @@ end
 
 ;; The MIT License (MIT)
 ;;
-;; Copyright (c) 2023-24 David O'Sullivan
+;; Copyright (c) 2023-25 David O'Sullivan
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation

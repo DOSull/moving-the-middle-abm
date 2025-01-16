@@ -1,6 +1,6 @@
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; farmer (behavioural) parameter setup
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; we read the interventions by farm types file twice...
 to setup-farmer-parameters
@@ -151,9 +151,9 @@ to-report replace [x y z]
 end 
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; economic setup procedures
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 to setup-economic-parameters
   with-local-randomness [
     ifelse seed-setup-rng?
@@ -301,7 +301,7 @@ end
 
 ;; The MIT License (MIT)
 ;;
-;; Copyright (c) 2023-24 David O'Sullivan
+;; Copyright (c) 2023-25 David O'Sullivan
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation

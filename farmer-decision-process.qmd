@@ -1,4 +1,4 @@
----
+-
 title: "Farmer decision making process"
 author: David O'Sullivan
 date: 17 December 2024
@@ -18,13 +18,13 @@ knitr:
     # echo: false
     R.options: 
       knitr.table.html.attr: "quarto-disable-processing=true"
----
+-
 
 ::: {.callout-note collapse="true"}
 #### Update History
 
 | Date       | Changes
-|:-          |:--------
+|:-          |:--
 | 2024-12-17 | Initial post.                       
 
 :::

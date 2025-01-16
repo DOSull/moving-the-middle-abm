@@ -1,16 +1,16 @@
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; utilility functions
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; primitive introspection stuff
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; these are sufficiently opaque to make utility functions to access them
 ;; note that using run and runresult on anonymous procedures is allegedly quicker 
-;; than on strings, although it is unclear to me if that is actually the case in this
-;; application. In any case these are used infrequently, mainly in setup and I'm not
-;; going to optimise too soon...
+;; than on strings, although it is unclear to me if that is actually the case in 
+;; this application. In any case these are used infrequently, mainly in setup and 
+;; I'm not going to optimise too soon...
 
 ;; report result of running anonymous reporter getter on x
 to-report get-var [x getter]
@@ -33,9 +33,9 @@ to set-x1-var-to-x2-var [x1 x2 setter]
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; math stuff
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; this formulation of relative change avoids overflows when
 ;; the base value is close to 0, and is symmetrical relative to the
@@ -50,9 +50,7 @@ to-report relative-change [x0 x1]
     report nobody
   ]
   let change 2 * abs (x1 - x0) / (abs x1 + abs x0)
-  ifelse x1 < x0
-  [ report (- change) ]
-  [ report    change  ]
+  report ifelse-value x1 < x0 [(- change)] [change]
 end
 
 ;; report relative change as a percentage value
@@ -67,23 +65,10 @@ to-report is-nan? [x]
   report not (x <= 0 or x >= 0)
 end
 
-;; -----------------------------------------
-;; logic stuff
-;; -----------------------------------------
 
-;; true if all items in list are true
-to-report all-true? [lst]
-  report is-boolean? position false lst
-end
-
-;; true if any item in list is true
-to-report any-true? [lst]
-  report not is-boolean? position true lst
-end
-
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; matrix to lists and back stuff
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; convenient to have this
 to print-matrix [m]
@@ -143,37 +128,14 @@ to-report matrix-duplicate-cols [m n]
   report matrix:from-column-list map [c -> col] range n
 end
 
-;; reports an 'addition tables' matrix
-;; i.e. each entry m_ij = row_i + col_j
-to-report matrix-sum-of-rows-cols [row col]
-  report matrix:plus matrix:from-row-list map [i -> row] range length col
-                     matrix:from-column-list map [i -> col] range length row
-end
-
-;; similar to R's matrix(<vector>, nr, nx, byrow) matrix constructor
-;; the supplied list must be nr * nc elements
-to-report matrix-from-list [lst nr nc byrow?]
-  if (nr * nc) != length lst [
-    user-message "ERROR: list supplied to matrix-from-list reporter is the wrong length"
-    report nobody
-  ]
-  ifelse byrow?
-  [ report matrix:from-row-list as-list-of-lists lst nr ]
-  [ report matrix:from-column-list as-list-of-lists lst nc ]
-end
-
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; list stuff
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; gets a rough order of lst with respect to sorted-lst
 ;; all elements in lst should appear somewhere in sorted-lst
 to-report get-raw-order [lst sorted-lst]
   report map [a -> position a sorted-lst] lst
-end
-
-to-report flatten-list [lst]
-  report reduce [[a b] -> sentence a b] lst
 end
 
 ;; reports a complete ordering of elements of lst in sorted-lst
@@ -199,6 +161,7 @@ to-report get-order [lst sorted-lst]
   report (map [[o a] -> o + a] raw-order adjustments)
 end
 
+;; reports how many times the value x appears in list lst
 to-report count-x-in-list [x lst]
   report length filter [y -> y = x] lst
 end
@@ -213,10 +176,9 @@ to-report reorder [lst order]
   report map [i -> item i lst] order
 end
 
-;;; zip two lists into a list of tuples (cf. python function)
-;to-report zip [l1 l2]
-;  report (map list l1 l2)
-;end
+to-report flatten-list [lst]
+  report reduce [[a b] -> sentence a b] lst
+end
 
 ;; reports the cumulative product of elements in numbers list i.e.
 ;; > product [1 2 3 4]
@@ -227,24 +189,16 @@ to-report product [numbers]
   [ report reduce * numbers ]
 end
 
-;; reports a list of lists formed by breaking lst into n-sublists
-to-report as-list-of-lists [lst n-sublists]
-  let len length lst
-  if (len mod n-sublists) != 0 [
-    user-message "ERROR: length of list supplied to as-list-of-lists is not an integer multiple of n-sublists"
-    report nobody
-  ]
-  let breaks range-by (len + 1) (len / n-sublists)
-  report (map [[a b] -> sublist lst a b] butlast breaks butfirst breaks)
-end
-
+;; reports a filtered copy of lst with only items at positions where the
+;; correspinding item in ones equals 1
+;; e.g. slice-by-ones [1 2 3 4] [1 0 0 1] --> [1 4]
 to-report slice-by-ones [lst ones]
-  report map [t -> item 0 t] filter [t -> item 1 t = 1] zip lst ones
+  report map [t -> item 0 t] filter [t -> item 1 t = 1] (map list lst ones)
 end
 
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 ;; string stuff
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 
 ;; reports string as a list of characters
 to-report string-as-list [str]
@@ -277,9 +231,9 @@ to-report split-string [str sep]
 end
 
 
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 ;; drawing utilities (see netlogo-utils repo)
-;; ------------------------------------------
+;; ------------------------------------------------------------------------------
 
 ;; draws a line colour col between patches in the supplied patchset pset
 ;; that differ in the value of the reporter. Only borders internal to
@@ -339,7 +293,7 @@ end
 
 ;; The MIT License (MIT)
 ;;
-;; Copyright (c) 2023-24 David O'Sullivan
+;; Copyright (c) 2023-25 David O'Sullivan
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation

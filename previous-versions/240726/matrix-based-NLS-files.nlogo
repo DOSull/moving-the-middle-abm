@@ -94,9 +94,9 @@ patches-own [
   landuse-0
 ]
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; MAIN LOOP i.e., setup and go
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 to setup
   ;; Setup order is very sensitive to a number of interdependencies among the various
   ;; elements. So be VERY CAREFUL IF CHANGING THE SEQUENCE OF OPERATIONS in this procedure
@@ -213,9 +213,9 @@ to make-matrix-copies-of-data
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; farm specific functions
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; farm 'constuctor'
 to initialise-farm
@@ -336,9 +336,9 @@ to-report is-applicable-to-farm-type? [i-type]
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; farmer specific functions
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; farmer 'constructor'
 to initialise-farmer
@@ -399,9 +399,9 @@ to-report consider-interventions [show-messages?]
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; matrix calculations of farm income etc.
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 to-report get-farm-income [with-var?]
   ifelse with-var? [
@@ -513,9 +513,9 @@ to-report get-emissions-after-interventions
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; sigmoid function related
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 
 ;; see https://en.wikipedia.org/wiki/Sigmoid_function
 ;; the argument a increases the slope at (0, 0.5)
@@ -553,7 +553,7 @@ end
 
 ;; The MIT License (MIT)
 ;;
-;; Copyright (c) 2023-24 David O'Sullivan
+;; Copyright (c) 2023-25 David O'Sullivan
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation

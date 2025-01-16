@@ -99,9 +99,9 @@ to-report get-intervention-score [i-type show-messages?]
 end
 
 
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; matrix calculations of holding income etc.
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; these are holding reporters because they rely on the luc-landuse-profile matrix
 ;; which it would be inefficient to reassemble on the fly and which is rarely updated anyway
 
@@ -238,7 +238,7 @@ end
 
 ;; The MIT License (MIT)
 ;;
-;; Copyright (c) 2023-24 David O'Sullivan
+;; Copyright (c) 2023-25 David O'Sullivan
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation

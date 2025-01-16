@@ -1,24 +1,25 @@
 holdings-own [
-  the-land                ;; patch-set of patches of this farmer, this farm, or this holding
-  farm-type               ;; farm type of farm - one of farm-types global
-  farm-type-0
+  the-land                 ;; patch-set of patches of this farmer, this farm, or this holding
+  farm-type                ;; farm type of farm - one of farm-types global
 
-  my-farmer               ;; farmer who owns/runs farm
+  my-farmer                ;; farmer who owns/runs farm
   my-farm
   
-  landuse-luc-profile     ;; matrix of counts of LUC - farm-type (i.e. landuse) combinations of the-land
-  landuse-luc-profile-0
+  landuse-luc-profile      ;; matrix of counts of LUC - farm-type (i.e. landuse) combinations of the-land
 
-  current-profit          ;; most recent profit of farm summed across patches
-  current-profit-0
-  current-income          ;; most recent income of farm summed across patches
-  current-income-0
-  current-costs           ;; most recent costs of farm summed across patches
-  current-costs-0
+  current-profit           ;; most recent profit of farm summed across patches
+  current-income           ;; most recent income of farm summed across patches
+  current-costs            ;; most recent costs of farm summed across patches
   
-  my-mgmt-interventions        ;; row matrix of 0/1s indicating adoption of intervention-types
+  my-mgmt-interventions    ;; row matrix of 0/1s indicating adoption of intervention-types
+  avail-mgmt-interventions ;; row matrix of 0/1s indicating interventions still open for this farm-type
+
+  farm-type-0              ;; variables at model initialisation for quick reset
+  landuse-luc-profile-0
+  current-profit-0
+  current-income-0
+  current-costs-0
   my-mgmt-interventions-0
-  avail-mgmt-interventions     ;; row matrix of 0/1s indicating interventions still open for this farm-type
   avail-mgmt-interventions-0
 ]
 
@@ -29,7 +30,6 @@ to initialise-holding
   move-to approximate-centroid the-land
   set shape "square 3"
   set hidden? false
-;  set landuse-luc-profile get-landuse-luc-profile the-land
   set label farm-type
   set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
   ;; interventions are a 1 row matrix of 0s to start
@@ -37,12 +37,45 @@ to initialise-holding
   set avail-mgmt-interventions possible-interventions
 end
 
+;; does the book keeping if the farm-type is changed
 to holding-change-farm-type [ft]
   set farm-type ft
   ask the-land [set landuse ft]
   set landuse-luc-profile get-landuse-luc-profile the-land
   set my-mgmt-interventions matrix:times-element-wise possible-interventions my-mgmt-interventions
-  set avail-mgmt-interventions matrix:map [x -> ifelse-value x < 1 [0] [1]] (possible-interventions matrix:- my-mgmt-interventions) 
+  set avail-mgmt-interventions matrix:map [x -> ifelse-value x < 1 [0] [1]] 
+                                          (possible-interventions matrix:- my-mgmt-interventions) 
+end
+
+;; reports a column matrix from the column sums of current landuse-luc-profile matrix
+;; holding reporter
+to-report get-landuse-profile
+  report matrix:from-column-list (list matrix-column-sums landuse-luc-profile)
+end
+
+;; reports a column matrix from the row sums of current landuse-luc-profile matrix
+;; holding reporter
+to-report get-luc-profile
+  report matrix:from-column-list (list matrix-row-sums landuse-luc-profile)
+end
+
+;; reports a 8 row 4 col matrix of the count of patches with each combination of
+;; LUC code and landuse/farm-type in the patch-set poly. Usually this is called 
+;; by a holding, when poly will be 'the-land'. Initially all patches will be the 
+;; same landuse matching the farm-type, but some farmer actions may lead to this 
+;; changing. Run during initialisation and only altered if such changes in landuse 
+;; are undertaken.
+;; not a holding reporter but usually run on the-land of holding turtles
+to-report get-landuse-luc-profile [poly]
+  let luc-i [position luc-code range-from-to 1 9] of poly
+  let lu-j [position landuse farm-types] of poly
+  let nrow 8
+  let ncol length farm-types
+  let farm-profile matrix:make-constant nrow ncol 0
+  (foreach luc-i lu-j [ [i j] ->
+    matrix:set farm-profile i j matrix:get farm-profile i j + 1
+  ])
+  report farm-profile
 end
 
 ;; for this farm's type returns 0/1 row matrix indicating which are possible on this type of farm
@@ -58,51 +91,22 @@ to implement-intervention [i-type]
   matrix:set avail-mgmt-interventions 0 col 0
 end
 
+;; returns true if there are any remaining available interventions
 to-report any-interventions-to-do?
   report matrix-sum-elements avail-mgmt-interventions > 0
 end
 
-;; reports a column matrix from the column sums of current landuse-luc-profile matrix
-;; farm reporter
-to-report get-landuse-profile
-  report matrix:from-column-list (list matrix-column-sums landuse-luc-profile)
-end
-
-;; reports a column matrix from the row sums of current landuse-luc-profile matrix
-;; farm reporter
-to-report get-luc-profile
-  report matrix:from-column-list (list matrix-row-sums landuse-luc-profile)
-end
-
 ;; tests if intervention is applicable by checking if the result is in interventions table
-;; farm reporter
+;; not a holding reporter but most often run by a holding turtle
 to-report is-applicable-to-landuse? [i-type]
   report get-impact farm-type "costs" i-type != na-value
 end
 
-;; reports a 8 row 4 col matrix of the count of patches with each combination of
-;; LUC code and landuse/farm-type in the patch-set poly. Usually this is called by a
-;; farm, when poly will be 'the-land'. Initially all patches will be the same landuse
-;; matching the farm-type, but some farmer actions may lead to this changing.
-;; Run during initialisation and only altered if such changes in landuse are
-;; undertaken.
-;; not a farm reporter but usually run on the-land of farm turtles
-to-report get-landuse-luc-profile [poly]
-  let luc-i [position luc-code range-from-to 1 9] of poly
-  let lu-j [position landuse farm-types] of poly
-  let nrow 8
-  let ncol length farm-types
-  let farm-profile matrix:make-constant nrow ncol 0
-  (foreach luc-i lu-j [ [i j] ->
-    matrix:set farm-profile i j matrix:get farm-profile i j + 1
-  ])
-  report farm-profile
-end
-
-to update-profit-of-holding
-  set current-income get-holding-income true
-  set current-costs get-holding-costs true
-  set current-profit current-income - current-costs
+;; we might need some more of these...
+;; returns impact by farm-type, effect-type, and intervention-type
+;; not a holding reporter but most often run by a holding turtle
+to-report get-impact [f-type e-type i-type]
+  report table:get (table:get (table:get mgmt-interventions i-type) e-type) f-type
 end
 
 ;; reports my-interventions as a list of intervention-type names for convenience
@@ -143,14 +147,21 @@ to-report get-intervention-score [i-type show-messages?]
   report delta-income - delta-costs
 end
 
+;; wrapper to invoke the various profit and loss reporters
+to update-profit-of-holding
+  set current-income get-holding-income true
+  set current-costs get-holding-costs true
+  set current-profit current-income - current-costs
+end
 
-;; -----------------------------------------
+
+;; ----------------------------------------------------------------------------
 ;; matrix calculations of holding income etc.
-;; -----------------------------------------
+;; ----------------------------------------------------------------------------
 ;; these are holding reporters because they rely on the luc-landuse-profile matrix
-;; which it would be inefficient to reassemble on the fly and which is rarely updated anyway
+;; which it would be inefficient to reassemble on the fly and is updated rarely
 
-;; farm reporter due to landuse-luc-profile
+;; holding reporter due to landuse-luc-profile
 to-report get-holding-income [with-var?]
   ;; calculation here is SUM [ LUC/LU * Yield * Impact of interventions * Prices ]
   ;; Yield component optionally includes variance
@@ -162,7 +173,8 @@ to-report get-holding-income [with-var?]
         matrix:plus m-yield-means get-holding-yield-variance
         get-yield-after-interventions ) matrix:* m-prices )
   ]
-  [ report round matrix-sum-elements (
+  [ 
+    report round matrix-sum-elements (
       ( matrix:map [[a b c] -> a * b * c]
         landuse-luc-profile
         m-yield-means  ;; no variance
@@ -170,7 +182,7 @@ to-report get-holding-income [with-var?]
   ]
 end
 
-;; farm reporter due to landuse-luc-profile
+;; holding reporter due to landuse-luc-profile
 to-report get-holding-costs [with-var?]
   ;; calculation here is
   ;; Cost of interventions + SUM [ LUC/LU * (Costs + (Emissions * Impact of interventions) * tax) ]
@@ -190,7 +202,8 @@ to-report get-holding-costs [with-var?]
       )
     )
   ]
-  [ report round ( get-cost-after-interventions + matrix-sum-elements
+  [ 
+    report round ( get-cost-after-interventions + matrix-sum-elements
       ( matrix:map *
         landuse-luc-profile
         ( m-cost-means matrix:+
@@ -211,32 +224,32 @@ end
 ;; deviation downscaled by √n -- this is of course summed across n patches
 ;; so the overall deviation will be larger, but appropriately 'suppressed'
 ;; for the larger holding. This also allows us to avoid div 0 errors...
-to-report reduced-normal-deviate [m s n]
+to-report reduced-normal-deviate [mn sd n]
   (ifelse
     n = 0 [ report 0 ] ;; n = 0 is meaningless
-    n = 1 [ report random-normal m s ]
-    [ report random-normal m (s / sqrt(n)) ])
+    n = 1 [ report random-normal mn sd ]
+    [ report random-normal mn (sd / sqrt(n)) ])
 end
 
 ;; reports a matrix of yield deviates suppressed by the number of patches
-;; farm reporter due to landuse-luc-profile
+;; holding reporter due to landuse-luc-profile
 to-report get-holding-yield-variance
   report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] m-yield-sds landuse-luc-profile)
 end
 
 ;; reports a matrix of cost deviates suppressed by the number of patches
-;; farm reporter due to landuse-luc-profile
+;; holding reporter due to landuse-luc-profile
 to-report get-holding-cost-variance
   report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] m-cost-sds landuse-luc-profile)
 end
 
-;; reports a matrix of emissions deviate suppressed by the number of patches
-;; farm reporter due to landuse-luc-profile
+;; reports a matrix of emissions deviates suppressed by the number of patches
+;; holding reporter due to landuse-luc-profile
 to-report get-holding-emissions-variance
   report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] m-emission-sds landuse-luc-profile)
 end
 
-;; farm reporter due to get-farm-landuse-profile
+;; holding reporter due to get-farm-landuse-profile
 to-report get-cost-after-interventions
   ;; the calculation here is
   ;;                       [       costs        ]   [   col-matrix    ]
@@ -249,12 +262,13 @@ to-report get-cost-after-interventions
            get-landuse-profile )
 end
 
-;; reports a matrix for use in multiplication of yields dependent on on-farm interventions.
-;; This is a non-standard matrix operation where desired result is the cumulative product of
-;; each column in the matrix but not all row entries in the matrix are applicable (because not a
-;; all interventions will have been adopted).
+;; reports a matrix for use in multiplication of yields dependent on on-farm 
+;; interventions. This is a non-standard matrix operation where desired result 
+;; is the cumulative product of each column in the matrix but not all row 
+;; entries in the matrix are applicable (because not a all interventions will 
+;; have been adopted).
 ;;
-;; farm reporter due to my-interventions
+;; holding reporter due to my-interventions
 to-report get-yield-after-interventions
   report matrix:transpose
            matrix-duplicate-cols (
@@ -268,7 +282,7 @@ end
 
 ;; as above but for emissions
 ;;
-;; farm reporter due to my-interventions
+;; holding reporter due to my-interventions
 to-report get-emissions-after-interventions
   report matrix:transpose
            matrix-duplicate-cols (
@@ -283,7 +297,7 @@ end
 
 ;; The MIT License (MIT)
 ;;
-;; Copyright (c) 2023-24 David O'Sullivan
+;; Copyright (c) 2023-25 David O'Sullivan
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation

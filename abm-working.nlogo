@@ -117,26 +117,24 @@ to setup
   set epsilon 1e-16
   set na-value -999
   set show-labels? false
-
-  let base-data-folder "data/"
-  set output-data-folder word base-data-folder "output/"                ;; 'data/output/'
-  set market-data-folder word base-data-folder "market/"                ;; 'data/market/'
-  set spatial-data-folder (word base-data-folder "spatial/" region "/") ;; 'data/spatial/REGION-NAME/'
+  setup-folders               ;; mtm-read-files.nls
 
   ;; this MUST come first (and note that it will read the GIS data if in that mode
   setup-world-dimensions
 
-  setup-farmer-parameters
+  setup-farmer-parameters     ;; mtm-read-files.nls
+  ;; if we figure out a use for dispositions (Kaine et al. argue against them!) then these
+  ;; will likely be read in from files too, but for now:
   set dispositions [ "for-profit" "pro-social" "pro-environmental" ]
 
   setup-colours ;; must come AFTER reading farmer parameters since it depends on farm types
   ask patches [ set pcolor table:get colour-key "background" ]
 
-  setup-geography
-  setup-economic-parameters
-  make-matrix-copies-of-data
+  setup-geography             ;; mtm-geography.nls
+  setup-economic-parameters   ;; mtm-read-files.nls
+  make-matrix-copies-of-data  ;; mtm-read-files.nls
 
-  redraw
+  redraw                      ;; mtm-render.nls
   reset-ticks
   if run-rng-seed != 0 [ random-seed run-rng-seed ]
   go ;; this initialises the farms with current net profit and some interventions
@@ -326,7 +324,7 @@ GRAPHICS-WINDOW
 1
 1
 1
-ticks
+Year
 30.0
 
 BUTTON
@@ -509,10 +507,10 @@ NIL
 1
 
 CHOOSER
-849
-306
-987
-351
+1147
+733
+1285
+778
 region
 region
 "Rangitaiki"
@@ -1033,6 +1031,16 @@ consider-all-landuse-change-options?
 1
 1
 -1000
+
+CHOOSER
+1290
+733
+1428
+778
+scenario
+scenario
+"default"
+0
 
 @#$#@#$#@
 ## WHAT IS IT?

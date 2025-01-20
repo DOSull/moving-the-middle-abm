@@ -1,4 +1,17 @@
 ;; ----------------------------------------------------------------------------
+;; many scenario and spatial setup parameters are in files not the UI
+;; ----------------------------------------------------------------------------
+
+;; initialise various folders - here for convenient modification in one place
+to setup-folders
+  let base-data-folder                           "data/"                            ;; 'data/'
+  set output-data-folder  (word base-data-folder "output/" scenario "/" region "/") ;; 'data/output/SCENARIO/REGION/'
+  set market-data-folder  (word base-data-folder "market/" scenario "/")            ;; 'data/market/SCENARIO/'
+  set spatial-data-folder (word base-data-folder "spatial/" region "/")             ;; 'data/spatial/REGION/'
+end
+
+
+;; ----------------------------------------------------------------------------
 ;; farmer (behavioural) parameter setup
 ;; ----------------------------------------------------------------------------
 

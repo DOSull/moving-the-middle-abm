@@ -7,7 +7,6 @@ aag/
 data/spatial/*
 !data/spatial/Rangitaiki
 *_cache/
-
 /.quarto/
 *.tif
 *.gpkg

@@ -823,7 +823,7 @@ SWITCH
 130
 force?
 force?
-0
+1
 1
 -1000
 
@@ -915,7 +915,7 @@ SWITCH
 190
 apply-severity-of-losses?
 apply-severity-of-losses?
-0
+1
 1
 -1000
 
@@ -928,7 +928,7 @@ bad-years-trigger
 bad-years-trigger
 0
 1
-0.25
+0.0
 0.001
 1
 NIL
@@ -943,7 +943,7 @@ years-to-remember
 years-to-remember
 0
 25
-5.0
+10.0
 1
 1
 NIL
@@ -956,7 +956,7 @@ SWITCH
 231
 apply-suitability?
 apply-suitability?
-0
+1
 1
 -1000
 
@@ -967,7 +967,7 @@ SWITCH
 270
 apply-luc-to-forest-decision?
 apply-luc-to-forest-decision?
-0
+1
 1
 -1000
 
@@ -1028,7 +1028,7 @@ SWITCH
 113
 consider-all-landuse-change-options?
 consider-all-landuse-change-options?
-0
+1
 1
 -1000
 

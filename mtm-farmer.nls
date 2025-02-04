@@ -3,6 +3,7 @@ farmers-own [
   farm-type        ;; farm-type - one of the global farm-types       
   disposition      ;; for-profit, pro-environmental, pro-social (not used at present
   age              ;; age controls succession probabilities see age-and-succeed-farmer
+  succession-stage ;; how many times this farmer has moved on...
 
   my-farm          ;; farm turtle of this farmer's farm
   my-holdings      ;; turtle-set of holdings of this farmer
@@ -10,6 +11,7 @@ farmers-own [
   farm-type-0      ;; initial values stored to allow easy reset
   disposition-0
   age-0
+  succession-stage-0
 ]
 
 ;; farmer 'constructor'
@@ -21,14 +23,16 @@ to initialise-farmer
   ;; would be better if this were dependent on the LUC values of the-land
   set farm-type one-of farm-types
   set disposition one-of dispositions
-  set age get-new-farmer-age 
+  set succession-stage 0 
 end
 
 ;; farmer age might be set by a relatively complex procedure so 
 ;; delegate to this reporter
-to-report get-new-farmer-age
+to-report get-new-farmer-age [model-initialisation?]
   ;; this gives us a reasonable(ish) age distribution at least for now
-  report random-negative-binomial-with-mean-vmr 45 2.5
+  ifelse model-initialisation? 
+  [ report random-negative-binomial-with-mean-vmr 60 2 ]
+  [ report random-negative-binomial-with-mean-vmr 50 1.25 ]
 end
 
 ;; not currently used
@@ -62,15 +66,15 @@ end
 to age-and-succeed-farmer
   ;; don't actually need to create a new farmer, just have to change age and
   ;; consider some other changes
-  let new-farmer nobody
   set age age + 1
-  if (20 + random 60) < age [
-    set age get-new-farmer-age
+  if random-float 1 < (age * age / 30000) or age = 80   [
+    set age get-new-farmer-age false
+    set succession-stage succession-stage + 1
     set disposition one-of dispositions
     let ft-now farm-type
     ;; new farmer considers changing the farm type if any holdings are loss-making
     ;; without regard to how long losses have been happening, and with no 'down-weight'
-    if any? my-holdings with [current-profit < 0] [
+    if consider-landuse-change-on-succession? and any? my-holdings with [current-profit < 0] [
       let options consider-farm-type-change 1 "Succession: " false
       if length options > 0 [ make-farm-type-changes options ]
     ]
@@ -119,8 +123,9 @@ to-report consider-farm-type-change [down-weight prefix show-messages?]
   let options filter [new-ft -> new-ft != ft and ft != "Forest"] farm-types
   if apply-suitability? [
     ;; only landuses suitable for the worst land on the farm are considered
-    let luc-constraint max [luc-code] of (the-land with [landuse = ft])
-    set options filter [new-ft -> table:get table:get farm-type-suitabilities luc-constraint new-ft = 1] options
+    let luc-constraint ceiling mean [luc-code] of (the-land with [landuse = ft])
+    ;; set options filter [new-ft -> table:get table:get farm-type-suitabilities luc-constraint new-ft = 1] options
+    set options filter-farm-types-by-luc options luc-constraint
   ]
   let affected-holdings my-holdings with [farm-type = ft]
   set options map [new-ft -> 
@@ -130,28 +135,37 @@ to-report consider-farm-type-change [down-weight prefix show-messages?]
   report options
 end
 
-;; reports options to switch to forestry as a list
-;; the list items are
-;;
-;;   [[holdings-to-change-set "all-of-farm"|"one-holding" from-farm-type to-farm-type] relative-probability]
-;;
-to-report consider-forestry [prefix show-messages?]
-  if show-messages? [
-    show (word prefix "Considering forestry on holdings with profits " 
-               [precision (current-profit / count the-land) 1] of get-loss-making-holdings)
-  ]
+to-report consider-holdings-farm-type-change [forestry-only? prefix show-messages?]
   let options []
   ask my-holdings with [current-profit < 0] [
-    let luc-boost ifelse-value apply-luc-to-forest-decision? [ mean [luc-code] of the-land / 8 ] [ 1 ]
-    set options lput (list (list (turtle-set self) "one-holding" farm-type "Forest") 
-                           (luc-boost * table:get table:get farm-type-change-probs farm-type "Forest")) options
+    let ft farm-type
+    ifelse forestry-only? [
+      set options lput (list (list (turtle-set self) "one-holding" farm-type "Forest") 
+                             (table:get table:get farm-type-change-probs farm-type "Forest")) options
+    ]
+    [
+      let new-possible-farm-types filter [nft -> nft != farm-type] farm-types
+      if apply-suitability? [
+        let luc-constraint ceiling mean [luc-code] of (the-land with [landuse = ft]) 
+        set new-possible-farm-types filter-farm-types-by-luc new-possible-farm-types luc-constraint
+      ]
+      foreach new-possible-farm-types [ nft ->
+        set options lput (list (list (turtle-set self) "one-holding" farm-type nft) 
+                               (table:get table:get farm-type-change-probs farm-type nft)) options
+      ]
+    ]
   ]
   report options
+end
+
+to-report filter-farm-types-by-luc [fts limiting-luc]
+  report filter [nft -> table:get table:get farm-type-suitabilities limiting-luc nft = 1] fts
 end
 
 ;; given a list of options per the consider-farm-type-change or consider-forestry reporters
 ;; picks one and potentially applies it
 to make-farm-type-changes [possible-changes] 
+  if show-events? [ show "Entered make-farm-type-changes" ]
   let changes-to-make rnd:weighted-one-of-list possible-changes [ [p] -> last p ]
   if random-float 1 < last changes-to-make [
     let holdings-to-change item 0 first changes-to-make
@@ -159,9 +173,11 @@ to make-farm-type-changes [possible-changes]
     let current-farm-type  item 2 first changes-to-make
     let new-farm-type      item 3 first changes-to-make
     ask holdings-to-change [
+      if show-events? [ show "Show considering holdings changes" ]
       holding-change-farm-type new-farm-type
     ]
     ifelse change-type = "all-of-farm" [
+      if show-events? [ show "Making all of farm change" ]
       set farm-type new-farm-type
       ask my-farm [ set farm-type new-farm-type ]
     ]

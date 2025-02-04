@@ -161,23 +161,16 @@ to go
       let loss-making-holdings get-loss-making-holdings
       ifelse any? loss-making-holdings [
         let farm-conversion-options []
-        if [current-profit < 0 and mean losses-record > bad-years-trigger] of my-farm [
+        if [current-profit] of my-farm < 0 [ ;; and mean losses-record > bad-years-trigger] of my-farm [
           ;; we're losing lots of money so consider changing direction completely
           let down-weight ifelse-value apply-severity-of-losses?
-            [ sum [count the-land] of loss-making-holdings / count the-land ] [ 1 ]
+            [ 1 - (sum [count the-land] of loss-making-holdings) / count the-land ] [ 1 ]
           set farm-conversion-options consider-farm-type-change down-weight "Losing money: " false
         ]
         ;; only some holdings are losing money so consider forestry on those
-        let forestry-set-aside-options consider-forestry "Some holdings losing money: " false
-        ;; evaluate and act
-        ifelse consider-all-landuse-change-options? [
-          make-farm-type-changes (sentence farm-conversion-options forestry-set-aside-options)
-        ]
-        [
-          ifelse length farm-conversion-options > 0
-          [ make-farm-type-changes farm-conversion-options ]
-          [ make-farm-type-changes forestry-set-aside-options ]
-        ]
+        let holding-change-options consider-holdings-farm-type-change
+              prioritise-forestry-set-aside? "Some holdings losing money: " false
+        make-farm-type-changes (sentence farm-conversion-options holding-change-options)
       ]
       [ ;; we're doing OK so think about management interventions instead
         if any? my-holdings with [any-interventions-to-do?] [
@@ -244,6 +237,7 @@ to store-initial-values
     set farm-type-0 farm-type
     set disposition-0 disposition
     set age-0 age
+    set succession-stage-0 succession-stage
   ]
 end
 
@@ -270,6 +264,7 @@ to restore-initial-values
     set farm-type farm-type-0
     set disposition disposition-0
     set age age-0
+    set succession-stage succession-stage-0
   ]
   redraw-farms-and-holdings
   reset-ticks
@@ -352,8 +347,8 @@ SLIDER
 sigmoid-slope
 sigmoid-slope
 0.01
-5
-2.5
+20
+5.18
 0.01
 1
 NIL
@@ -793,9 +788,9 @@ SLIDER
 920
 carbon-price
 carbon-price
-1
+0
 50
-25.0
+50.0
 1
 1
 NIL
@@ -889,10 +884,197 @@ include-networks?
 
 PLOT
 1142
-411
+544
 1497
 721
-Holding types
+Landuse composition
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"snb" 1.0 0 -955883 true "" "plot count farm-land with [landuse = \"SNB\"]"
+"dairy" 1.0 0 -13791810 true "" "plot count farm-land with [landuse = \"Dairy\"]"
+"forest" 1.0 0 -13840069 true "" "plot count farm-land with [landuse = \"Forest\"]"
+"crop" 1.0 0 -8630108 true "" "plot count farm-land with [landuse = \"Crop\"]"
+
+SWITCH
+1142
+238
+1353
+271
+apply-severity-of-losses?
+apply-severity-of-losses?
+1
+1
+-1000
+
+SLIDER
+1158
+840
+1330
+873
+bad-years-trigger
+bad-years-trigger
+0
+1
+1.0
+0.001
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1158
+880
+1331
+913
+years-to-remember
+years-to-remember
+0
+25
+10.0
+1
+1
+NIL
+HORIZONTAL
+
+SWITCH
+1143
+280
+1354
+313
+apply-suitability?
+apply-suitability?
+1
+1
+-1000
+
+TEXTBOX
+1361
+233
+1511
+272
+On = More severe losses make farm conversion more likely
+10
+0.0
+1
+
+TEXTBOX
+1362
+285
+1512
+311
+On = LUC suitability is applied to farm type conversion
+10
+0.0
+1
+
+TEXTBOX
+1339
+891
+1489
+909
+Length of memory of losses
+10
+0.0
+1
+
+TEXTBOX
+1338
+838
+1509
+878
+Proportion of years of remembered losses to trigger considering conversion 
+10
+0.0
+1
+
+CHOOSER
+1290
+733
+1430
+778
+scenario
+scenario
+"default" "null-market" "luc-dependent"
+2
+
+SWITCH
+1141
+20
+1464
+53
+consider-landuse-change-on-succession?
+consider-landuse-change-on-succession?
+1
+1
+-1000
+
+SWITCH
+1142
+195
+1353
+228
+prioritise-forestry-set-aside?
+prioritise-forestry-set-aside?
+1
+1
+-1000
+
+TEXTBOX
+1237
+821
+1387
+839
+---- NOT YET IN USE ----
+11
+15.0
+1
+
+TEXTBOX
+1360
+189
+1531
+231
+Off = Consider all alternative landuses (not only forestry) for unprofitable holdings
+10
+0.0
+1
+
+PLOT
+1142
+349
+1495
+535
+Management adoption
+NIL
+Count
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"Build wetland" 1.0 0 -16777216 true "" "plot sum [count the-land] of holdings with [matrix:get my-mgmt-interventions 0 0 = 1]"
+"Clean races" 1.0 0 -10649926 true "" "plot sum [count the-land] of holdings with [matrix:get my-mgmt-interventions 0 1 = 1]"
+"Farm plan" 1.0 0 -2674135 true "" "plot sum [count the-land] of holdings with [matrix:get my-mgmt-interventions 0 2 = 1]"
+"Join ETS" 1.0 0 -955883 true "" "plot sum [count the-land] of holdings with [matrix:get my-mgmt-interventions 0 3 = 1]"
+"Riparian planting" 1.0 0 -13840069 true "" "plot sum [count the-land] of holdings with [matrix:get my-mgmt-interventions 0 4 = 1]"
+
+PLOT
+1142
+65
+1496
+185
+Farmer age distribution
 NIL
 NIL
 0.0
@@ -903,144 +1085,7 @@ true
 false
 "" ""
 PENS
-"snb" 1.0 0 -955883 true "" "plot count holdings with [farm-type = \"SNB\"]"
-"dairy" 1.0 0 -13791810 true "" "plot count holdings with [farm-type = \"Dairy\"]"
-"forest" 1.0 0 -13840069 true "" "plot count holdings with [farm-type = \"Forest\"]"
-"crop" 1.0 0 -8630108 true "" "plot count holdings with [farm-type = \"Crop\"]"
-
-SWITCH
-1148
-157
-1359
-190
-apply-severity-of-losses?
-apply-severity-of-losses?
-0
-1
--1000
-
-SLIDER
-1163
-315
-1335
-348
-bad-years-trigger
-bad-years-trigger
-0
-1
-0.25
-0.001
-1
-NIL
-HORIZONTAL
-
-SLIDER
-1161
-356
-1337
-389
-years-to-remember
-years-to-remember
-0
-25
-5.0
-1
-1
-NIL
-HORIZONTAL
-
-SWITCH
-1148
-198
-1359
-231
-apply-suitability?
-apply-suitability?
-0
-1
--1000
-
-SWITCH
-1149
-237
-1360
-270
-apply-luc-to-forest-decision?
-apply-luc-to-forest-decision?
-0
-1
--1000
-
-TEXTBOX
-1367
-152
-1517
-191
-On = More severe losses make farm conversion more likely
-10
-0.0
-1
-
-TEXTBOX
-1367
-203
-1517
-229
-On = LUC suitability is applied to farm type conversion
-10
-0.0
-1
-
-TEXTBOX
-1367
-241
-1517
-267
-On = Forest conversion more likely on lower quality land
-10
-0.0
-1
-
-TEXTBOX
-1344
-366
-1494
-384
-Length of memory of losses
-10
-0.0
-1
-
-TEXTBOX
-1343
-309
-1514
-349
-Proportion of years of remembered losses to trigger considering conversion 
-10
-0.0
-1
-
-SWITCH
-1141
-80
-1440
-113
-consider-all-landuse-change-options?
-consider-all-landuse-change-options?
-0
-1
--1000
-
-CHOOSER
-1290
-733
-1428
-778
-scenario
-scenario
-"default"
-0
+"default" 1.0 1 -16777216 true "set-plot-x-range 20 100\nset-plot-pen-interval 5" "histogram [age] of farmers"
 
 @#$#@#$#@
 ## WHAT IS IT?

@@ -32,7 +32,7 @@ to setup-farmer-parameters
   read-farmer-thresholds-from-file       word market-data-folder "farmer-threshold-matrix.csv"
   read-intervention-impacts-from-file    word market-data-folder "intervention-impacts.csv"
   read-farm-type-suitabilities-from-file word market-data-folder "suitabilities.csv"
-  read-farm-type-change-costs-from-file  word market-data-folder "conversion-probabilities.csv"
+  read-farm-type-change-probs-from-file  word market-data-folder "conversion-probabilities.csv"
 end
 
 ;; setup farm types and interventions
@@ -185,7 +185,7 @@ to read-farm-type-suitabilities-from-file [file]
   ]
 end
 
-to read-farm-type-change-costs-from-file [file]
+to read-farm-type-change-probs-from-file [file]
   ;; These are <something like> the impact on profit of switching from the type
   ;; in the row name to the type in the column name
   ;; Farm types may be in any order, but ROWS AND COLUMNS MUST BE IN SAME ORDER

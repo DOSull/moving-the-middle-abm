@@ -17,11 +17,6 @@ to-report get-var [x getter]
   report (runresult getter x)
 end
 
-;; set attribute of x to val using anonymous procedure setter
-to set-var [x val setter]
-  (run setter x val)
-end
-
 ;; tests if the value of the named variable var matches between agents x1 and x2
 to-report x1-var-matches-x2-var? [x1 x2 getter]
   report get-var x1 getter = get-var x2 getter
@@ -31,6 +26,11 @@ end
 to set-x1-var-to-x2-var [x1 x2 setter]
   (run setter x1 x2)
 end
+
+;;; set attribute of x to val using anonymous procedure setter
+;to set-var [x val setter]
+;  (run setter x val)
+;end
 
 
 ;; ----------------------------------------------------------------------------

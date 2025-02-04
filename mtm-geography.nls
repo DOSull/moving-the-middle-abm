@@ -189,6 +189,7 @@ to setup-farmers
         set the-land pset
         set this-farmer self
         initialise-farmer
+        set age get-new-farmer-age true
       ]
       ask pset [
         set the-owner this-farmer
@@ -261,32 +262,38 @@ end
 ;; quicker and more scaleable solution, even if it involves creating and 
 ;; killing thousands of node turtles!
 
-;; Labels a list of patchsets based on the supplied reporter, with the labels 
-;; sequential and unique across the list of all patchsets
-;; The resulting label is stored in the region-id attribute and IS NOT merely 
-;; the value of the supplied variable (that would be trivial!) because regions 
-;; that share a value of that variable may not be orthogonally connected.
-to label-connected-regions [patch-sets region-var n4?]
-  let i 0
+;; Labels a list of patchsets based on the supplied region-id-reporter, which is
+;; an anonymous function such as 
+;; 
+;;    [x -> [some-var] of x]. 
+;; This allows an arbitrary patch variable to be used for determining regions.
+;; 
+;; Labels are NOT values of that reporter, but sequential integers starting from 0
+;; and unique across the list of all patchsets. The resulting label is stored in
+;; the region-id attribute and IS NOT merely the value of the supplied variable 
+;; because patches that share a value of that variable but are not orthogonally 
+;; connected are considered as distinct regions.
+to label-connected-regions [patch-sets region-id-reporter n4?]
+  let first-id 0
   foreach patch-sets [ ps ->
-    set i label-connected-region ps region-var i n4?
+    set first-id label-connected-region ps region-id-reporter first-id n4?
   ]
 end
 
-;; Labels the supplied patchset pset with respect to the region-var attribute, 
-;; starting from id0. Reports 'where it got to' so that the calling context can 
+;; Labels the supplied patchset pset with respect to the region-id-reporter, 
+;; starting from id0. Reports the 'id it got to' so that the calling context can 
 ;; continue on to label more patchsets starting from the next value. Implementation 
 ;; uses the nw:weak-component-clusters reporter
-to-report label-connected-region [pset region-var id0 n4?]
+to-report label-connected-region [pset region-id-reporter id0 n4?]
   ask pset [ sprout-nodes 1 ]
   ask nodes [
     ifelse n4? [
-      ask (nodes-on neighbors4) with [x1-var-matches-x2-var? self myself region-var] [
+      ask (nodes-on neighbors4) with [x1-var-matches-x2-var? self myself region-id-reporter] [
         create-link-with myself
       ]
     ]
     [
-      ask (nodes-on neighbors) with [x1-var-matches-x2-var? self myself region-var] [
+      ask (nodes-on neighbors) with [x1-var-matches-x2-var? self myself region-id-reporter] [
         create-link-with myself
       ]
     ]
@@ -303,15 +310,17 @@ end
 ;; merges isolated singletons - NOT CONFIDENT OF THIS IMPLEMENTATION
 ;; TODO: would also like to extend this to filter out connected regions smaller than
 ;; some threshold value
-to merge-singletons [pset var setter]
-  let singletons get-singletons pset var
+;; var-getter is an anonymous reporter like   [p -> [farm-id] of p]
+;; var-matcher is an anonymous procedure like [[x y] -> ask x [set farm-id [farm-id] of y]]
+to merge-singletons [pset var-getter var-matcher]
+  let singletons get-singletons pset var-getter
   while [any? singletons] [
     ifelse count pset = count singletons [
       ask singletons [
         let p one-of singletons
         let others [ other singletons ] of p
         foreach sort others [ q ->
-          set-x1-var-to-x2-var p q setter
+          set-x1-var-to-x2-var p q var-matcher
         ]
       ]
     ]
@@ -319,17 +328,17 @@ to merge-singletons [pset var setter]
       ask singletons [
         let non-singleton-neighbours neighbors4 with [member? self pset and not member? self singletons]
         if any? non-singleton-neighbours [
-          set-x1-var-to-x2-var self one-of non-singleton-neighbours setter
+          set-x1-var-to-x2-var self one-of non-singleton-neighbours var-matcher
         ]
       ]
     ]
-    set singletons get-singletons pset var
+    set singletons get-singletons pset var-getter
   ]
 end
 
-;; this only detects singleton members of pset with neighbors4 with matching values of var
-to-report get-singletons [pset var]
-  report pset with [not any? neighbors4 with [x1-var-matches-x2-var? self myself var and member? self pset]]
+;; this only detects singleton members of pset with neighbors4 with matching values of var-getter
+to-report get-singletons [pset var-getter]
+  report pset with [not any? neighbors4 with [x1-var-matches-x2-var? self myself var-getter and member? self pset]]
 end
 
 

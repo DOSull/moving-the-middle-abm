@@ -10,4 +10,3 @@ data/spatial/*
 /.quarto/
 *.tif
 *.gpkg
-data/

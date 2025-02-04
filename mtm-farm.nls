@@ -9,12 +9,13 @@ farms-own [
   my-farmer               ;; farmer who owns/runs farm
 
   current-profit          ;; most recent profit of farm summed across patches
-  current-profit-0
   current-income          ;; most recent income of farm summed across patches
-  current-income-0
   current-costs           ;; most recent costs of farm summed across patches
+  losses-record           ;; a list recording loss (coded 1) or profit (coded 0) in recent years
+
+  current-profit-0        ;; variables at model initialisation for quick reset
+  current-income-0
   current-costs-0
-  losses-record
   losses-record-0
 ]
 
@@ -29,12 +30,12 @@ to initialise-farm
   set losses-record n-values years-to-remember [i -> 0]
 end
 
-;; this always applies year-on-year variance so no 'with-var?' parameter required
+;; farm profit is simple sum of the contributions from its holdings
 to update-profit-of-farm
   set current-income sum [current-income] of [my-holdings] of my-farmer
   set current-costs sum [current-costs] of [my-holdings] of my-farmer
   set current-profit sum [current-profit] of [my-holdings] of my-farmer
-  set losses-record lput (ifelse-value current-income < 0 [1] [0]) (but-first losses-record)
+  set losses-record lput (ifelse-value current-profit < 0 [1] [0]) (but-first losses-record)
 end
 
 ;; The MIT License (MIT)

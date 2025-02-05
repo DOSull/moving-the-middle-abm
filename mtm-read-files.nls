@@ -30,6 +30,7 @@ to setup-farmer-parameters
   read-farm-types-from-file              word market-data-folder "farmer-threshold-matrix.csv"
   read-interventions-from-file           word market-data-folder "farmer-threshold-matrix.csv"
   read-farmer-thresholds-from-file       word market-data-folder "farmer-threshold-matrix.csv"
+  ;; details of the file formats for the following are provided in each procedure
   read-intervention-impacts-from-file    word market-data-folder "intervention-impacts.csv"
   read-farm-type-suitabilities-from-file word market-data-folder "suitabilities.csv"
   read-farm-type-change-probs-from-file  word market-data-folder "conversion-probabilities.csv"

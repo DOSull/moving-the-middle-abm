@@ -31,8 +31,9 @@ end
 to-report get-new-farmer-age [model-initialisation?]
   ;; this gives us a reasonable(ish) age distribution at least for now
   ifelse model-initialisation? 
-  [ report random-negative-binomial-with-mean-vmr 60 2 ]
-  [ report random-negative-binomial-with-mean-vmr 50 1.25 ]
+  ;; age distribution of initial population leans older than that of new entrants
+  [ report 20 + random-beta-binomial 70 5 4 ]
+  [ report 20 + random-beta-binomial 45 4 2 ]
 end
 
 ;; not currently used
@@ -67,7 +68,7 @@ to age-and-succeed-farmer
   ;; don't actually need to create a new farmer, just have to change age and
   ;; consider some other changes
   set age age + 1
-  if random-float 1 < (age * age / 30000) or age = 80   [
+  if random-float 1 < (1 / (91 - age)) [
     set age get-new-farmer-age false
     set succession-stage succession-stage + 1
     set disposition one-of dispositions

@@ -196,6 +196,15 @@ to-report slice-by-ones [lst ones]
   report map [t -> item 0 t] filter [t -> item 1 t = 1] (map list lst ones)
 end
 
+to-report first-n [lst n]
+  report sublist lst 0 n
+end
+
+to-report last-n [lst n]
+  report sublist lst (length lst - 2) length lst
+end
+
+
 ;; ------------------------------------------------------------------------------
 ;; string stuff
 ;; ------------------------------------------------------------------------------

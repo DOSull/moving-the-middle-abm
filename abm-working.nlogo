@@ -6,6 +6,7 @@ __includes [
   "mtm-farmer.nls"         ;; code for farmer turtles
   "mtm-farm.nls"           ;; code for farm turtles
   "mtm-holding.nls"        ;; code for holding turtles
+  "mtm-plots.nls"          ;; plotting code allowing for varying numbers of pens
   "distribution-utils.nls" ;; generic statistical function
   "list-utils.nls"         ;; generic list utilities
   "mtm-profile.nls"        ;; profiling stuff goes here
@@ -134,6 +135,7 @@ to setup
   setup-economic-parameters   ;; mtm-read-files.nls
   make-matrix-copies-of-data  ;; mtm-read-files.nls
 
+  setup-model-plots           ;; mtm-plots.nls
   redraw                      ;; mtm-render.nls
   reset-ticks
   if run-rng-seed != 0 [ random-seed run-rng-seed ]
@@ -184,6 +186,7 @@ to go
     ]
     ask farms [redraw-farm]
     ask holdings [redraw-holding]
+    update-model-plots
     tick
   ]
 end
@@ -348,7 +351,7 @@ sigmoid-slope
 sigmoid-slope
 0.01
 20
-5.18
+20.0
 0.01
 1
 NIL
@@ -790,7 +793,7 @@ carbon-price
 carbon-price
 0
 50
-50.0
+5.0
 1
 1
 NIL
@@ -885,7 +888,7 @@ include-networks?
 PLOT
 1142
 544
-1497
+1465
 721
 Landuse composition
 NIL
@@ -898,10 +901,6 @@ true
 true
 "" ""
 PENS
-"snb" 1.0 0 -955883 true "" "plot count farm-land with [landuse = \"SNB\"]"
-"dairy" 1.0 0 -13791810 true "" "plot count farm-land with [landuse = \"Dairy\"]"
-"forest" 1.0 0 -13840069 true "" "plot count farm-land with [landuse = \"Forest\"]"
-"crop" 1.0 0 -8630108 true "" "plot count farm-land with [landuse = \"Crop\"]"
 
 SWITCH
 1142
@@ -910,7 +909,7 @@ SWITCH
 271
 apply-severity-of-losses?
 apply-severity-of-losses?
-1
+0
 1
 -1000
 
@@ -951,7 +950,7 @@ SWITCH
 313
 apply-suitability?
 apply-suitability?
-1
+0
 1
 -1000
 
@@ -1012,7 +1011,7 @@ SWITCH
 53
 consider-landuse-change-on-succession?
 consider-landuse-change-on-succession?
-1
+0
 1
 -1000
 
@@ -1023,7 +1022,7 @@ SWITCH
 228
 prioritise-forestry-set-aside?
 prioritise-forestry-set-aside?
-1
+0
 1
 -1000
 
@@ -1049,28 +1048,6 @@ Off = Consider all alternative landuses (not only forestry) for unprofitable hol
 
 PLOT
 1142
-349
-1495
-535
-Management adoption
-NIL
-Count
-0.0
-10.0
-0.0
-10.0
-true
-true
-"" ""
-PENS
-"Build wetland" 1.0 0 -16777216 true "" "plot sum [count the-land] of holdings with [matrix:get my-mgmt-interventions 0 0 = 1]"
-"Clean races" 1.0 0 -10649926 true "" "plot sum [count the-land] of holdings with [matrix:get my-mgmt-interventions 0 1 = 1]"
-"Farm plan" 1.0 0 -2674135 true "" "plot sum [count the-land] of holdings with [matrix:get my-mgmt-interventions 0 2 = 1]"
-"Join ETS" 1.0 0 -955883 true "" "plot sum [count the-land] of holdings with [matrix:get my-mgmt-interventions 0 3 = 1]"
-"Riparian planting" 1.0 0 -13840069 true "" "plot sum [count the-land] of holdings with [matrix:get my-mgmt-interventions 0 4 = 1]"
-
-PLOT
-1142
 65
 1496
 185
@@ -1086,6 +1063,23 @@ false
 "" ""
 PENS
 "default" 1.0 1 -16777216 true "set-plot-x-range 20 100\nset-plot-pen-interval 5" "histogram [age] of farmers"
+
+PLOT
+1142
+319
+1526
+541
+Interventions
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
 
 @#$#@#$#@
 ## WHAT IS IT?

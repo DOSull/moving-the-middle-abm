@@ -3,9 +3,7 @@ title: "Farmer decisions about management interventions"
 subtite: "MtM ABM documentation"
 author: David O'Sullivan
 date: 2 July 2024
-# execute: 
-#   cache: true
-#   freeze: auto
+lightbox: true
 format:
   html:
     toc: true

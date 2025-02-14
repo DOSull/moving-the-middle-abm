@@ -3,6 +3,7 @@ title: "Possible extensions of the model"
 subtitle: "MtM ABM documentation"
 author: "David O'Sullivan"
 date: 14 February 2025
+lightbox: true
 format:
   html:
     toc: true

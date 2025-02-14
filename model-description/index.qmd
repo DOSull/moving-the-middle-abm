@@ -13,6 +13,7 @@ listing:
   sort-ui: false
   filter-ui: false
   fields: [title]
+lightbox: true
 format:
   html:
     toc: true

@@ -3,12 +3,12 @@ title: "Farmer decision making: general"
 subtitle: "MtM ABM documentation"
 author: David O'Sullivan
 date: 14 February 2025
-execute: 
-  cache: true
-  freeze: auto
+lightbox: true
 format:
   html:
-    toc: false
+    toc: true
+    toc-depth: 4
+    toc-title: "Contents"
     code-fold: true
     html-math-method: katex
     embed-resources: true

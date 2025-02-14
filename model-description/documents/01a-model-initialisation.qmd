@@ -1,0 +1,69 @@
+---
+title: "Model initialisation"
+subtitle: "MtM ABM documentation"
+author: "David O'Sullivan"
+date: 15 February 2025
+date-modified: 15 February 2025
+lightbox: true
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-title: "Contents"
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+    mermaid:
+      theme: neutral
+knitr:
+  opts_chunk: 
+    warning: false
+    message: false
+    # echo: false
+    R.options: 
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+No further detail seems necessary on the initialisation processes beyond the sequence shown in the flow chart below.[^1] 
+
+[^1]: It is worth noting that there are some tricky sequencing issues in the setup which make the associated code a little 'fragile' with some obvious-seeming changes for 'efficiency' likely to break the model! (These are noted in code comments.)
+
+```{mermaid}
+flowchart TB
+  A((START))
+  B[Read land uses and<br>interventions from files]
+  C{Geography<br>from GIS<br>files?}
+  D[Setup LUC<br>on land]
+  E[Partition land<br>into farms]
+  F[Read LUC<br>from <span style='font-family:monospace;'>luc.asc</span>]
+  G[Read farms<br>from <span style='font-family:monospace;'>parcels.shp</span>]
+  H[Initialise farmers<br>one per farm]
+  I[Partition farms by LUC<br>into holdings]
+  J[Initialise market<br>settings from files]
+  K[Run one cycle]
+  L[Store settings<br>for rapid reset]
+  M((END))
+  A --> B
+  B --> C
+  C -->|N| D
+  D --> E
+  E --> H
+  C -->|Y| F
+  F --> G
+  G --> H
+  H --> I
+  I --> J
+  J --> K
+  K --> L
+  L --> M
+```
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date | Changes
+|:-|:------
+| 2025-02-15 | Pages split into model initialisation and model main loop.                       
+| 2025-02-14 | Initial post.                       
+
+:::

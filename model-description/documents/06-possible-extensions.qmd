@@ -21,15 +21,6 @@ knitr:
       knitr.table.html.attr: "quarto-disable-processing=true"
 ---
 
-::: {.callout-note collapse="true"}
-#### Update History
-
-| Date | Changes
-|:-|:--------|
-| 2025-02-14 | Initial post.                       
-
-:::
-
 Clarify model scales both temporal (1 year or 5 years per tick?) and spatial (1 ha per cell?)
 
 Inclusion of landuse in spatial data files.
@@ -39,3 +30,12 @@ Multiple values of the `sigmoid-slope` attribute for different push and pull fac
 Make farmer dispositions matter. Probably a case of extending the farmer thresholds input file to cross-tab by disposition.
 
 Activate local and industry network effects.
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date | Changes
+|:-|:------
+| 2025-02-14 | Initial post.                       
+
+:::

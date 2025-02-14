@@ -1,0 +1,57 @@
+---
+title: "Model main loop"
+subtitle: "MtM ABM documentation"
+author: "David O'Sullivan"
+date: 14 February 2025
+date-modified: 15 February 2025
+lightbox: true
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-title: "Contents"
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+    mermaid:
+      theme: neutral
+knitr:
+  opts_chunk: 
+    warning: false
+    message: false
+    # echo: false
+    R.options: 
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+## Model main loop
+Each model tick the model steps through the sequence shown below. 
+
+More details of procedures in [red]{style='color:red;'} is set out in documents linked from those boxes in the flow chart.
+
+```{mermaid}
+flowchart TB
+  A((START))
+  B[Age farmers and<br>replace any that exit]
+  C[<span style='color:red;'>Update income, costs, and<br>profit of holdings and farms</span>]
+  E[<span style='color:red;'>Farmer decision making</span>]
+  T[Update map and plots]
+  Z((END))
+  A --> B
+  B --> C
+  C --> E
+  E --> T
+  T --> Z
+  click C "02-calculation-of-farm-income.html" "Click for details"
+  click E "03-farmer-decisions-general.html" "Click for details"
+```
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date | Changes
+|:-|:------
+| 2025-02-15 | Page split into model initialisation and model main loop.                       
+| 2025-02-14 | Initial post.                       
+
+:::

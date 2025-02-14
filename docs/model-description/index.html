@@ -5115,8 +5115,14 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../model-description/documents/01-overall-model-flow.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Overall model flow</span></a>
+  <a href="../model-description/documents/01a-model-initialisation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Model initialisation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../model-description/documents/01b-model-main-loop.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Model main loop</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -5133,7 +5139,7 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../model-description/documents/04-farmer-decisions-land-use-change.html" class="sidebar-item-text sidebar-link">
+  <a href="../model-description/documents/04-farmer-decisions-land-use.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Farmer decisions about land use</span></a>
   </div>
 </li>
@@ -5194,6 +5200,8 @@ window.Quarto = {
 </header>
 
 
+<p>This document provides a high-level overview of the operation of the agent-based model under development for the Moving the Middle project. The model code is available for download at <a href="https://github.com/DOSull/moving-the-middle-abm">this repository</a>.</p>
+<p>Although the model aims to be ‘simple’ that is a relative term, and there are a lot of moving parts to this model. I have organised the description into a set of linked documents as a way to manage this complexity. The documents are listed below.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
@@ -5223,8 +5231,6 @@ Update History
 </div>
 </div>
 </div>
-<p>This document provides a high-level overview of the operation of the agent-based model under development for the Moving the Middle project. The model code is available for download at <a href="https://github.com/DOSull/moving-the-middle-abm">this repository</a>.</p>
-<p>Although the model aims to be ‘simple’ that is a relative term, and there are a lot of moving parts to this model. I have organised the description into a set of linked documents as a way to manage this complexity. The documents are listed below.</p>
 
 
 
@@ -5239,37 +5245,42 @@ Title
 </tr>
 </thead>
 <tbody class="list">
-<tr data-index="0" data-listing-date-sort="1739444400000" data-listing-file-modified-sort="1739506684927" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="12" data-listing-word-count-sort="2291" data-listing-title-sort="Overall model structure" data-listing-filename-sort="00-overall-model-structure.qmd">
+<tr data-index="0" data-listing-date-sort="1739444400000" data-listing-file-modified-sort="1739572383534" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="12" data-listing-word-count-sort="2366" data-listing-title-sort="Overall model structure" data-listing-filename-sort="00-overall-model-structure.qmd">
 <td>
 <a href="../model-description/documents/00-overall-model-structure.html" class="title listing-title">Overall model structure</a>
 </td>
 </tr>
-<tr data-index="1" data-listing-date-sort="1739444400000" data-listing-file-modified-sort="1739506692989" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="2" data-listing-word-count-sort="254" data-listing-title-sort="Overall model flow" data-listing-filename-sort="01-overall-model-flow.qmd">
+<tr data-index="1" data-listing-date-sort="1739530800000" data-listing-file-modified-sort="1739571324304" data-listing-date-modified-sort="1739530800000" data-listing-reading-time-sort="2" data-listing-word-count-sort="234" data-listing-title-sort="Model initialisation" data-listing-filename-sort="01a-model-initialisation.qmd">
 <td>
-<a href="../model-description/documents/01-overall-model-flow.html" class="title listing-title">Overall model flow</a>
+<a href="../model-description/documents/01a-model-initialisation.html" class="title listing-title">Model initialisation</a>
 </td>
 </tr>
-<tr data-index="2" data-listing-date-sort="1739444400000" data-listing-file-modified-sort="1739506701743" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="6" data-listing-word-count-sort="1034" data-listing-title-sort="Calculation of farm income" data-listing-filename-sort="02-calculation-of-farm-income.qmd">
+<tr data-index="2" data-listing-date-sort="1739444400000" data-listing-file-modified-sort="1739571056237" data-listing-date-modified-sort="1739530800000" data-listing-reading-time-sort="1" data-listing-word-count-sort="164" data-listing-title-sort="Model main loop" data-listing-filename-sort="01b-model-main-loop.qmd">
+<td>
+<a href="../model-description/documents/01b-model-main-loop.html" class="title listing-title">Model main loop</a>
+</td>
+</tr>
+<tr data-index="3" data-listing-date-sort="1739444400000" data-listing-file-modified-sort="1739571052038" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="6" data-listing-word-count-sort="1031" data-listing-title-sort="Calculation of farm income" data-listing-filename-sort="02-calculation-of-farm-income.qmd">
 <td>
 <a href="../model-description/documents/02-calculation-of-farm-income.html" class="title listing-title">Calculation of farm income</a>
 </td>
 </tr>
-<tr data-index="3" data-listing-date-sort="1739444400000" data-listing-file-modified-sort="1739506709979" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="200" data-listing-title-sort="Farmer decision making: general" data-listing-filename-sort="03-farmer-decisions-general.qmd">
+<tr data-index="4" data-listing-date-sort="1739444400000" data-listing-file-modified-sort="1739572032929" data-listing-date-modified-sort="1739530800000" data-listing-reading-time-sort="1" data-listing-word-count-sort="141" data-listing-title-sort="Farmer decision making: general" data-listing-filename-sort="03-farmer-decisions-general.qmd">
 <td>
 <a href="../model-description/documents/03-farmer-decisions-general.html" class="title listing-title">Farmer decision making: general</a>
 </td>
 </tr>
-<tr data-index="4" data-listing-date-sort="1739444400000" data-listing-file-modified-sort="1739506717951" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="33" data-listing-title-sort="Farmer decisions about land use" data-listing-filename-sort="04-farmer-decisions-land-use-change.qmd">
+<tr data-index="5" data-listing-date-sort="1739444400000" data-listing-file-modified-sort="1739571630055" data-listing-date-modified-sort="1739530800000" data-listing-reading-time-sort="1" data-listing-word-count-sort="141" data-listing-title-sort="Farmer decisions about land use" data-listing-filename-sort="04-farmer-decisions-land-use.qmd">
 <td>
-<a href="../model-description/documents/04-farmer-decisions-land-use-change.html" class="title listing-title">Farmer decisions about land use</a>
+<a href="../model-description/documents/04-farmer-decisions-land-use.html" class="title listing-title">Farmer decisions about land use</a>
 </td>
 </tr>
-<tr data-index="5" data-listing-date-sort="1719835200000" data-listing-file-modified-sort="1739506726079" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="9" data-listing-word-count-sort="1746" data-listing-title-sort="Farmer decisions about management interventions" data-listing-filename-sort="05-farmer-decisions-interventions.qmd">
+<tr data-index="6" data-listing-date-sort="1719835200000" data-listing-file-modified-sort="1739571052033" data-listing-date-modified-sort="1739530800000" data-listing-reading-time-sort="10" data-listing-word-count-sort="1814" data-listing-title-sort="Farmer decisions about management interventions" data-listing-filename-sort="05-farmer-decisions-interventions.qmd">
 <td>
 <a href="../model-description/documents/05-farmer-decisions-interventions.html" class="title listing-title">Farmer decisions about management interventions</a>
 </td>
 </tr>
-<tr data-index="6" data-listing-date-sort="1739444400000" data-listing-file-modified-sort="1739506733951" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="92" data-listing-title-sort="Possible extensions of the model" data-listing-filename-sort="06-possible-extensions.qmd">
+<tr data-index="7" data-listing-date-sort="1739444400000" data-listing-file-modified-sort="1739571052038" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="92" data-listing-title-sort="Possible extensions of the model" data-listing-filename-sort="06-possible-extensions.qmd">
 <td>
 <a href="../model-description/documents/06-possible-extensions.html" class="title listing-title">Possible extensions of the model</a>
 </td>

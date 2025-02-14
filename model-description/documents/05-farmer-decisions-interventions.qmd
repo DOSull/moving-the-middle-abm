@@ -3,6 +3,7 @@ title: "Farmer decisions about management interventions"
 subtite: "MtM ABM documentation"
 author: David O'Sullivan
 date: 2 July 2024
+date-modified: 15 February 2025
 lightbox: true
 format:
   html:
@@ -12,6 +13,8 @@ format:
     code-fold: true
     html-math-method: katex
     embed-resources: true
+    mermaid:
+      theme: neutral
 knitr:
   opts_chunk: 
     warning: false
@@ -20,19 +23,6 @@ knitr:
     R.options: 
       knitr.table.html.attr: "quarto-disable-processing=true"
 ---
-
-::: {.callout-note collapse="true"}
-#### Update History
-
-| Date | Changes
-|:-|:--------|
-| 2024-07-28 | Correction in equation summarising full calculation of profit. Added note to consider the nudge calculation's possible bias favouring changes _after_ bad years.
-| 2024-07-05 | Corrected relative change from a percentage to a proportion.
-| 2024-07-04 | Added detail on calculation of relative change noting that profit can't be handled this way because it is $\pm$ and relative change is meaningless for such variables.
-| 2024-07-03 | Added bar chart of farm income/costs estimates. 
-| 2024-07-02 | Initial post.                       
-
-:::
 
 ```{r echo=FALSE,warnings=FALSE,results=FALSE,message=FALSE}
 library(tidyr)
@@ -44,6 +34,27 @@ library(kableExtra)
 base_dir <- "~/Documents/work/mwlr-moving-the-middle/abm/data/market/default/"
 ```
 
+```{mermaid}
+flowchart TB
+  A((START))
+  F{Any<br>loss-making<br>holdings?}
+  G[<span style='color:red;'>Consider land<br>use change</span>]
+  L[Compile list of<br>possible interventions<br>per holding]
+  M[Choose and possibly<br>implement interventions]
+  N{More<br>farmers?}
+  Z((END))
+  A --> F
+  F -->|Y| G
+  G --> N
+  F -->|N| L
+  subgraph "Consider interventions"
+  L --> M
+  end
+  M --> N
+  N -->|Y| F
+  N -->|N| Z
+  click G "04-farmer-decisions-land-use.html" "Click for details"
+```
 
 ## The effect of interventions
 A range of possible interventions $I=\{i_1,i_2,\ldots i_n\}$ may be undertaken by farmers, such as
@@ -205,3 +216,16 @@ The most important thing to note here is the reduction in the standard deviation
 Calculation of additional costs resulting from adoption of various interventions can also be formulated as a matrix calculation, using a row-matrix of adopted interventions where $1$ denotes adoption and $0$ non-adoption of each intervention.
 
 A more involved matrix formulation is required for the impact of adoption of interventions on emissions and yields because these are combined multiplicatively. The model code is the best guide to the details in this case. The code has been written to ensure that the equations detailed in the section on [the effect of interventions](#the-effect-of-interventions) has been followed.
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date | Changes
+|:-|:------
+| 2024-07-28 | Correction in equation summarising full calculation of profit. Added note to consider the nudge calculation's possible bias favouring changes _after_ bad years.
+| 2024-07-05 | Corrected relative change from a percentage to a proportion.
+| 2024-07-04 | Added detail on calculation of relative change noting that profit can't be handled this way because it is $\pm$ and relative change is meaningless for such variables.
+| 2024-07-03 | Added bar chart of farm income/costs estimates. 
+| 2024-07-02 | Initial post.                       
+
+:::

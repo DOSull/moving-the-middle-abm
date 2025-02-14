@@ -1,0 +1,63 @@
+---
+title: "Farmer decisions about land use"
+subtitle: "MtM ABM documentation"
+author: "David O'Sullivan"
+date: 14 February 2025
+date-modified: 15 February 2025
+lightbox: true
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-title: "Contents"
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+    mermaid:
+      theme: neutral
+knitr:
+  opts_chunk: 
+    warning: false
+    message: false
+    # echo: false
+    R.options: 
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+```{mermaid}
+flowchart TB
+  A((START))
+  F{Any<br>loss-making<br>holdings?}
+  G["<span style='font-family:monospace'>options</span> &larr; {}"]
+  H{Farm<br>losing money<br>overall?}
+  I[Add possible<br>all of farm land use<br>changes to <span style="font-family:monospace;">options</span>]
+  J[Add possible<br>per holding land use<br>changes to <span style="font-family:monospace;">options</span>]
+  K[Choose among choices<br>in  <span style="font-family:monospace;">options</span>]
+  L[<span style='color:red;'>Consider<br>interventions</span>]
+  N{More<br>farmers?}
+  Z((END))
+  A --> F
+  F -->|Y| G
+  F -->|N| L
+  subgraph "Consider land use"
+  G --> H
+  H -->|Y| I
+  H -->|N| J
+  I --> J
+  J --> K
+  end
+  K --> N
+  L --> N
+  N -->|Y| F
+  N -->|N| Z
+  click L "05-farmer-decisions-interventions.html" "Click for details"
+```
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date | Changes
+|:-|:------
+| 2025-02-14 | Initial post.                       
+
+:::

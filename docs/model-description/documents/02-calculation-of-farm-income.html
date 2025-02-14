@@ -1705,7 +1705,7 @@ async function fuseSearch(query, fuse, fuseOptions) {
 </script>
 <meta name="quarto:offset" content="../../">
 <link href="../../model-description/documents/03-farmer-decisions-general.html" rel="next">
-<link href="../../model-description/documents/01-overall-model-flow.html" rel="prev">
+<link href="../../model-description/documents/01b-model-main-loop.html" rel="prev">
 <script>const sectionChanged = new CustomEvent("quarto-sectionChanged", {
   detail: {},
   bubbles: true,
@@ -5114,8 +5114,14 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../model-description/documents/01-overall-model-flow.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Overall model flow</span></a>
+  <a href="../../model-description/documents/01a-model-initialisation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Model initialisation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../model-description/documents/01b-model-main-loop.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Model main loop</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -5132,7 +5138,7 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../model-description/documents/04-farmer-decisions-land-use-change.html" class="sidebar-item-text sidebar-link">
+  <a href="../../model-description/documents/04-farmer-decisions-land-use.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Farmer decisions about land use</span></a>
   </div>
 </li>
@@ -5209,35 +5215,6 @@ window.Quarto = {
 </header>
 
 
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Update History
-</div>
-<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
-</div>
-<div id="callout-1" class="callout-1-contents callout-collapse collapse">
-<div class="callout-body-container callout-body">
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th style="text-align: left;">Date</th>
-<th style="text-align: left;">Changes</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">2025-02-14</td>
-<td style="text-align: left;">Initial post.</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
 <section id="baseline-income-equation-for-farms" class="level2">
 <h2 class="anchored" data-anchor-id="baseline-income-equation-for-farms">Baseline income equation for farms</h2>
 <p>The baseline profit <span class="math inline">Z</span> of each hectare of a farm is given by</p>
@@ -6235,6 +6212,35 @@ Z_{FL} = p_Fq_{FL} - x_{FL} - te_{FL}
 </div>
 </div>
 </div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Update History
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Date</th>
+<th style="text-align: left;">Changes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">2025-02-14</td>
+<td style="text-align: left;">Initial post.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
 
 
 </section>
@@ -6666,8 +6672,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../model-description/documents/01-overall-model-flow.html" class="pagination-link" aria-label="Overall model flow">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Overall model flow</span>
+      <a href="../../model-description/documents/01b-model-main-loop.html" class="pagination-link" aria-label="Model main loop">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Model main loop</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">

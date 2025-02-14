@@ -21,15 +21,6 @@ knitr:
       knitr.table.html.attr: "quarto-disable-processing=true"
 ---
 
-::: {.callout-note collapse="true"}
-#### Update History
-
-| Date | Changes
-|:-|:--------|
-| 2025-02-14 | Initial post.                       
-
-:::
-
 ```{r echo=FALSE,warnings=FALSE,results=FALSE,message=FALSE}
 library(tidyr)
 library(dplyr)
@@ -202,3 +193,12 @@ ggplot(plot_data |> filter(name %in% c("Gross income", "Total costs"))) +
   facet_wrap(~ farm_type) +
   theme_minimal()
 ```
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date | Changes
+|:-|:------
+| 2025-02-14 | Initial post.                       
+
+:::

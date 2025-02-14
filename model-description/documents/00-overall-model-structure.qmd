@@ -21,17 +21,8 @@ knitr:
       knitr.table.html.attr: "quarto-disable-processing=true"
 ---
 
-::: {.callout-note collapse="true"}
-#### Update History
-
-| Date | Changes
-|:-|:--------|
-| 2025-02-14 | Initial post.                       
-
-:::
-
 ## The model interface
-At time of writing the model GUI appears as below (click on it for a closer look):
+At time of writing (mid-Feb 2025) the model GUI appears as below (click on the image for a closer look):
 
 ![](abm-working-interface-2.png)
 
@@ -71,7 +62,9 @@ The column of controls on the right of the model provides some tracking plots (f
 Clearly, there is a lot going on here. The easiest way to get a handle on it is through the main model elements and their attributes and behaviours.
 
 ### Land use
-Each unit of land in the model, and the aggregations into [holdings](#holdings) or [farms](#farms) has a land use, which is one of `"Crop"`, `"Dairy"`, `"Forest"`, or `"SNB"`. This classification could be made more detailed, although some work would be required on visualization aspects of the model to accommodate the change. **Note:** Applied to grid cells representing the land in the model, land use is the `landuse` attribute. Applied to [farmers](#farmers), [farms](#farms), or [holdings](#holdings) it is `farm-type`. For holdings the two will always match exactly (all cells in a holding will be the same land use), but for farmers and farms not all associated cells need be in the same land use. 
+Each unit of land in the model, and the aggregations into [holdings](#holdings) or [farms](#farms) has a land use, which is one of `"Crop"`, `"Dairy"`, `"Forest"`, or `"SNB"`. This classification could be made more detailed, although some work would be required on visualization aspects of the model to accommodate the change. **Note:** Applied to grid cells representing the land in the model, land use is the `landuse` attribute. Applied to [farmers](#farmers), [farms](#farms), or [holdings](#holdings) it is `farm-type`.[^5] For holdings the two will always match exactly (all cells in a holding will be the same land use), but for farmers and farms not all associated cells need be in the same land use. 
+
+[^5]: The reason for this difference is an implementation detail in NetLogo. Agents (which farmers, farms, and holdings are) can always directly access attributes of the grid cells they are in. If the land use attribute had the same name both in grid cells and in the various agents, then accessing `landuse` would be ambiguous: does it refer to the agent's attribute or the grid cell's attribute? Naming the attribute differently resolves the ambiguity.
 
 ### Management interventions
 A list of potential management interventions, such as e.g., `"Build_Wetland"`, `"Clean_Races"`, `"Farm_Plan"`, `"Join_ETS"`, or `"Riparian_Planting"`. These have associated impacts on costs, yields and emissions as set out in the `intervention-impacts.csv` file.
@@ -174,4 +167,13 @@ Random initialisation first sets up a land use capability (LUC) landscape either
 [^3]: Okabe A, B Boots, K Sugihara, and SN Chiu. 2000. _Spatial Tessellations: Concepts and Applications of Voronoi Diagrams_. 2nd edn. Chichester, UK: Wiley.
 
 Initialisation from GIS files uses a `parcels.shp` shapefile and `luc.asc` raster file to specify define respectively the farms and LUC landscape of the model. Farms are again subdivided into holdings based on LUC. Different catchments can be applied by providing these files in a folder `data/spatial/<region-name>`. Model development has been based on data for the Rangitaiki catchment to test this setup. Currently initialisation from files sets land use randomly (no such attribute is available in the `parcels.shp` file), but we anticipate that 'localisation' of the model to particular catchments will be relatively straightforward given appropriate spatial data files.
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date | Changes
+|:-|:------
+| 2025-02-14 | Initial post.                       
+
+:::
 

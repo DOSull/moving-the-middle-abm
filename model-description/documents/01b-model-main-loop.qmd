@@ -25,9 +25,9 @@ knitr:
 ---
 
 ## Model main loop
-Each model tick the model steps through the sequence shown below. 
+The model steps through the sequence shown below each model 'tick'. 
 
-More details of procedures in [red]{style='color:red;'} is set out in documents linked from those boxes in the flow chart.
+More details of procedures in [red]{style='color:red;'} are set out in documents linked from those boxes in the flow chart.
 
 ```{mermaid}
 flowchart TB

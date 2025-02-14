@@ -75,11 +75,11 @@
   {
     "objectID": "model-description/index.html",
     "href": "model-description/index.html",
-    "title": "Index",
+    "title": "Moving the Middle ABM documentation",
     "section": "",
-    "text": "This document provides a high-level overview of the operation of the agent-based model under development for the Moving the Middle project. The model code is available for download at this repository.\nAlthough the model aims to be ‘simple’ that is a relative term, and there are a lot of moving parts to this model. I have organised the description into a set of linked documents as a way to manage this complexity. The documents are listed below.\n\n\n\n\n\n\nUpdate History\n\n\n\n\n\n\n\n\nDate\nChanges\n\n\n\n\n2025-02-14\nInitial post.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nTitle\n\n\n\n\n\n\nOverall model structure\n\n\n\n\nModel initialisation\n\n\n\n\nModel main loop\n\n\n\n\nCalculation of farm income\n\n\n\n\nFarmer decision making: general\n\n\n\n\nFarmer decisions about land use\n\n\n\n\nFarmer decisions about management interventions\n\n\n\n\nPossible extensions of the model\n\n\n\n\n\nNo matching items",
+    "text": "This document provides a high-level overview of the operation of the agent-based model under development for the Moving the Middle project. The model code is available for download at this repository.\nAlthough the model aims to be ‘simple’, that is a relative term. The model is only as complicated as it needs to be, which turns out to be relatively complicated. In short, there are a lot of moving parts.\nAs a way to manage this complexity I have organised the description into a set of linked documents as listed below.\n\n\n\n\n\n\n\n\n\n\nTitle\n\n\n\n\n\n\nOverall model structure\n\n\n\n\nModel initialisation\n\n\n\n\nModel main loop\n\n\n\n\nCalculation of farm income\n\n\n\n\nFarmer decision making: general\n\n\n\n\nFarmer decisions about land use\n\n\n\n\nFarmer decisions about management interventions\n\n\n\n\nPossible extensions of the model\n\n\n\n\n\nNo matching items",
     "crumbs": [
-      "Index"
+      "Moving the Middle ABM documentation"
     ]
   },
   {

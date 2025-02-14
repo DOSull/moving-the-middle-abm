@@ -1,6 +1,5 @@
 ---
-title: "Index"
-subtitle: "MtM ABM documentation"
+title: "Moving the Middle ABM documentation"
 author: "David O'Sullivan"
 date: 14 February 2025
 # execute: 
@@ -33,13 +32,15 @@ knitr:
 
 This document provides a high-level overview of the operation of the agent-based model under development for the Moving the Middle project. The model code is available for download at [this repository](https://github.com/DOSull/moving-the-middle-abm).
 
-Although the model aims to be 'simple' that is a relative term, and there are a lot of moving parts to this model. I have organised the description into a set of linked documents as a way to manage this complexity. The documents are listed below.
+Although the model aims to be 'simple', that is a relative term. The model is only as complicated as it needs to be, which turns out to be relatively complicated. In short, there are a lot of moving parts. 
 
-::: {.callout-note collapse="true"}
+As a way to manage this complexity I have organised the description into a set of linked documents as listed below.
+
+<!-- ::: {.callout-note collapse="true"}
 #### Update History
 
 | Date | Changes
 |:-|:------
 | 2025-02-14 | Initial post.                       
 
-:::
+::: -->

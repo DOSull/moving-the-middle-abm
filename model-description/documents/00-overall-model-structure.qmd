@@ -75,7 +75,7 @@ The land is represented by a square grid of cells (in NetLogo terminology 'patch
 ### Farmers
 Farmers are the only decision-making agents in the model even as other model elements (farms and holdings) are coded as 'agents' (everything in NetLogo is an agent[^4]).
 
-[^4]: Called 'turtles' in NetLogo land due to NetLogo's origins in the Logo programming language which introduced 'turtle graphics'. See Resnick M. 1994. _Turtles, Termites, and Traffic Jams: Explorations in Massively Parallel Microworlds_. Cambridge MA: MIT Press.
+[^4]: Termed 'turtles' in NetLogo land due to NetLogo's origins in the Logo programming language which introduced 'turtle graphics'. See Resnick M. 1994. _Turtles, Termites, and Traffic Jams: Explorations in Massively Parallel Microworlds_. Cambridge MA: MIT Press.
 
 Farmers have the following attributes:
 
@@ -85,8 +85,8 @@ Farmers have the following attributes:
 + `the-land`: a list of grid cells that compose the farm
 + `age`: age in years. Affects likelihood of farmer leaving and being succeeded by a new farmer.
 + `succession-stage`: how many 'new farmers' or 'which generation' of farmer this one is on this farm. We don't spawn new farmers on succession, we just change their settings and increment this attribute
-+ `disposition`: one of `"for-profit"`, `"pro-social"`, or `"pro-environmental"`. Not currently used.
-+ `industry-links` and `local-links`: other farmers connected to this one, that might influence their decisions. The model machinery to enable this is present but not currently used.
++ `disposition`: one of `"for-profit"`, `"pro-social"`, or `"pro-environmental"`. **Not currently used**.
++ `industry-links` and `local-links`: other farmers connected to this one, that might influence their decisions. The model machinery to enable this is present but **not currently used**.
 
 Key actions run by farmers include:
 
@@ -96,7 +96,7 @@ Key actions run by farmers include:
 + `consider-management-changes` and `make-management-changes`: consider possible management interventions for adoption and implement them (or not) as detailed in [Farmer decisions about management interventions](05-farmer-decisions-interventions.qmd).
 
 ### Farms
-Farms don't do much of anything since [holdings](#holdings) were added to the model. This is reflected in the fact that their only attributes are the self-explanatory `the-land`, `farm-type`, and `my-farmer`. A potential extension of the model (partly implemented) records the `losses-record` of a farm and this impacts the willingness of farmer's to consider land use change, so that an immediate all-of-farm change in land use only becomes likely if losses occur repeatedly over time.
+Farms don't do much of anything since [holdings](#holdings) were added to the model. This is reflected in the fact that their only attributes are the self-explanatory `the-land`, `farm-type`, and `my-farmer`. A potential extension of the model (**part implemented**) records the `losses-record` of a farm and this impacts the willingness of farmer's to consider land use change, so that an all-of-farm change in land use would become more likely as losses persist over time.
 
 ### Holdings
 Holdings are subfarm level units at which management interventions and land use changes are implemented. 
@@ -106,7 +106,7 @@ Holdings have the following attributes:
 + `farm-type`: one of the land uses in the model, i.e. one of `"Crop"`, `"Dairy"`, `"Forest"`, or `"SNB"`
 + `my-farmer`: the [farmer](#farmers) who owns this holding
 + `my-farm`: the [farm](#farms) of which this holding is a part
-+ `the-land`: a list of grid cells that compose the farm
++ `the-land`: a list of grid cells that compose the holding
 + `landuse-luc-profile`: a cross tabulation of the number of grid cells (i.e., hectares) of land in the holding by land use and LUC. In the current implementation since holdings are defined by land use and LUC only one entry in the table will be non-zero! However, as detailed in [Calculation of farm income](02-calculation-of-farm-income.qmd) this allows for more complex holding structures&mdash;most likely with a range of LUC across a holding. A farmer can sum these matrices to get a picture of the overall composition of the farm.
 + `current-profit`, `current-income`, and `current-costs`: profit, income, and costs of the holding as detailed in [Calculation of farm income](02-calculation-of-farm-income.qmd).
 + `my-mgmt-interventions`: a list of boolean flags indicating which [management interventions](#management-interventions) have been adopted on this holding.

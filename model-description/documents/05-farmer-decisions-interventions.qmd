@@ -1,0 +1,209 @@
+---
+title: "Farmer decisions about management interventions"
+subtite: "MtM ABM documentation"
+author: David O'Sullivan
+date: 2 July 2024
+# execute: 
+#   cache: true
+#   freeze: auto
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-title: "Contents"
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+knitr:
+  opts_chunk: 
+    warning: false
+    message: false
+    # echo: false
+    R.options: 
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date | Changes
+|:-|:--------|
+| 2024-07-28 | Correction in equation summarising full calculation of profit. Added note to consider the nudge calculation's possible bias favouring changes _after_ bad years.
+| 2024-07-05 | Corrected relative change from a percentage to a proportion.
+| 2024-07-04 | Added detail on calculation of relative change noting that profit can't be handled this way because it is $\pm$ and relative change is meaningless for such variables.
+| 2024-07-03 | Added bar chart of farm income/costs estimates. 
+| 2024-07-02 | Initial post.                       
+
+:::
+
+```{r echo=FALSE,warnings=FALSE,results=FALSE,message=FALSE}
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(kableExtra)
+
+base_dir <- "~/Documents/work/mwlr-moving-the-middle/abm/data/market/default/"
+```
+
+
+## The effect of interventions
+A range of possible interventions $I=\{i_1,i_2,\ldots i_n\}$ may be undertaken by farmers, such as
+
+- Establish a wetland
+- Riparian planting
+- Clean races
+- Develop a farm plan
+- Join the emissions trading scheme
+- etc.
+
+The currently adopted interventions on a particular farm we denote $A$ which will be a subset of the available interventions $I$. Not all interventions will make sense on each farm, so it might be more accurate to think of there being a number of intervention sets $I_F$ and on a particular farm of type $F$, the adopted interventions $A$ are some subset of $I_F$, with the potential new interventions to be considered in each time interval given by $I_F\setminus A$, that is the possible interventions on this type of farm not yet adopted.
+
+For each intervention $i_i$ there are associated impacts, in terms of added costs $\Delta x_{iFL}$, and changes in yields $\Delta q_{iFL}$ and emissions $\Delta e_{iFL}$, where the $F$ and $L$ subscripts indicate the dependence of these impacts on farm type $F$ and landuse capability $L$. The impacts of various interventions are stored in the `intervention-impacts.csv` file:
+
+```{r}
+interventions <- read.csv(str_glue("{base_dir}intervention-impacts.csv"), 
+                          header = T)
+interventions |> 
+  kable() |> 
+  kable_styling("striped", full_width = F) |>
+  scroll_box(height = "250px")
+```
+
+&nbsp;
+
+The adopted interventions on a particular farm, change its yield to
+$$
+q = q_{FL}\prod_{i\in A} \left( 1+\Delta q_{iFL} \right)
+$$
+its total costs to
+$$
+x = x_{FL} + \sum_{i\in A} \Delta x_{iFL}
+$$
+and its emissions to
+$$
+e = e_{FL}\prod_{i\in A} \left(1+\Delta e_{iFL}\right)
+$$
+Together these give us an overall profit for each hectare of landuse capability $L$ on a farm of type $F$ that has adopted a set of interventions $A$ 
+$$
+{
+Z_A = \underbrace{ p_Fq_{FL}\prod_{i\in A} \left( 1+\Delta q_{iFL} \right)}_{\mathrm{gross\thinspace income}\,Y} - 
+\underbrace{
+  \underbrace{\left( x_{FL} + \sum_{i\in A}\Delta x_{iFL} \right)}_{\mathrm{base\thinspace costs}} - 
+  \underbrace{te_{FL}\prod_{i\in A} \left(1+\Delta e_{iFL} \right)}_{\mathrm{carbon\thinspace costs}}
+}_{\mathrm{total\thinspace costs}\,X}
+}
+$$
+and the overall profit of any farm is given by summing this result across its constituent hectares. It is convenient to think of the profit as being the difference in the gross income given by the first term in the above equation, and total costs given by the second and third terms.
+
+## Considering interventions
+The current profit of a farm is determined as in the previous section. Call the current profit, gross income, and total cost components $\tilde{Y}_0$ and $\tilde{X}_0$, respectively. 
+
+Then, for each intervention under consideration, i.e., each intervention $i_i\in I_F\setminus A$, the new expected gross income, and total costs that would result $\bar{Y}_i$ and $\bar{X}_i$ are determined using the same equation, but with $A_i=A\cup\{i_i\}$ augmented to include the new intervention, _and no variance in outcomes taken into consideration, i.e., using only the mean yield, costs, and emissions settings_ (the $\tilde{Y}_0$ and $\tilde{X}_0$ values _will_ reflect that variance in the most recent year's results).
+
+This gives us [_relative change_](https://en.wikipedia.org/wiki/Relative_change) in each component, which for a particular component we define as
+$$
+\Delta x = \left\{
+\begin{array}{rl}
+  \left. 2\left(|x_1 - x_0|\right) \middle/ \left( |x_1| + |x_0| \right) \right. & \text{if $x_1>x_0$} \\
+  \left. -2\left(|x_1 - x_0|\right) \middle/ \left( |x_1| + |x_0| \right) \right. & \text{if $x_1<x_0$} \\
+  0 & \text{if $x_0=x_1=0$}
+\end{array}\right.
+$$
+
+**NOTE:** this formulation works if both quantities are of the same sign (both positive, or both negative) but produces meaningless results if the before and after quantities are of different sign, and so the approach outlined here cannot be extended to farm profits, which can be positive or negative. 
+
+Values for $\Delta Y_i$ and $\Delta X_i$ are calculated in this way and used to determine adjusted relative probabilities of adoption of each possible intervention. If we denote the baseline probability of adoption of each intervention on a particular farm type by $P_{iF}$ then we adjust this probability using the $\Delta$ values according to
+$$
+{
+  P'_{iF}= \left. 1 \middle/ 
+  \left(1+e^{-a\left[ \ln\frac{P_{iF}}{1-P_{iF}} + \Delta Y_i - \Delta X_i \right]} \right) \right.
+}
+$$
+
+This puts the adoption probability of any intervention on a sigmoid curve, given by $P = 1/(1 + e^{-ax})$ where $x$ is some 'pressure for change' and $a$ is a rate of change in the probability in response to changes in that pressure. We haven't determined an appropriate setting for $a$, but intuitively it is a kind of measure of the 'elasticity' of farmer responses to changes in the combination of pressures driving their decision making. At low $a$ large pushes are needed to make much difference to the probability of a particular intervention; at high $a$ smaller pushes (perhaps even nudges!) might suffice. In general an adoption probability will be at its most elastic when it is around $0.5$ with substantial pressure required to make a low probability event more likely, or to make an already probable outcome near certain.
+ 
+```{r}
+sigmoid <- function(x, a = 1) {
+  1 / (1 + exp(-a * x))
+}
+
+df <- expand_grid(`Pressure to change` = -50:50 / 10, 
+                  a = c(0.25, 0.5, 1, 2, 5)) |>
+  mutate(Probability = sigmoid(`Pressure to change`, a))
+
+ggplot(df) + 
+  geom_line(aes(x = `Pressure to change`, y = Probability, group = a)) +
+  annotate("label", x = c(4.25, 3.9, 3, 2, 1), 
+           y = c(0.74, 0.87, 0.95, 0.975, 0.99),
+           label = paste0("a = ", unique(df$a)))
+```
+
+A positive calculated change in income $\Delta Y_i$ pushes the farmer's probability of adoption of intervention $i$ higher (to the right), and any increase in total costs $\Delta X_i$ pushes it lower (to the left). We start with initial probabilities of adoption in the `farmer-threshold-matrix.csv` file:
+
+```{r}
+probabilities <- read.csv(str_glue("{base_dir}farmer-threshold-matrix.csv"), 
+                          header = T, row.names = 1)
+probabilities |> 
+  kable() |> 
+  kable_styling("striped", full_width = F)
+```
+
+The exact slope and configuration of the sigmoid function relative to these probabilities (which are themselves arbitrary at present) remains to be determined, and may be tunable to yield plausible outcomes. The general principle is that nudges increase the pressure on farmers to change and will move them to the right on these curves, but that increases to costs will act against such pressures.
+
+**NOTE: We have to consider if this approach is sensible given that it may mean that farmers are _less_ likely to adopt interventions after a good year than they after a bad year...**
+
+## Adopting an intervention
+All possible interventions are considered and assigned a probability $P'_{iF}$ on the above basis, giving a set of values $P=\{P_{iF}\}$. These are treated as 'weights' on a random draw of a single intervention. More favoured interventions are more likely to be drawn. 
+
+If a particular intervention is clearly preferable, say 
+$$
+P=\{0.01,0.01,0.5\}
+$$
+then it will almost certainly be chosen for further consideration. If all options are similar in their impacts, say
+$$
+P=\{0.2,0.15,0.25\}
+$$
+then any of them stands a good chance of being picked.
+
+The intervention picked in this way is then adopted with probability $P'_{iF}$. This means that
+$$
+P=\{0.1,0.1,0.1\}
+$$
+might put forward any intervention for consideration but that chosen intervention is still unlikely to be adopted. On the other hand
+$$
+P=\{0.5,0.5,0.5\}
+$$
+will give the selected intervention a 50% chance of adoption when it is considered.
+
+Once an intervention is adopted, it will no longer be available in the next decision round and its impacts will be factored into calculation of the new $Y_0$ and $X_0$ income and costs, serving as a new baseline for the determination of $\Delta Y_i$ and $\Delta X_i$ scores.
+
+## A note on how model calculations are performed
+In the model, calculations are performed using matrices.
+
+All three of yields, costs, and emissions, are stored as a pair of matrices
+
+$$
+\begin{array}{rcl}
+\overline{\mathbf{M}} & = & \left[\overline{\circ}_{LF}\right]\\
+\widetilde{\mathbf{M}} & = & \left[\widetilde{\circ}_{LF}\right]
+\end{array}
+$$
+
+for the mean and standard deviations respectively, where $\circ$ stands in for one of $q$, $x$, or $e$. Row entries record the values associate with a given landuse capability level, and column entries the values assoicated with a given farm type.
+
+Prices are stored as a prices vector, $\mathbf{p}=\left[p_i\right]$, and the carbon tax as a scalar value, $t$, since it is fixed tax irrespective of farm type.
+
+Ignoring for now the effect of adopted interventions, this gives us a matrix form of the income calculation for a farm
+
+$$
+Y = \mathbf{1}\left[\mathbf{L}\odot N\left(\overline{\mathbf{Q}},\frac{\widetilde{\mathbf{Q}}}{\sqrt{n_{LF}}}\right)\right]\mathbf{p}
+$$
+
+where $\mathbf{L}$ is a _landuse capability-landuse_ profile matrix for the farm with row and column entries $n_{LF}$ giving the numbers of patches in each landuse capability and landuse category on that farm, and $\odot$ denotes _element-wise_ multiplication of two matrices. A similar matrix equation is applicable to the costs for a farm.
+
+The most important thing to note here is the reduction in the standard deviation of the normal distribution from which yields $q$ are drawn by the factor $\sqrt{n_{LF}}$. This allows only one random number draw for each landuse capability-landuse combination on a farm, rather than for every patch on the farm individually, and allows more rapid calculation of farms income, costs, and emissions. The penalty is that all patches in the model of the same landuse capability-landuse combination have the same mean yield, input cost, emissions every model tick, and that every landuse capability-landuse combination on each farm sees the same deviation from the mean applied each tick. 
+
+Calculation of additional costs resulting from adoption of various interventions can also be formulated as a matrix calculation, using a row-matrix of adopted interventions where $1$ denotes adoption and $0$ non-adoption of each intervention.
+
+A more involved matrix formulation is required for the impact of adoption of interventions on emissions and yields because these are combined multiplicatively. The model code is the best guide to the details in this case. The code has been written to ensure that the equations detailed in the section on [the effect of interventions](#the-effect-of-interventions) has been followed.

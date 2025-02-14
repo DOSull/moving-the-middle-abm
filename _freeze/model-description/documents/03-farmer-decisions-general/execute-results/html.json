@@ -1,0 +1,15 @@
+{
+  "hash": "bf6247a12a1298becac9ff04198cd06d",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"Farmer decision making: general\"\nsubtitle: \"MtM ABM documentation\"\nauthor: David O'Sullivan\ndate: 14 February 2025\nexecute: \n  cache: true\n  freeze: auto\nformat:\n  html:\n    toc: false\n    code-fold: true\n    html-math-method: katex\n    embed-resources: true\nknitr:\n  opts_chunk: \n    warning: false\n    message: false\n    # echo: false\n    R.options: \n      knitr.table.html.attr: \"quarto-disable-processing=true\"\n---\n\n\n\n\n::: {.callout-note collapse=\"true\"}\n#### Update History\n\n| Date       | Changes\n|:-          |:--\n| 2024-12-17 | Initial post.                       \n\n:::\n\n## Top level farmer decision flowchart\n\n\n\n```{mermaid}\nflowchart TB\n  A((START))\n  B[Age farmers and<br>replace any that exit]\n  C[Update income, costs, and<br>profit of holdings and farms]\n  E{For each<br>farmer...}\n  F{Any<br>loss-making<br>holdings?}\n  G[\"<span style='font-family:monospace'>options</span> &larr; {}\"]\n  H{Farm<br>losing money<br>overall?}\n  I[Add possible<br>all of farm land use<br>changes to <span style=\"font-family:monospace;\">options</span>]\n  J[Add possible<br>per holding land use<br>changes to <span style=\"font-family:monospace;\">options</span>]\n  K[Choose among choices<br>in  <span style=\"font-family:monospace;\">options</span>]\n  L[Compile list of<br>possible interventions<br>per holding]\n  M[Choose and possibly<br>implement interventions]\n  N{More<br>farmers?}\n  T[Update map and plots]\n  Z((END))\n  A --> B\n  B --> C\n  C --> E\n  E --> F\n  F -->|Y| G\n  F -->|N| L\n  G --> H\n  H -->|Y| I\n  H -->|N| J\n  I --> J\n  J --> K\n  K --> N\n  L --> M\n  M --> N\n  N -->|Y| E\n  N -->|N| T\n  T --> Z\n```\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

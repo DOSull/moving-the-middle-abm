@@ -10,3 +10,4 @@ data/spatial/*
 /.quarto/
 *.tif
 *.gpkg
+.Rproj.user

@@ -1,0 +1,69 @@
+---
+title: "Farmer decision making: general"
+subtitle: "MtM ABM documentation"
+author: David O'Sullivan
+date: 14 February 2025
+execute: 
+  cache: true
+  freeze: auto
+format:
+  html:
+    toc: false
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+knitr:
+  opts_chunk: 
+    warning: false
+    message: false
+    # echo: false
+    R.options: 
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date       | Changes
+|:-          |:--
+| 2024-12-17 | Initial post.                       
+
+:::
+
+## Top level farmer decision flowchart
+```{mermaid}
+flowchart TB
+  A((START))
+  B[Age farmers and<br>replace any that exit]
+  C[Update income, costs, and<br>profit of holdings and farms]
+  E{For each<br>farmer...}
+  F{Any<br>loss-making<br>holdings?}
+  G["<span style='font-family:monospace'>options</span> &larr; {}"]
+  H{Farm<br>losing money<br>overall?}
+  I[Add possible<br>all of farm land use<br>changes to <span style="font-family:monospace;">options</span>]
+  J[Add possible<br>per holding land use<br>changes to <span style="font-family:monospace;">options</span>]
+  K[Choose among choices<br>in  <span style="font-family:monospace;">options</span>]
+  L[Compile list of<br>possible interventions<br>per holding]
+  M[Choose and possibly<br>implement interventions]
+  N{More<br>farmers?}
+  T[Update map and plots]
+  Z((END))
+  A --> B
+  B --> C
+  C --> E
+  E --> F
+  F -->|Y| G
+  F -->|N| L
+  G --> H
+  H -->|Y| I
+  H -->|N| J
+  I --> J
+  J --> K
+  K --> N
+  L --> M
+  M --> N
+  N -->|Y| E
+  N -->|N| T
+  T --> Z
+```
+

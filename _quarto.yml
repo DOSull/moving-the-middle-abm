@@ -1,3 +1,19 @@
 project:
   type: website
   output-dir: docs
+
+website:
+  title: "MtM ABM documentation"
+  sidebar:
+    contents:
+      - model-description/index.qmd 
+      - auto: model-description/documents/
+    floating: true
+  page-navigation: true
+
+format:
+  html:
+    theme: 
+      - litera
+    toc: true
+    df-print: kable

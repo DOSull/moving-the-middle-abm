@@ -1,6 +1,6 @@
 ---
 title: "Overall model structure"
-subtitle: "MtM ABM documentation"
+subtitle: "MtM ABM description"
 author: "David O'Sullivan"
 date: 14 February 2025
 lightbox: true

@@ -1,6 +1,6 @@
 ---
 title: "Farmer decisions about management interventions"
-subtite: "MtM ABM documentation"
+subtite: "MtM ABM description"
 author: David O'Sullivan
 date: 2 July 2024
 date-modified: 15 February 2025

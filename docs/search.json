@@ -62,24 +62,68 @@
     ]
   },
   {
-    "objectID": "model-description/documents/06-possible-extensions.html",
-    "href": "model-description/documents/06-possible-extensions.html",
-    "title": "Possible extensions of the model",
+    "objectID": "model-description/documents/01c-farmer-aging-and-succession.html",
+    "href": "model-description/documents/01c-farmer-aging-and-succession.html",
+    "title": "Farmer aging and succession",
     "section": "",
-    "text": "Clarify model scales both temporal (1 year or 5 years per tick?) and spatial (1 ha per cell?)\nInclusion of landuse in spatial data files.\nMultiple values of the sigmoid-slope attribute for different push and pull factors on decision making.\nMake farmer dispositions matter. Probably a case of extending the farmer thresholds input file to cross-tab by disposition.\nActivate local and industry network effects.\n\n\n\n\n\n\nUpdate History\n\n\n\n\n\n\n\n\nDate\nChanges\n\n\n\n\n2025-02-14\nInitial post.",
+    "text": "Farmers age by one year per model tick. Hence the model time scale is 1 year per tick, but this is subject to change. A 5 year model time step may be considered more appropriate.\nAfter aging, a farmer is tested for exiting the industry (or retiring or dying, or however we want to think about it). They exit with a probability given by \np_{\\mathrm{exit}} = \\left\\{\n  \\begin{array}{rcl}\n    \\frac{1}{91-\\mathrm{age}} & \\text{if age} &lt;  & 91 \\\\\n    1 & \\text{if age} \\geq & 91\n  \\end{array}\n\\right.\n This means that farmers are not guaranteed to exit until they are 90, reflecting the rather surprising number of old farmers in survey evidence",
     "crumbs": [
       "Documents",
-      "Possible extensions of the model"
+      "Farmer aging and succession"
+    ]
+  },
+  {
+    "objectID": "model-description/documents/01c-farmer-aging-and-succession.html#farmer-aging",
+    "href": "model-description/documents/01c-farmer-aging-and-succession.html#farmer-aging",
+    "title": "Farmer aging and succession",
+    "section": "",
+    "text": "Farmers age by one year per model tick. Hence the model time scale is 1 year per tick, but this is subject to change. A 5 year model time step may be considered more appropriate.\nAfter aging, a farmer is tested for exiting the industry (or retiring or dying, or however we want to think about it). They exit with a probability given by \np_{\\mathrm{exit}} = \\left\\{\n  \\begin{array}{rcl}\n    \\frac{1}{91-\\mathrm{age}} & \\text{if age} &lt;  & 91 \\\\\n    1 & \\text{if age} \\geq & 91\n  \\end{array}\n\\right.\n This means that farmers are not guaranteed to exit until they are 90, reflecting the rather surprising number of old farmers in survey evidence",
+    "crumbs": [
+      "Documents",
+      "Farmer aging and succession"
+    ]
+  },
+  {
+    "objectID": "model-description/documents/01c-farmer-aging-and-succession.html#age-of-farmers-at-model-initialisation",
+    "href": "model-description/documents/01c-farmer-aging-and-succession.html#age-of-farmers-at-model-initialisation",
+    "title": "Farmer aging and succession",
+    "section": "Age of farmers at model initialisation",
+    "text": "Age of farmers at model initialisation\nThe age of farmers at model initialisation is drawn from a :beta-binomial distribution, with n=70, \\alpha=5, and \\beta=4, and ages then offset by adding 20 (so that 20 is the youngest possible age). An example distribution for 250 farmers is shown below, with the red line showing the associated probability density function.\n\n\n\n\n\n\n\n\n\nThis distribution has been roughly matched to survey evidence of farmer ages (it has not been fitted, just matched approximately by eye).",
+    "crumbs": [
+      "Documents",
+      "Farmer aging and succession"
+    ]
+  },
+  {
+    "objectID": "model-description/documents/01c-farmer-aging-and-succession.html#age-of-new-farmers",
+    "href": "model-description/documents/01c-farmer-aging-and-succession.html#age-of-new-farmers",
+    "title": "Farmer aging and succession",
+    "section": "Age of new farmers",
+    "text": "Age of new farmers\nIncoming farmer ages are also drawn from a beta-binomial distribution with n=45, \\alpha=4, \\alpha=2.\n\n\n\n\n\n\n\n\n\nThis distribution might appear to skew older than the model age initialisation, but note that the range of values tops out at 65 years as shown in the direct comparison of the probability density functions below.\n\n\n\n\n\n\n\n\n\nIn any case, this paramterisatiopn appears to keep the farmer age distribution fairly stable over time.\nMore detailed fitting and analysis of these (hard-coded) parameter settings around farmer ages is desirable.\n\n\n\n\n\n\nUpdate History\n\n\n\n\n\n\n\n\nDate\nChanges\n\n\n\n\n2025-02-15\nInitial post.",
+    "crumbs": [
+      "Documents",
+      "Farmer aging and succession"
     ]
   },
   {
     "objectID": "model-description/index.html",
     "href": "model-description/index.html",
-    "title": "Moving the Middle ABM documentation",
+    "title": "Moving the Middle ABM description",
     "section": "",
-    "text": "This document provides a high-level overview of the operation of the agent-based model under development for the Moving the Middle project. The model code is available for download at this repository.\nAlthough the model aims to be ‘simple’, that is a relative term. The model is only as complicated as it needs to be, which turns out to be relatively complicated. In short, there are a lot of moving parts.\nAs a way to manage this complexity I have organised the description into a set of linked documents as listed below.\n\n\n\n\n\n\n\n\n\n\nTitle\n\n\n\n\n\n\nOverall model structure\n\n\n\n\nModel initialisation\n\n\n\n\nModel main loop\n\n\n\n\nCalculation of farm income\n\n\n\n\nFarmer decision making: general\n\n\n\n\nFarmer decisions about land use\n\n\n\n\nFarmer decisions about management interventions\n\n\n\n\nPossible extensions of the model\n\n\n\n\n\nNo matching items",
+    "text": "This document provides a high-level overview of the operation of the agent-based model under development for the Moving the Middle project. The model code is available for download at this repository.\nAlthough the model aims to be ‘simple’, that is a relative term. The model is only as complicated as it needs to be, which turns out to be relatively complicated. In short, there are a lot of moving parts.\nAs a way to manage this complexity I have organised the description into a set of linked documents as listed below.\n\n\n\n\n\n\n\n\n\n\nTitle\n\n\n\n\n\n\nOverall model structure\n\n\n\n\nModel initialisation\n\n\n\n\nModel main loop\n\n\n\n\nFarmer aging and succession\n\n\n\n\nCalculation of farm income\n\n\n\n\nFarmer decision making: general\n\n\n\n\nFarmer decisions about land use\n\n\n\n\nFarmer decisions about management interventions\n\n\n\n\nPossible extensions of the model\n\n\n\n\n\nNo matching items",
     "crumbs": [
-      "Moving the Middle ABM documentation"
+      "Moving the Middle ABM description"
+    ]
+  },
+  {
+    "objectID": "model-description/documents/06-possible-extensions.html",
+    "href": "model-description/documents/06-possible-extensions.html",
+    "title": "Possible extensions of the model",
+    "section": "",
+    "text": "Clarify model scales both temporal (1 year or 5 years per tick?) and spatial (1 ha per cell?)\nInclusion of landuse in spatial data files.\nMultiple values of the sigmoid-slope attribute for different push and pull factors on decision making.\nMake farmer dispositions matter. Probably a case of extending the farmer thresholds input file to cross-tab by disposition.\nActivate local and industry network effects.\nTune farmer age distributions by fitting to data.\n\n\n\n\n\n\nUpdate History\n\n\n\n\n\n\n\n\nDate\nChanges\n\n\n\n\n2025-02-14\nInitial post.",
+    "crumbs": [
+      "Documents",
+      "Possible extensions of the model"
     ]
   },
   {

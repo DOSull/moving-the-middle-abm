@@ -1,5 +1,5 @@
 ---
-title: "Moving the Middle ABM documentation"
+title: "Moving the Middle ABM description"
 author: "David O'Sullivan"
 date: 14 February 2025
 # execute: 

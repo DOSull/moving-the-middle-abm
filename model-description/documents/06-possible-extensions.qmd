@@ -1,6 +1,6 @@
 ---
 title: "Possible extensions of the model"
-subtitle: "MtM ABM documentation"
+subtitle: "MtM ABM description"
 author: "David O'Sullivan"
 date: 14 February 2025
 lightbox: true
@@ -30,6 +30,8 @@ Multiple values of the `sigmoid-slope` attribute for different push and pull fac
 Make farmer dispositions matter. Probably a case of extending the farmer thresholds input file to cross-tab by disposition.
 
 Activate local and industry network effects.
+
+Tune farmer age distributions by fitting to data.
 
 ::: {.callout-note collapse="true"}
 #### Update History

@@ -43,7 +43,7 @@ flowchart TB
   E --> T
   T --> Z
   click B "01c-farmer-aging-and-succession.html" "Click for details"
-  click C "02-calculation-of-farm-income.html" "Click for details"
+  click C "02-calculation-of-holding-income.html" "Click for details"
   click E "03-farmer-decisions-general.html" "Click for details"
 ```
 

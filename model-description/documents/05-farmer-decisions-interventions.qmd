@@ -34,6 +34,8 @@ library(kableExtra)
 base_dir <- "~/Documents/work/mwlr-moving-the-middle/abm/data/market/default/"
 ```
 
+As shown below if no holdings on the farm are loss-making, then a farmer will consider adopting one or more of the available interventions on various holdings.
+
 ```{mermaid}
 flowchart TB
   A((START))
@@ -66,9 +68,9 @@ A range of possible interventions $I=\{i_1,i_2,\ldots i_n\}$ may be undertaken b
 - Join the emissions trading scheme
 - etc.
 
-The currently adopted interventions on a particular farm we denote $A$ which will be a subset of the available interventions $I$. Not all interventions will make sense on each farm, so it might be more accurate to think of there being a number of intervention sets $I_F$ and on a particular farm of type $F$, the adopted interventions $A$ are some subset of $I_F$, with the potential new interventions to be considered in each time interval given by $I_F\setminus A$, that is the possible interventions on this type of farm not yet adopted.
+The currently adopted interventions on a particular holding we denote $A$ which will be a subset of the available interventions $I$. Not all interventions will make sense on each holding, so it might be more accurate to think of there being a number of intervention sets $I_F$ and on a particular holding of type $F$, the adopted interventions $A$ are some subset of $I_F$, with the potential new interventions to be considered in each time interval given by $I_F\setminus A$, that is the possible interventions on this land use not yet adopted.
 
-For each intervention $i_i$ there are associated impacts, in terms of added costs $\Delta x_{iFL}$, and changes in yields $\Delta q_{iFL}$ and emissions $\Delta e_{iFL}$, where the $F$ and $L$ subscripts indicate the dependence of these impacts on farm type $F$ and landuse capability $L$. The impacts of various interventions are stored in the `intervention-impacts.csv` file:
+For each intervention $i_i$ there are associated impacts, in terms of added costs $\Delta x_{iFL}$, and changes in yields $\Delta q_{iFL}$ and emissions $\Delta e_{iFL}$, where the $F$ and $L$ subscripts indicate the dependence of these impacts on farm type $F$ and land use capability $L$. The impacts of various interventions are stored in the `intervention-impacts.csv` file:
 
 ```{r}
 interventions <- read.csv(str_glue("{base_dir}intervention-impacts.csv"), 
@@ -81,7 +83,7 @@ interventions |>
 
 &nbsp;
 
-The adopted interventions on a particular farm, change its yield to
+The adopted interventions on a particular holding, change its yield to
 $$
 q = q_{FL}\prod_{i\in A} \left( 1+\Delta q_{iFL} \right)
 $$
@@ -93,7 +95,7 @@ and its emissions to
 $$
 e = e_{FL}\prod_{i\in A} \left(1+\Delta e_{iFL}\right)
 $$
-Together these give us an overall profit for each hectare of landuse capability $L$ on a farm of type $F$ that has adopted a set of interventions $A$ 
+Together these give us an overall profit for each hectare of land use capability $L$ on a holding of type $F$ that has adopted a set of interventions $A$ 
 $$
 {
 Z_A = \underbrace{ p_Fq_{FL}\prod_{i\in A} \left( 1+\Delta q_{iFL} \right)}_{\mathrm{gross\thinspace income}\,Y} - 
@@ -103,10 +105,10 @@ Z_A = \underbrace{ p_Fq_{FL}\prod_{i\in A} \left( 1+\Delta q_{iFL} \right)}_{\ma
 }_{\mathrm{total\thinspace costs}\,X}
 }
 $$
-and the overall profit of any farm is given by summing this result across its constituent hectares. It is convenient to think of the profit as being the difference in the gross income given by the first term in the above equation, and total costs given by the second and third terms.
+and the overall profit of any holding is given by summing this result across its constituent hectares. It is convenient to think of the profit as being the difference in the gross income given by the first term in the above equation, and total costs given by the second and third terms.
 
 ## Considering interventions
-The current profit of a farm is determined as in the previous section. Call the current profit, gross income, and total cost components $\tilde{Y}_0$ and $\tilde{X}_0$, respectively. 
+The current profit of a holding is determined as set out in [Calculation of holding income](02-calculation-of-holding-income.qmd). Call the current profit, gross income, and total cost components $\tilde{Y}_0$ and $\tilde{X}_0$, respectively. 
 
 Then, for each intervention under consideration, i.e., each intervention $i_i\in I_F\setminus A$, the new expected gross income, and total costs that would result $\bar{Y}_i$ and $\bar{X}_i$ are determined using the same equation, but with $A_i=A\cup\{i_i\}$ augmented to include the new intervention, _and no variance in outcomes taken into consideration, i.e., using only the mean yield, costs, and emissions settings_ (the $\tilde{Y}_0$ and $\tilde{X}_0$ values _will_ reflect that variance in the most recent year's results).
 
@@ -120,7 +122,7 @@ $$
 \end{array}\right.
 $$
 
-**NOTE:** this formulation works if both quantities are of the same sign (both positive, or both negative) but produces meaningless results if the before and after quantities are of different sign, and so the approach outlined here cannot be extended to farm profits, which can be positive or negative. 
+**NOTE:** this formulation works if both quantities are of the same sign (both positive, or both negative) but produces meaningless results if the before and after quantities are of different sign, and so the approach outlined here cannot be extended to profits, which can be positive or negative. 
 
 Values for $\Delta Y_i$ and $\Delta X_i$ are calculated in this way and used to determine adjusted relative probabilities of adoption of each possible intervention. If we denote the baseline probability of adoption of each intervention on a particular farm type by $P_{iF}$ then we adjust this probability using the $\Delta$ values according to
 $$
@@ -199,29 +201,30 @@ $$
 \end{array}
 $$
 
-for the mean and standard deviations respectively, where $\circ$ stands in for one of $q$, $x$, or $e$. Row entries record the values associate with a given landuse capability level, and column entries the values assoicated with a given farm type.
+for the mean and standard deviations respectively, where $\circ$ stands in for one of $q$, $x$, or $e$. Row entries record the values associate with a given land use capability level, and column entries the values associated with a given farm type.
 
 Prices are stored as a prices vector, $\mathbf{p}=\left[p_i\right]$, and the carbon tax as a scalar value, $t$, since it is fixed tax irrespective of farm type.
 
-Ignoring for now the effect of adopted interventions, this gives us a matrix form of the income calculation for a farm
+Ignoring for now the effect of adopted interventions, this gives us a matrix form of the income calculation for a holding
 
 $$
 Y = \mathbf{1}\left[\mathbf{L}\odot N\left(\overline{\mathbf{Q}},\frac{\widetilde{\mathbf{Q}}}{\sqrt{n_{LF}}}\right)\right]\mathbf{p}
 $$
 
-where $\mathbf{L}$ is a _landuse capability-landuse_ profile matrix for the farm with row and column entries $n_{LF}$ giving the numbers of patches in each landuse capability and landuse category on that farm, and $\odot$ denotes _element-wise_ multiplication of two matrices. A similar matrix equation is applicable to the costs for a farm.
+where $\mathbf{L}$ is a _LUC-landuse_ profile matrix for the farm with row and column entries $n_{LF}$ giving the numbers of cells in each LUC and land use category on that holding, and $\odot$ denotes _element-wise_ multiplication of two matrices. A similar matrix equation is applicable to the costs for a holding.
 
-The most important thing to note here is the reduction in the standard deviation of the normal distribution from which yields $q$ are drawn by the factor $\sqrt{n_{LF}}$. This allows only one random number draw for each landuse capability-landuse combination on a farm, rather than for every patch on the farm individually, and allows more rapid calculation of farms income, costs, and emissions. The penalty is that all patches in the model of the same landuse capability-landuse combination have the same mean yield, input cost, emissions every model tick, and that every landuse capability-landuse combination on each farm sees the same deviation from the mean applied each tick. 
+The most important thing to note here is the reduction in the standard deviation of the normal distribution from which yields $q$ are drawn by the factor $\sqrt{n_{LF}}$. This allows only one random number draw for each LUC-landuse combination on a holding, rather than for every cell on the farm individually, and allows more rapid calculation of holding income, costs, and emissions. The penalty is that all cells in the model of the same LUC-landuse combination have the same mean yield, input cost, emissions every model tick, and that every LUC-landuse combination on each holding sees the same deviation from the mean applied each tick. 
 
 Calculation of additional costs resulting from adoption of various interventions can also be formulated as a matrix calculation, using a row-matrix of adopted interventions where $1$ denotes adoption and $0$ non-adoption of each intervention.
 
-A more involved matrix formulation is required for the impact of adoption of interventions on emissions and yields because these are combined multiplicatively. The model code is the best guide to the details in this case. The code has been written to ensure that the equations detailed in the section on [the effect of interventions](#the-effect-of-interventions) has been followed.
+A more involved matrix formulation is required for the impact of adoption of interventions on emissions and yields because these are combined multiplicatively. The model code is the best guide to the details in this case. The code has been written to ensure that the equations detailed in the section on [the effect of interventions](#the-effect-of-interventions) have been followed.
 
 ::: {.callout-note collapse="true"}
 #### Update History
 
 | Date | Changes
 |:-|:------
+| 2025-02-18 | Split out from original 'core loop' document.
 | 2024-07-28 | Correction in equation summarising full calculation of profit. Added note to consider the nudge calculation's possible bias favouring changes _after_ bad years.
 | 2024-07-05 | Corrected relative change from a percentage to a proportion.
 | 2024-07-04 | Added detail on calculation of relative change noting that profit can't be handled this way because it is $\pm$ and relative change is meaningless for such variables.

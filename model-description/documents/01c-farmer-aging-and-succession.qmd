@@ -32,13 +32,13 @@ Farmers age by one year per model tick. Hence the model time scale is 1 year per
 After aging, a farmer is tested for exiting the industry (or retiring or dying, or however we want to think about it). They exit with a probability given by 
 $$
 p_{\mathrm{exit}} = \left\{
-  \begin{array}{rcl} 
-    \frac{1}{91-\mathrm{age}} & \text{if age} <  & 91 \\
-    1 & \text{if age} \geq & 91
+  \begin{array}{cl} 
+    \frac{1}{91-\mathrm{age}} & \text{if age} <    91 \\
+                            1 & \text{if age} \geq 91
   \end{array}
 \right.
 $$
-This means that farmers are not guaranteed to exit until they are 90, reflecting the rather surprising number of old farmers in survey evidence
+This means that farmers are not guaranteed to exit until they are 90, reflecting the rather surprising number of old farmers in survey data.
 
 ## Age of farmers at model initialisation
 The age of farmers at model initialisation is drawn from a [:beta-binomial distribution](https://en.wikipedia.org/wiki/Beta-binomial_distribution), with $n=70$, $\alpha=5$, and $\beta=4$, and ages then offset by adding 20 (so that 20 is the youngest possible age). An example distribution for 250 farmers is shown below, with the red line showing the associated probability density function.
@@ -70,7 +70,7 @@ get_age_df <- function(num_farmers = 250,
 ages_init <- get_age_df()
 ggplot(ages_init) +
   geom_col(aes(x = Age, y = `Number of farmers`), fill = "grey") +
-  geom_line(aes(x = Age, y = pdf), colour = "red") +
+  geom_line(aes(x = Age, y = exp_n), colour = "red") +
   theme_minimal()
 ```
 
@@ -84,7 +84,7 @@ Incoming farmer ages are also drawn from a beta-binomial distribution with $n=45
 ages_succession <- get_age_df(age_range = 45, alpha = 4, beta = 2)
 ggplot(ages_succession) +
   geom_col(aes(x = Age, y = `Number of farmers`), fill = "grey") +
-  geom_line(aes(x = Age, y = pdf), colour = "red") +
+  geom_line(aes(x = Age, y = exp_n), colour = "red") +
   theme_minimal()
 ```
 
@@ -109,9 +109,12 @@ ggplot(ages_all) +
   theme(legend.title = element_blank())
 ```
 
-In any case, this paramterisatiopn appears to keep the farmer age distribution fairly stable over time. 
+In any case, this paramterisation appears to keep the farmer age distribution fairly stable over time. 
 
-More detailed fitting and analysis of these (hard-coded) parameter settings around farmer ages is desirable.
+More detailed fitting and analysis of these (hard-coded) parameter settings around farmer ages is probably desirable.
+
+## Entrant farmers and landuse change
+A new farmer will consider whole-farm landuse change (see [Farmer decisions about land use](04-farmer-decisions-land-use.qmd) for details) if any of the farm's holdings is losing money. This pathway to land use is more likely to lead to land use change at the whole farm level than the more piecemeal changes that tend to be made by incumbent farmers.
 
 ::: {.callout-note collapse="true"}
 #### Update History

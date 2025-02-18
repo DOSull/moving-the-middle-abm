@@ -24,6 +24,8 @@ knitr:
       knitr.table.html.attr: "quarto-disable-processing=true"
 ---
 
+The decision sequence followed by farmers each time step is shown below.
+
 ```{mermaid}
 flowchart TB
   A((START))
@@ -52,6 +54,22 @@ flowchart TB
   N -->|N| Z
   click L "05-farmer-decisions-interventions.html" "Click for details"
 ```
+
+Consideration of land use change occurs if any holdings on the farm are loss-making. Consideration of land use change _precludes_ making any management interventions this model time step, regardless of whether or not land use changes are made. Because most interventions reduce profitability this can be understood as a response to tough times: if some parts of a farm are loss-making then it is unlikely a farmer will respond by making costly changes anywhere on the farm.
+
+Once the 'Consider land use' sequence is entered, the next decision point is to ask if the farm is losing money in aggregate (i.e., summed across all holdings). If so, then whole-farm land use change is added to the list of possibilities. If not this option is ignored, and only single holding land use change on the loss-making holdings are added to the list of possibilities.
+
+The list of possible land use changes is a series of triples 
+
+    [affected-holdings, new-land-use, probability]
+
+The whole-farm land use change options will list all holdings in the current land use as `affected-holdings`.
+
+One of these options is randomly drawn with relative probability given by its `probability`, and then it is implemented with that probability. This means that if all the options are low probability then any of them might be drawn, but it remains unlikely to be implemented. If one option has a higher probability than the others it is more likely to be drawn, but if its probability is low, it is still unlikely to happen. (A similar procedure is followed for management interventions under consideration, see [this explanation](05-farmer-decisions-interventions.qmd#adopting-an-intervention).)
+
+Probabilities are calculated based on the values in the `./data/market/<scenario>/conversion-probabilities.csv` file. For non-succession triggered whole-farm conversions the probability of conversion may be optionally 'down-weighted' by the proportion of the land area of the farm that is losing money.
+
+Important changes to this procedure that should be considered are the impact of policy settings, farmer `disposition`s, the effect of recent changes on similar farms, and the relative profitability of different land uses. Policy settings and land use profitability can probably be folded into the conversion probabilities of a scenario, but farmer disposition and peer-farmer behaviours would required additional code.
 
 ::: {.callout-note collapse="true"}
 #### Update History

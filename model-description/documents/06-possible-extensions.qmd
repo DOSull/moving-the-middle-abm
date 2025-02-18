@@ -21,17 +21,35 @@ knitr:
       knitr.table.html.attr: "quarto-disable-processing=true"
 ---
 
+### Model scales
 Clarify model scales both temporal (1 year or 5 years per tick?) and spatial (1 ha per cell?)
 
-Inclusion of landuse in spatial data files.
+### More data in GIS files
+In particular, inclusion of land use, and how to handle 'holdings'
 
+### Different responsiveness to different kinds of factors
 Multiple values of the `sigmoid-slope` attribute for different push and pull factors on decision making.
 
-Make farmer dispositions matter. Probably a case of extending the farmer thresholds input file to cross-tab by disposition.
+### Make farmer dispositions matter
+Probably a case of extending the farmer thresholds input file to cross-tab by disposition.
 
+### Network effects
 Activate local and industry network effects.
 
-Tune farmer age distributions by fitting to data.
+### Farmer ages
+To be tuned by fitting to data?
+
+### Land use change decisions: potential impact of 
+
+ + policy settings, 
+ + farmer `disposition`s, 
+ + the effect of recent changes on similar farms, and 
+ + the relative profitability of different land uses. 
+
+Policy settings and land use profitability can probably be folded into the conversion probabilities of a scenario, but farmer disposition and peer-farmer behaviours would required additional code.
+
+### Intervention adoption
+Is it reasonable for the evaluation of interventions to be based on a difference between mean future profits and the most recent cost/income of a holding? This may make adoption of interventions more likely following a bad year! 
 
 ::: {.callout-note collapse="true"}
 #### Update History

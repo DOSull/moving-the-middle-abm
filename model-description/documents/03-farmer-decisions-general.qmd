@@ -25,6 +25,8 @@ knitr:
 ---
 
 ## Top level farmer decision flowchart
+The overall farmer decision making process is shown below. Each farmer goes through this sequence each model time step. **Note** that the [aging and succession](01c-farmer-aging-and-succession.qmd) step may also result in all of farm land use change, which follows the same general procedure described in [Farmer decisions about land use](04-farmer-decisions-land-use.qmd), except that single holding changes are not considered, and consideration of whole-farm land use change is triggered by any single holding losing money.
+
 ```{mermaid}
 flowchart TB
   A((START))

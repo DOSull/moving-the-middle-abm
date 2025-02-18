@@ -4789,8 +4789,8 @@ vertical-align: -.125em;
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../model-description/documents/02-calculation-of-farm-income.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Calculation of farm income</span></a>
+  <a href="../../model-description/documents/02-calculation-of-holding-income.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Calculation of holding income</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -4824,8 +4824,21 @@ vertical-align: -.125em;
 </nav>
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Contents</h2>
+   
+  <ul>
+  <li><a href="#model-scales" id="toc-model-scales" class="nav-link active" data-scroll-target="#model-scales">Model scales</a></li>
+  <li><a href="#more-data-in-gis-files" id="toc-more-data-in-gis-files" class="nav-link" data-scroll-target="#more-data-in-gis-files">More data in GIS files</a></li>
+  <li><a href="#different-responsiveness-to-different-kinds-of-factors" id="toc-different-responsiveness-to-different-kinds-of-factors" class="nav-link" data-scroll-target="#different-responsiveness-to-different-kinds-of-factors">Different responsiveness to different kinds of factors</a></li>
+  <li><a href="#make-farmer-dispositions-matter" id="toc-make-farmer-dispositions-matter" class="nav-link" data-scroll-target="#make-farmer-dispositions-matter">Make farmer dispositions matter</a></li>
+  <li><a href="#network-effects" id="toc-network-effects" class="nav-link" data-scroll-target="#network-effects">Network effects</a></li>
+  <li><a href="#farmer-ages" id="toc-farmer-ages" class="nav-link" data-scroll-target="#farmer-ages">Farmer ages</a></li>
+  <li><a href="#land-use-change-decisions-potential-impact-of" id="toc-land-use-change-decisions-potential-impact-of" class="nav-link" data-scroll-target="#land-use-change-decisions-potential-impact-of">Land use change decisions: potential impact of</a></li>
+  <li><a href="#intervention-adoption" id="toc-intervention-adoption" class="nav-link" data-scroll-target="#intervention-adoption">Intervention adoption</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -4862,12 +4875,43 @@ vertical-align: -.125em;
 </header>
 
 
+<section id="model-scales" class="level3">
+<h3 class="anchored" data-anchor-id="model-scales">Model scales</h3>
 <p>Clarify model scales both temporal (1 year or 5 years per tick?) and spatial (1 ha per cell?)</p>
-<p>Inclusion of landuse in spatial data files.</p>
+</section>
+<section id="more-data-in-gis-files" class="level3">
+<h3 class="anchored" data-anchor-id="more-data-in-gis-files">More data in GIS files</h3>
+<p>In particular, inclusion of land use, and how to handle ‘holdings’</p>
+</section>
+<section id="different-responsiveness-to-different-kinds-of-factors" class="level3">
+<h3 class="anchored" data-anchor-id="different-responsiveness-to-different-kinds-of-factors">Different responsiveness to different kinds of factors</h3>
 <p>Multiple values of the <code>sigmoid-slope</code> attribute for different push and pull factors on decision making.</p>
-<p>Make farmer dispositions matter. Probably a case of extending the farmer thresholds input file to cross-tab by disposition.</p>
+</section>
+<section id="make-farmer-dispositions-matter" class="level3">
+<h3 class="anchored" data-anchor-id="make-farmer-dispositions-matter">Make farmer dispositions matter</h3>
+<p>Probably a case of extending the farmer thresholds input file to cross-tab by disposition.</p>
+</section>
+<section id="network-effects" class="level3">
+<h3 class="anchored" data-anchor-id="network-effects">Network effects</h3>
 <p>Activate local and industry network effects.</p>
-<p>Tune farmer age distributions by fitting to data.</p>
+</section>
+<section id="farmer-ages" class="level3">
+<h3 class="anchored" data-anchor-id="farmer-ages">Farmer ages</h3>
+<p>To be tuned by fitting to data?</p>
+</section>
+<section id="land-use-change-decisions-potential-impact-of" class="level3">
+<h3 class="anchored" data-anchor-id="land-use-change-decisions-potential-impact-of">Land use change decisions: potential impact of</h3>
+<ul>
+<li>policy settings,</li>
+<li>farmer <code>disposition</code>s,</li>
+<li>the effect of recent changes on similar farms, and</li>
+<li>the relative profitability of different land uses.</li>
+</ul>
+<p>Policy settings and land use profitability can probably be folded into the conversion probabilities of a scenario, but farmer disposition and peer-farmer behaviours would required additional code.</p>
+</section>
+<section id="intervention-adoption" class="level3">
+<h3 class="anchored" data-anchor-id="intervention-adoption">Intervention adoption</h3>
+<p>Is it reasonable for the evaluation of interventions to be based on a difference between mean future profits and the most recent cost/income of a holding? This may make adoption of interventions more likely following a bad year!</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
@@ -4899,6 +4943,7 @@ Update History
 </div>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

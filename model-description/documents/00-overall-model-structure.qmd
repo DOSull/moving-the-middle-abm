@@ -2,7 +2,7 @@
 title: "Overall model structure"
 subtitle: "MtM ABM description"
 author: "David O'Sullivan"
-date: 14 February 2025
+date: 19 February 2025
 lightbox: true
 filters: 
   - nutshell
@@ -186,7 +186,7 @@ Initialisation from GIS files uses a `parcels.shp` shapefile and `luc.asc` raste
 
 | Date | Changes
 |:-|:------
-| 2025-02-14 | Initial post.                       
+| 2025-02-19 | Initial post.                       
 
 :::
 

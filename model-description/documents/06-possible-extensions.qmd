@@ -2,7 +2,7 @@
 title: "Possible extensions of the model"
 subtitle: "MtM ABM description"
 author: "David O'Sullivan"
-date: 14 February 2025
+date: 19 February 2025
 lightbox: true
 format:
   html:
@@ -88,6 +88,6 @@ Currently only a single value of 'responsiveness' is allowed for when applying t
 
 | Date | Changes
 |:-|:------
-| 2025-02-14 | Initial post.                       
+| 2025-02-19 | Initial post.                       
 
 :::

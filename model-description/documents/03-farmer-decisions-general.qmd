@@ -2,8 +2,7 @@
 title: "Farmer decision making: general"
 subtitle: "MtM ABM description"
 author: David O'Sullivan
-date: 14 February 2025
-date-modified: 15 February 2025
+date: 19 February 2025
 lightbox: true
 format:
   html:
@@ -57,7 +56,7 @@ flowchart TB
 
 | Date       | Changes
 |:-          |:--
-| 2024-12-17 | Initial post.                       
+| 2024-12-19 | Initial post.                       
 
 :::
 

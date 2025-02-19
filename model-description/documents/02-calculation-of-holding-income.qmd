@@ -2,7 +2,8 @@
 title: "Calculation of holding income"
 subtitle: "MtM ABM description"
 author: "David O'Sullivan"
-date: 14 February 2025
+date: 2 July 2024
+modified-data: 19 February 2025
 lightbox: true
 format:
   html:
@@ -199,6 +200,11 @@ ggplot(plot_data |> filter(name %in% c("Gross income", "Total costs"))) +
 
 | Date | Changes
 |:-|:------
-| 2025-02-14 | Split out from previous 'core loop' document.
+| 2025-02-19 | Split out from previous 'core loop' document.
+| 2024-07-28 | Correction in equation summarising full calculation of profit. Added note to consider the nudge calculation's possible bias favouring changes _after_ bad years.
+| 2024-07-05 | Corrected relative change from a percentage to a proportion.
+| 2024-07-04 | Added detail on calculation of relative change noting that profit can't be handled this way because it is $\pm$ and relative change is meaningless for such variables.
+| 2024-07-03 | Added bar chart of farm income/costs estimates. 
+| 2024-07-02 | Initial post.
 
 :::

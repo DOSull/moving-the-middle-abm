@@ -2,7 +2,7 @@
 title: "Farmer aging and succession"
 subtitle: "MtM ABM description"
 author: "David O'Sullivan"
-date: 15 February 2025
+date: 19 February 2025
 date-modified: 15 February 2025
 lightbox: true
 filters:
@@ -121,6 +121,6 @@ A new farmer will consider whole-farm landuse change (see [Farmer decisions abou
 
 | Date | Changes
 |:-|:------
-| 2025-02-15 | Initial post.                       
+| 2025-02-19 | Initial post.                       
 
 :::

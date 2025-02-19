@@ -2,8 +2,7 @@
 title: "Farmer decisions about land use"
 subtitle: "MtM ABM description"
 author: "David O'Sullivan"
-date: 14 February 2025
-date-modified: 15 February 2025
+date: 19 February 2025
 lightbox: true
 format:
   html:
@@ -76,6 +75,6 @@ Important changes to this procedure that should be considered are the impact of 
 
 | Date | Changes
 |:-|:------
-| 2025-02-14 | Initial post.                       
+| 2025-02-19 | Initial post.                       
 
 :::

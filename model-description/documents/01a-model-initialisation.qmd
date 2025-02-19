@@ -2,8 +2,7 @@
 title: "Model initialisation"
 subtitle: "MtM ABM description"
 author: "David O'Sullivan"
-date: 15 February 2025
-date-modified: 15 February 2025
+date: 19 February 2025
 lightbox: true
 format:
   html:
@@ -63,7 +62,6 @@ flowchart TB
 
 | Date | Changes
 |:-|:------
-| 2025-02-15 | Pages split into model initialisation and model main loop.                       
-| 2025-02-14 | Initial post.                       
+| 2025-02-19 | Initial post.                       
 
 :::

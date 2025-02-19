@@ -34,6 +34,8 @@ These documents provide an overall description of the operation of the agent-bas
 
 As a way to manage this complexity I have organised the description into a set of linked documents as listed below.
 
+Included is a document with [possible extensions to the model](documents/06-possible-extensions.qmd) where I will add further anticipated changes arising from colleagues' suggestions for experiments that might be conducted using the model.
+
 The model code is available for download at [this repository](https://github.com/DOSull/moving-the-middle-abm).
 
 <!-- ::: {.callout-note collapse="true"}

@@ -1,0 +1,52 @@
+;; ----------------------------------------------------------------------------
+;; Extensible model plots (which add pens based on data)
+;; ----------------------------------------------------------------------------
+
+;; Not all plots in the model will require this treatment - others can use the
+;; standard setup and updating triggered by ticks
+
+to setup-model-plots
+  show "Setting up model plots"
+  let pen-palette [ black red orange green sky blue violet magenta ]
+  setup-extensible-plot 
+    "Interventions" mgmt-intervention-types 
+    table:from-list (map list mgmt-intervention-types first-n pen-palette (length mgmt-intervention-types))
+  setup-extensible-plot 
+    "Landuse composition" 
+    farm-types table:get colour-key "farm-type" ;; use existing colour key for farm-type
+end
+
+;; Sets up pens in the plot labelled 'plotname' with pen-names provided
+;; and colours to be pulled from the supplied look up table
+to setup-extensible-plot [plotname pen-names colours]
+  show (word "Setting up " plotname " plot")
+  set-current-plot plotname
+  foreach pen-names [ pen ->
+    create-temporary-plot-pen pen
+    set-plot-pen-color table:get colours pen
+  ]
+end
+
+;; update the model's extensible plots (only)
+to update-model-plots 
+  update-interventions-plot
+  update-landuse-plot
+end
+
+;; update the interventions plot
+to update-interventions-plot
+  set-current-plot "Interventions"
+  foreach range length mgmt-intervention-types [ i ->
+    set-current-plot-pen item i mgmt-intervention-types
+    plot sum [count the-land] of holdings with [matrix:get my-mgmt-interventions 0 i = 1]
+  ]
+end
+
+;; update the landuse plot
+to update-landuse-plot
+  set-current-plot "Landuse composition"
+  foreach farm-types [ ft ->
+    set-current-plot-pen ft
+    plot count farm-land with [landuse = ft]
+  ]
+end

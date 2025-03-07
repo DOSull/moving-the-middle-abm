@@ -1,0 +1,62 @@
+;; The main purpose of this breed is to aggregate income, costs, and profits and store them
+;; TO CONSIDER: Potentially should be moved to the farmer since this breed does not do much!
+
+farms-own [
+  the-land                ;; patch-set of patches of this farmer, this farm, or this holding
+  farm-type               ;; farm type of farm - one of farm-types global
+  farm-type-0
+  
+  my-farmer               ;; farmer who owns/runs farm
+
+  current-profit          ;; most recent profit of farm summed across patches
+  current-income          ;; most recent income of farm summed across patches
+  current-costs           ;; most recent costs of farm summed across patches
+  losses-record           ;; a list recording loss (coded 1) or profit (coded 0) in recent years
+
+  current-profit-0        ;; variables at model initialisation for quick reset
+  current-income-0
+  current-costs-0
+  losses-record-0
+]
+
+;; farm 'constructor'
+to initialise-farm
+  ;; will be called by the farmer who is 'myself' in this context
+  set my-farmer myself
+  set shape "circle 3"
+  set hidden? false
+  set label farm-type
+  set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
+  set losses-record n-values years-to-remember [i -> 0]
+end
+
+;; farm profit is simple sum of the contributions from its holdings
+to update-profit-of-farm
+  set current-income sum [current-income] of [my-holdings] of my-farmer
+  set current-costs sum [current-costs] of [my-holdings] of my-farmer
+  set current-profit sum [current-profit] of [my-holdings] of my-farmer
+  set losses-record lput (ifelse-value current-profit < 0 [1] [0]) (but-first losses-record)
+end
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-25 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.

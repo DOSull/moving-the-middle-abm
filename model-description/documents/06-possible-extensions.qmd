@@ -52,6 +52,17 @@ It is unclear if parcels data gives us 'holdings' information or not. If holding
 #### Farmer ages
 The initial distribution of farmer ages has been 'eyeballed' to fit data from survey data. More precise fitting of the initial age distribution, the age distribution of new entrants, and the rater at which farmers exit by age may be considered desirable.
 
+#### Output variables
+Model does not currently have any specific set of output variables any set of experiments will necessarily require that some such be tracked. As Nathan notes (late Feb) these could include
+
+> Environmental quality
+> 
+> Financial condition of the average surviving farm business
+> 
+> Numbers/proportions of financially viable farm businesses (maybe by farm type) in the average long-run steady state observed across 1000s of simulated runs.
+
+Model infrastructure can be put in place to collect and analyse any or all of these once we settle on experiments. Proxies for all of these already exist, it's just a matter of which to collate. 
+
 ### Farmer decision making
 #### Make farmer dispositions matter
 Currently farmer dispositions ('pro-social', 'pro-environmental', 'for-profit') have no impact on the model. This can likely be incorporated by including additional cross-tabulations of the effect of different dispositions on the probability of taking up interventions or changing land use. Some additional model code would be required to make these changes.
@@ -82,6 +93,12 @@ Is it reasonable for the evaluation of interventions to be based on a difference
 
 #### Different responsiveness to different kinds of factors
 Currently only a single value of 'responsiveness' is allowed for when applying the [sigmoid slope procedure](05-farmer-decisions-interventions.qmd#considering-interventions) to adjust the probability of uptake of interventions as a result of anticipated changes in income and costs. This is where we expect the effect of 'nudges' to be included in the model. It seems likely that we may want to allow for different kinds of nudges with differing levels of efficacy so that we might need to add additional model parameters. How these 'responsiveness' parameters should be calibrated and incorporated into scenario setups remains to be decided.
+
+### Land market effects
+There is no current provision in the model for land changing hands or for farms being amalgamated. This idea is mentioned in Nathan's notes and might be of interest, but would likely involve some fairly substantial changes.
+
+### Policy environment effects
+Similarly these suggestions from Nathan would imply some substantial changes to the model to incorporate assumptions about the regulatory environment and long-term profitability into the farmer decision making process.
 
 ::: {.callout-note collapse="true"}
 #### Update History

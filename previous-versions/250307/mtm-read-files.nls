@@ -1,0 +1,398 @@
+;; ----------------------------------------------------------------------------
+;; many scenario and spatial setup parameters are in files not the UI
+;; ----------------------------------------------------------------------------
+
+;; initialise various folders - here for convenient modification in one place
+to setup-folders
+  let base-data-folder                           "data/"                            ;; 'data/'
+  set output-data-folder  (word base-data-folder "output/" scenario "/" region "/") ;; 'data/output/SCENARIO/REGION/'
+  set market-data-folder  (word base-data-folder "market/" scenario "/")            ;; 'data/market/SCENARIO/'
+  set spatial-data-folder (word base-data-folder "spatial/" region "/")             ;; 'data/spatial/REGION/'
+end
+
+
+;; ----------------------------------------------------------------------------
+;; farmer (behavioural) parameter setup
+;; ----------------------------------------------------------------------------
+
+;; we read the interventions by farm types file thrice...
+to setup-farmer-parameters
+  ;; Assumes a CSV organised with farm types as column headings,
+  ;; interventions as row names, i.e, (spaces added for clarity)
+  ;;
+  ;;                  , SNB, Dairy, Forest, Crop
+  ;; Build_Wetland    , 0.7, 0.75,  0.3,    0.5
+  ;; Riparian_Planting, 0.7, 0.75,  0.2,    0.4
+  ;; Clean_Races      , 0.2, 0.7,   0,      0
+  ;; Farm_Plan        , 0.7, 0.85,  0.4,    0.6
+  ;; Join_ETS         , 0.2, 0.2,   0.9,    0.4
+  ;;
+  read-farm-types-from-file              word market-data-folder "farmer-threshold-matrix.csv"
+  read-interventions-from-file           word market-data-folder "farmer-threshold-matrix.csv"
+  read-farmer-thresholds-from-file       word market-data-folder "farmer-threshold-matrix.csv"
+  ;; details of the file formats for the following are provided in each procedure
+  read-intervention-impacts-from-file    word market-data-folder "intervention-impacts.csv"
+  read-farm-type-suitabilities-from-file word market-data-folder "suitabilities.csv"
+  read-farm-type-change-probs-from-file  word market-data-folder "conversion-probabilities.csv"
+end
+
+;; setup farm types and interventions
+to read-farm-types-from-file [file]
+  carefully [
+    print word "Reading farm types from " file
+    file-open file
+    set farm-types sort but-first csv:from-row file-read-line
+    file-close
+  ]
+  [
+    print "***** ERROR: problem reading farm types from thresholds data file"
+    file-close
+  ]
+end
+
+;; setup interventions
+to read-interventions-from-file [file]
+  let names []
+  carefully [
+    print word "Reading intervention types from " file
+    file-open file
+    let skip file-read-line
+    while [not file-at-end?] [ set names lput item 0 csv:from-row file-read-line names ]
+    file-close
+    set mgmt-intervention-types sort names
+    foreach mgmt-intervention-types [ i -> output-print i ]
+  ]
+  [
+    print "***\n*** ERROR: problem reading intervention types from thresholds data file\n***"
+    file-close
+  ]
+end
+
+;; setup baseline probability of adoption of interventions by farm type
+to read-farmer-thresholds-from-file [file]
+  ;; CSV file looks like this (spacing added for clarity)
+  ;;
+  ;;                   , SNB, Dairy, Forest, Crop
+  ;;  Build_Wetland    , 0.7,  0.75,    0.3,  0.5
+  ;;  Riparian_Planting, 0.7,  0.75,    0.2,  0.4
+  ;;  Clean_Races      , 0.2,  0.7 ,    0  ,  0
+  ;;  Farm_Plan        , 0.7,  0.85,    0.4,  0.6
+  ;;  Join_ETS         , 0.2,  0.2 ,    0.9,  0.4
+  ;;
+  ;; resulting table is read by
+  ;;   table-get (table:get base-thresholds INTERVENTION-NAME) FARM-TYPE
+  set base-thresholds table:make
+  carefully [
+    print word "Reading farmer adoption thresholds from file " file
+    file-open file
+    let the-farm-types but-first csv:from-row file-read-line
+    let order get-order the-farm-types farm-types
+    while [not file-at-end?] [
+      let data csv:from-row file-read-line
+      let the-intervention item 0 data
+      let vals table:from-list reorder (map list the-farm-types (but-first data)) order
+      table:put base-thresholds the-intervention vals
+    ]
+    file-close
+  ]
+  [
+    print "***\n*** ERROR: problem reading the farmer thresholds data file\n***"
+    file-close
+  ]
+end
+
+;; initialise the global intervention-effects table
+;; which holds production function impacts by intervention type, effect, and farm type
+to read-intervention-impacts-from-file [file]
+  ;; CSV file format like this - note that each intervention should be
+  ;; 3 consecutive lines with its effects (the three impacts can be in 
+  ;; any order, but each set should be IN THE SAME ORDER)
+  ;; farm types can be in any order. Spaces added for clarity
+  ;;
+  ;; Intervention     , Impact   ,   SNB, Dairy, Forest,  Crop
+  ;; Build_Wetland    , costs    ,    25,    68,     NA,    34
+  ;; Build_Wetland    , yields   ,  -0.2, -0.02,     NA,  -0.1
+  ;; Build_Wetland    , emissions,  -0.1, -0.05,     NA, -0.05
+  ;; Riparian_Planting, costs    ,    26,    71,     NA,    11
+  ;; Riparian_Planting, yields   ,  -0.2, -0.02,     NA, -0.01
+  ;; Riparian_Planting, emissions,  -0.1, -0.03,     NA, -0.04
+  ;;  ... and so on ...
+  ;;
+  let i-list []   ;; list of tables, one per intervention type
+  let i-types []  ;; list of intervention types in the order they appear 
+  carefully [
+    print word "Reading intervention impacts from " file
+    file-open file
+    let the-farm-types but-first but-first csv:from-row file-read-line
+    let order get-order the-farm-types farm-types
+    while [not file-at-end?] [
+      let i 0
+      let i-type nobody
+      let e-types []
+      let e-impacts []
+      while [i < 3] [ ;; read the table by 3s
+        let data csv:from-row file-read-line
+        set i-type item 0 data
+        if i = 0 [set i-types fput i-type i-types]
+        set data but-first data
+        let e-type item 0 data
+        set e-types lput e-type e-types
+        set e-impacts lput table:from-list 
+          reorder (map list the-farm-types (but-first map [x -> replace-na x] data)) order e-impacts
+        set i i + 1
+      ]
+      set i-list fput table:from-list (map list e-types e-impacts) i-list
+    ]
+    file-close
+    set order get-order i-types mgmt-intervention-types
+    set mgmt-interventions table:from-list reorder (map list i-types i-list) order
+  ]
+  [
+    print "***\n*** ERROR: problem reading the interventions effects file\n***"
+    file-close
+  ]
+end
+
+to read-farm-type-suitabilities-from-file [file]
+  ;; CSV file looks like this (spacing added for clarity)
+  ;;
+  ;;     , SNB, Dairy, Forest, Crop
+  ;; LUC1,   1,     1,      1,    1
+  ;; LUC2,   1,     1,      1,    1
+  ;; LUC3,   1,     1,      1,    1
+  ;; LUC4,   1,     1,      1,    0
+  ;; LUC5,   1,     1,      1,    0
+  ;; LUC6,   1,     0,      1,    0
+  ;; LUC7,   1,     0,      1,    0
+  ;; LUC8,   1,     0,      1,    0
+  set farm-type-suitabilities table:make
+  carefully [
+    print word "Reading farm type suitabilities from file " file
+    file-open file
+    let the-farm-types but-first csv:from-row file-read-line
+    let order get-order the-farm-types farm-types
+    let luc 1
+    while [not file-at-end?] [
+      let data but-first csv:from-row file-read-line
+      let suitabilities table:from-list reorder (map list the-farm-types data) order
+      table:put farm-type-suitabilities luc suitabilities
+      set luc luc + 1
+    ]
+    file-close
+  ]
+  [
+    print "***\n*** ERROR: problem reading farm type suitabilities file\n***"
+    file-close
+  ]
+end
+
+to read-farm-type-change-probs-from-file [file]
+  ;; These are <something like> the impact on profit of switching from the type
+  ;; in the row name to the type in the column name
+  ;; Farm types may be in any order, but ROWS AND COLUMNS MUST BE IN SAME ORDER
+  ;;       , SNB, Dairy, Forest, Crop
+  ;; SNB   ,   0,   0.5,    0.1,  0.8
+  ;; Dairy , 0.5,     0,    0.2,  0.8
+  ;; Forest,   1,   0.5,      0,    1
+  ;; Crop  , 0.8,     1,    0.2,    0
+  let row-names []
+  let rows-data []
+  carefully [
+    print word "Reading farm type change costs from file " file
+    file-open file
+    let the-farm-types but-first csv:from-row file-read-line
+    let order get-order the-farm-types farm-types
+    while [not file-at-end?] [
+      let data csv:from-row file-read-line
+      let from-type item 0 data
+      set row-names lput from-type row-names
+      set rows-data lput table:from-list reorder (map list the-farm-types (but-first data)) order rows-data
+    ]
+    file-close
+    set farm-type-change-probs table:make
+    foreach reorder (map list row-names rows-data) order [ ft-data ->
+      table:put farm-type-change-probs item 0 ft-data item 1 ft-data
+    ]
+  ]
+  [
+    print "***\n*** ERROR: problem reading farm type change costs data file\n***"
+    file-close
+  ]
+end
+  
+to-report replace-na [x]
+  report ifelse-value x = "NA" [na-value] [x]
+end
+
+to-report replace [x y z]
+  report ifelse-value x = y [z] [x]
+end 
+
+
+;; ----------------------------------------------------------------------------
+;; economic setup procedures
+;; ----------------------------------------------------------------------------
+to setup-economic-parameters
+  with-local-randomness [
+    ifelse seed-setup-rng?
+    [ random-seed rng-economics ]
+    [ random-seed timer ]
+    read-production-function-parameters
+  ]
+end
+
+to read-production-function-parameters
+  let yields get-parameter-from-file word market-data-folder "commodity-yields.csv"
+  set commodity-yield-means item 0 yields
+  set commodity-yield-sds   item 1 yields
+
+  let costs get-parameter-from-file word market-data-folder "input-costs.csv"
+  set input-cost-means      item 0 costs
+  set input-cost-sds        item 1 costs
+
+  let emissions get-parameter-from-file word market-data-folder "ghg-emissions.csv"
+  set ghg-emission-means    item 0 emissions
+  set ghg-emission-sds      item 1 emissions
+
+  set prices get-prices word market-data-folder "prices.csv"
+end
+
+;; return mean and sd tables for a parameter from a file
+to-report get-parameter-from-file [file]
+  ;; each parameter CSV file has the same format
+  ;; shown here with spaces added for clarity, and
+  ;; extending to 8 LUC levels. Cols can be in any order
+  ;; BUT LUC mean/sd rows MUST be as shown.
+  ;;
+  ;;          , SNB , Dairy, Forest, Crop
+  ;; LUC1_Mean, 3500,  9500,   4000, 3000
+  ;; LUC1_SD  ,  700,  1900,    800,  600
+  ;; LUC2_Mean, 2650,  8050,   4000, 2850
+  ;; LUC2_SD  ,  530,  1610,    800,  570
+  ;; LUC3_Mean, 1625,  7350,   3850, 2675
+  ;; LUC3_SD  ,  325,  1470,    770,  535
+  ;;   ... and so on to LUC8 ...
+  ;;
+  ;; Returned tables are readable as
+  ;;   table:get (table:get TABLE LUC-CODE) FARM-TYPE
+  let means-table table:make
+  let sds-table table:make
+  carefully [
+    print word "Reading parameters from " file
+    file-open file
+    let the-farm-types but-first csv:from-row file-read-line
+    let order get-order the-farm-types farm-types
+    let luc 1
+    while [not file-at-end?] [
+      ;; read the LUCx_Mean line
+      let means-data but-first csv:from-row file-read-line
+      let means table:from-list reorder (map list the-farm-types means-data) order
+      table:put means-table luc means
+      ;; read the LUCx_SD line
+      let sds-data but-first csv:from-row file-read-line
+      let sds table:from-list reorder (map list the-farm-types sds-data) order
+      table:put sds-table luc sds
+      set luc luc + 1
+    ]
+    file-close
+  ]
+  [
+    print word "***\n*** ERROR: failed while reading parameter file\n***" file
+    file-close
+  ]
+  report (list means-table sds-table)
+end
+
+to-report get-prices [file]
+  ;; the CSV for prices and emissions taxes looks like this
+  ;; (spacing addded for clarity). No checking that the rows
+  ;; are in this order
+  ;;
+  ;;                ,SNB,Dairy, Forest, Crop
+  ;; Price_Commodity,  5,  7.5,   157,   0.5
+  ;; Price_GhG      , 25, 25  ,    25,  25
+  ;; Price_Nleach   ,  0,  0  ,     0,   0
+  ;;  ... other redundant lines ...
+  ;;
+  ;; NOTE: the taxes part of this has been replaced by a slider
+  ;; since carbon taxes are a fixed price across all landuses
+  ;;
+  let prices-table nobody
+  let taxes-table nobody
+  carefully [
+    print word "Reading prices from " file
+    file-open file
+    let the-farm-types but-first csv:from-row file-read-line
+    let order get-order the-farm-types farm-types
+    let price-data but-first csv:from-row file-read-line
+    set prices-table table:from-list reorder (map list the-farm-types price-data) order
+    file-close
+  ]
+  [
+    print "***\n*** ERROR: problem reading prices file\n***"
+    file-close
+  ]
+  report prices-table
+end
+
+;; There is potential in matrix approaches for speeding up the calculations and
+;; perhaps even making them more 'sophisticated'. However some of this may come
+;; at the cost of (i) less readable code, and (ii) less variance. On (ii) specifically
+;; there is now no base patch level variance, i.e. the mean yield, emissions and
+;; input costs of every patch of given landuse and LUC combination is effectively
+;; identical - not initialised with the supplied SD. The SD is applied to patches
+;; each round BUT AT FARM LEVEL. That is, every patch on a given farm with given
+;; LU/LUC experiences same deviation from mean outcomes in a particular year. But a
+;; neighbouring farm might experience quite different deviations.
+to make-matrix-copies-of-data
+  ;; each of these is an 8-row 4-col matrix of the stated parameters by LUC and landuse/farm-type
+  set m-yield-means    matrix:from-row-list map [t -> table:values t] table:values commodity-yield-means
+  set m-yield-sds      matrix:from-row-list map [t -> table:values t] table:values commodity-yield-sds
+  set m-cost-means     matrix:from-row-list map [t -> table:values t] table:values input-cost-means
+  set m-cost-sds       matrix:from-row-list map [t -> table:values t] table:values input-cost-sds
+  set m-emission-means matrix:from-row-list map [t -> table:values t] table:values ghg-emission-means
+  set m-emission-sds   matrix:from-row-list map [t -> table:values t] table:values ghg-emission-sds
+  set m-suitabilities  matrix:from-row-list map [t -> table:values t] table:values farm-type-suitabilities
+  set m-change-probs   matrix:from-row-list map [t -> table:values t] table:values farm-type-change-probs
+
+  ;; a column matrix with one element per landuse/farm-type
+  set m-prices col-matrix table:values prices
+
+  ;; each of the next three is a n-row 4-col of intervention impacts, where rows are
+  ;; the type of intervention and columns are landuse/farm-type
+  set m-mgmt-intervention-cost-impacts matrix:from-row-list
+    map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
+              table:values table:get table:get mgmt-interventions i "costs"] mgmt-intervention-types
+
+  ;; note that these two are multiplicatively applied so add 1 to 0.05 -> 1.05, 0 -> 1, etc
+  set m-mgmt-intervention-yield-impacts matrix:plus 1 matrix:from-row-list
+    map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
+              table:values table:get table:get mgmt-interventions i "yields"] mgmt-intervention-types
+  set m-mgmt-intervention-emissions-impacts matrix:plus 1 matrix:from-row-list
+    map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
+              table:values table:get table:get mgmt-interventions i "emissions"] mgmt-intervention-types
+end
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-25 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.

@@ -135,7 +135,7 @@ end
 ;; gets a rough order of lst with respect to sorted-lst
 ;; all elements in lst should appear somewhere in sorted-lst
 to-report get-raw-order [lst sorted-lst]
-  report map [a -> position a sorted-lst] lst
+  report map [a -> position a lst] sorted-lst
 end
 
 ;; reports a complete ordering of elements of lst in sorted-lst

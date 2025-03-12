@@ -12,11 +12,13 @@ farms-own [
   current-income          ;; most recent income of farm summed across patches
   current-costs           ;; most recent costs of farm summed across patches
   losses-record           ;; a list recording loss (coded 1) or profit (coded 0) in recent years
+  my-metrics
 
   current-profit-0        ;; variables at model initialisation for quick reset
   current-income-0
   current-costs-0
   losses-record-0
+  my-metrics-0
 ]
 
 ;; farm 'constructor'
@@ -28,6 +30,13 @@ to initialise-farm
   set label farm-type
   set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
   set losses-record n-values years-to-remember [i -> 0]
+  set my-metrics table:make
+end
+
+to update-environmental-metrics-of-farm
+  foreach environmental-metrics [ metric ->
+    table:put my-metrics metric sum [table:get my-metrics metric] of [my-holdings] of my-farmer
+  ]
 end
 
 ;; farm profit is simple sum of the contributions from its holdings

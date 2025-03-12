@@ -9,11 +9,17 @@ to setup-model-plots
   show "Setting up model plots"
   let pen-palette [ black red orange green sky blue violet magenta ]
   setup-extensible-plot 
-    "Interventions" mgmt-intervention-types 
+    "Interventions" 
+    mgmt-intervention-types 
     table:from-list (map list mgmt-intervention-types first-n pen-palette (length mgmt-intervention-types))
   setup-extensible-plot 
     "Landuse composition" 
-    farm-types table:get colour-key "farm-type" ;; use existing colour key for farm-type
+    farm-types 
+    table:get colour-key "farm-type" ;; use existing colour key for farm-type
+  setup-extensible-plot 
+    "Environmental metrics"
+    environmental-metrics
+    table:from-list (map list environmental-metrics first-n pen-palette (length environmental-metrics))
 end
 
 ;; Sets up pens in the plot labelled 'plotname' with pen-names provided
@@ -31,6 +37,7 @@ end
 to update-model-plots 
   update-interventions-plot
   update-landuse-plot
+  update-metrics-plot
 end
 
 ;; update the interventions plot
@@ -48,5 +55,14 @@ to update-landuse-plot
   foreach farm-types [ ft ->
     set-current-plot-pen ft
     plot count farm-land with [landuse = ft]
+  ]
+end
+
+;; update the metrics plot
+to update-metrics-plot
+  set-current-plot "Environmental metrics"
+  foreach range length environmental-metrics [ i ->
+    set-current-plot-pen item i environmental-metrics
+    plot sum [table:get my-metrics item i environmental-metrics] of farms 
   ]
 end

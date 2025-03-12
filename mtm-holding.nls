@@ -13,6 +13,8 @@ holdings-own [
   
   my-mgmt-interventions    ;; row matrix of 0/1s indicating adoption of intervention-types
   avail-mgmt-interventions ;; row matrix of 0/1s indicating interventions still open for this farm-type
+  metrics-details
+  my-metrics
 
   farm-type-0              ;; variables at model initialisation for quick reset
   landuse-luc-profile-0
@@ -21,6 +23,7 @@ holdings-own [
   current-costs-0
   my-mgmt-interventions-0
   avail-mgmt-interventions-0
+  my-metrics-0
 ]
 
 ;; farm 'constructor'
@@ -35,6 +38,8 @@ to initialise-holding
   ;; interventions are a 1 row matrix of 0s to start
   set my-mgmt-interventions matrix:make-constant 1 (length mgmt-intervention-types) 0
   set avail-mgmt-interventions possible-interventions
+  set metrics-details table:make
+  set my-metrics table:make
 end
 
 ;; does the book keeping if the farm-type is changed
@@ -106,7 +111,7 @@ end
 ;; returns impact by farm-type, effect-type, and intervention-type
 ;; not a holding reporter but most often run by a holding turtle
 to-report get-impact [f-type e-type i-type]
-  report table:get (table:get (table:get mgmt-interventions i-type) e-type) f-type
+  report table:get (table:get (table:get mgmt-interventions e-type) i-type) f-type
 end
 
 ;; reports my-interventions as a list of intervention-type names for convenience
@@ -154,6 +159,20 @@ to update-profit-of-holding
   set current-profit current-income - current-costs
 end
 
+to update-environmental-metrics-of-holding
+  foreach environmental-metrics [ metric ->
+    table:put metrics-details metric
+      ( matrix:plus 
+          table:get env-metrics-means metric 
+          get-holding-environmental-metric-variance metric )
+    set-metric metric
+  ]
+end
+
+to set-metric [metric]
+  table:put my-metrics metric matrix-sum-elements (matrix:map * landuse-luc-profile table:get metrics-details metric)
+end
+
 
 ;; ----------------------------------------------------------------------------
 ;; matrix calculations of holding income etc.
@@ -190,15 +209,26 @@ to-report get-holding-costs [with-var?]
   ;; Multiplications are all element-wise except for last step * Prices
   ifelse with-var? [
     report round ( get-cost-after-interventions + matrix-sum-elements
-      ( matrix:map *
-        landuse-luc-profile
-        ( m-cost-means matrix:+
-          get-holding-cost-variance matrix:+
-          ( matrix:map *
-              ;; here with variance
-              ( matrix:plus m-emission-means get-holding-emissions-variance )
-              get-emissions-after-interventions ) matrix:* carbon-price
-        )
+;      ( matrix:map *
+;        landuse-luc-profile
+;        ( m-cost-means matrix:+
+;          get-holding-cost-variance matrix:+
+;          ( matrix:map *
+;              ;; here with variance
+;              ( matrix:plus table:get env-metrics-means "ghg-emissions" 
+;                            get-holding-environmental-metric-variance "ghg-emissions" )
+;              get-environmental-metric-after-interventions "ghg-emissions" ) matrix:* carbon-price
+;        )
+;      )
+;    )
+      ( ( matrix:map * 
+          landuse-luc-profile
+          (m-cost-means matrix:+ get-holding-cost-variance)
+        ) matrix:+
+        ( ( matrix:map *
+          landuse-luc-profile
+          table:get metrics-details "ghg-emissions"
+        ) matrix:* carbon-price )
       )
     )
   ]
@@ -208,8 +238,8 @@ to-report get-holding-costs [with-var?]
         landuse-luc-profile
         ( m-cost-means matrix:+
           ( matrix:map *
-              m-emission-means ;; no variance
-              get-emissions-after-interventions ) matrix:* carbon-price
+              table:get env-metrics-means "ghg-emissions" ;; no variance
+              get-environmental-metric-after-interventions "ghg-emissions" ) matrix:* carbon-price
         )
       )
     )
@@ -245,8 +275,9 @@ end
 
 ;; reports a matrix of emissions deviates suppressed by the number of patches
 ;; holding reporter due to landuse-luc-profile
-to-report get-holding-emissions-variance
-  report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] m-emission-sds landuse-luc-profile)
+to-report get-holding-environmental-metric-variance [metric]
+  report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] table:get env-metrics-sds metric 
+                                                             landuse-luc-profile)
 end
 
 ;; holding reporter due to get-farm-landuse-profile
@@ -283,13 +314,13 @@ end
 ;; as above but for emissions
 ;;
 ;; holding reporter due to my-interventions
-to-report get-emissions-after-interventions
+to-report get-environmental-metric-after-interventions [metric]
   report matrix:transpose
            matrix-duplicate-cols (
              matrix-column-products (
              ( matrix:map [[a b] -> ifelse-value a = 0 [1] [b]]
                matrix-duplicate-cols matrix:transpose my-mgmt-interventions length farm-types
-               m-mgmt-intervention-emissions-impacts )
+               table:get mgmt-intervention-environmental-impacts metric)
              )
            ) 8
 end

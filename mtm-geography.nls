@@ -11,7 +11,7 @@ to setup-world-dimensions
   let nrows 400
   let raster-pixel-resolution 3 ;; i.e. the patch cellsize in the NetLogo view
   ;; if initialising from geospatial data we override some of these defaults
-  if setup-geography-from-files? [
+  if geography-from-files? [
     print "Getting model dimensions from GIS data"
     ;; read dimensions of the raster from header of an Esri raster .asc file
     ;; which looks like this
@@ -57,7 +57,7 @@ end
 ;; or reading in from geospatial data files; other steps are the same for either method
 to setup-geography
   with-local-randomness [
-    ifelse setup-geography-from-files?
+    ifelse geography-from-files?
     [ setup-geography-from-files ]
     [ setup-random-geography ]
 

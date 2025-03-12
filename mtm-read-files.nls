@@ -27,13 +27,35 @@ to setup-farmer-parameters
   ;; Farm_Plan        , 0.7, 0.85,  0.4,    0.6
   ;; Join_ETS         , 0.2, 0.2,   0.9,    0.4
   ;;
+  read-metrics-from-file                 word market-data-folder "environmental-metrics.csv"
   read-farm-types-from-file              word market-data-folder "farmer-threshold-matrix.csv"
   read-interventions-from-file           word market-data-folder "farmer-threshold-matrix.csv"
   read-farmer-thresholds-from-file       word market-data-folder "farmer-threshold-matrix.csv"
   ;; details of the file formats for the following are provided in each procedure
-  read-intervention-impacts-from-file    word market-data-folder "intervention-impacts.csv"
+  read-intervention-impacts-from-files   ;; word market-data-folder "intervention-impacts.csv"
   read-farm-type-suitabilities-from-file word market-data-folder "suitabilities.csv"
   read-farm-type-change-probs-from-file  word market-data-folder "conversion-probabilities.csv"
+end
+
+;;
+to read-metrics-from-file [file]
+  set environmental-metrics []
+  carefully [
+    print word "Reading required metrics from " file
+    file-open file
+    while [not file-at-end?] [
+      let line file-read-line
+      if not (first line = "#") [
+        set environmental-metrics lput line environmental-metrics
+      ]
+    ]
+    set environmental-metrics sort environmental-metrics
+    file-close
+  ]
+  [
+    print word "***** ERROR: problem reading required metrics from " file
+    file-close
+  ]
 end
 
 ;; setup farm types and interventions
@@ -45,7 +67,7 @@ to read-farm-types-from-file [file]
     file-close
   ]
   [
-    print "***** ERROR: problem reading farm types from thresholds data file"
+    print word "***** ERROR: problem reading farm types from thresholds data file " file
     file-close
   ]
 end
@@ -63,7 +85,7 @@ to read-interventions-from-file [file]
     foreach mgmt-intervention-types [ i -> output-print i ]
   ]
   [
-    print "***\n*** ERROR: problem reading intervention types from thresholds data file\n***"
+    print word "***** ERROR: problem reading intervention types from thresholds data file " file
     file-close
   ]
 end
@@ -87,70 +109,59 @@ to read-farmer-thresholds-from-file [file]
     file-open file
     let the-farm-types but-first csv:from-row file-read-line
     let order get-order the-farm-types farm-types
+    let the-interventions []
+    let the-values []
     while [not file-at-end?] [
       let data csv:from-row file-read-line
-      let the-intervention item 0 data
-      let vals table:from-list reorder (map list the-farm-types (but-first data)) order
-      table:put base-thresholds the-intervention vals
+      set the-interventions lput item 0 data the-interventions
+      set the-values lput table:from-list reorder (map list the-farm-types (but-first data)) order the-values
     ]
+    set order get-order the-interventions mgmt-intervention-types
+    set base-thresholds table:from-list reorder (map list the-interventions the-values) order
     file-close
   ]
   [
-    print "***\n*** ERROR: problem reading the farmer thresholds data file\n***"
+    print word "***** ERROR: problem reading the farmer thresholds data file " file
     file-close
   ]
 end
 
-;; initialise the global intervention-effects table
-;; which holds production function impacts by intervention type, effect, and farm type
-to read-intervention-impacts-from-file [file]
-  ;; CSV file format like this - note that each intervention should be
-  ;; 3 consecutive lines with its effects (the three impacts can be in 
-  ;; any order, but each set should be IN THE SAME ORDER)
-  ;; farm types can be in any order. Spaces added for clarity
-  ;;
-  ;; Intervention     , Impact   ,   SNB, Dairy, Forest,  Crop
-  ;; Build_Wetland    , costs    ,    25,    68,     NA,    34
-  ;; Build_Wetland    , yields   ,  -0.2, -0.02,     NA,  -0.1
-  ;; Build_Wetland    , emissions,  -0.1, -0.05,     NA, -0.05
-  ;; Riparian_Planting, costs    ,    26,    71,     NA,    11
-  ;; Riparian_Planting, yields   ,  -0.2, -0.02,     NA, -0.01
-  ;; Riparian_Planting, emissions,  -0.1, -0.03,     NA, -0.04
-  ;;  ... and so on ...
-  ;;
-  let i-list []   ;; list of tables, one per intervention type
-  let i-types []  ;; list of intervention types in the order they appear 
+;; 
+to read-intervention-impacts-from-files
+  set mgmt-interventions table:make 
+  let impacts-to-read (sentence ["costs" "yields"] environmental-metrics)
+  foreach impacts-to-read [ impact ->
+    let fname (word market-data-folder impact "-intervention-impacts.csv")
+    table:put mgmt-interventions impact read-intervention-impacts-from-file fname
+  ] 
+end
+
+to-report read-intervention-impacts-from-file [file]
+  let result nobody
+  let impacts nobody
   carefully [
     print word "Reading intervention impacts from " file
     file-open file
-    let the-farm-types but-first but-first csv:from-row file-read-line
+    let the-farm-types but-first csv:from-row file-read-line
     let order get-order the-farm-types farm-types
+    let i-types []
+    set impacts []
     while [not file-at-end?] [
-      let i 0
-      let i-type nobody
-      let e-types []
-      let e-impacts []
-      while [i < 3] [ ;; read the table by 3s
-        let data csv:from-row file-read-line
-        set i-type item 0 data
-        if i = 0 [set i-types fput i-type i-types]
-        set data but-first data
-        let e-type item 0 data
-        set e-types lput e-type e-types
-        set e-impacts lput table:from-list 
-          reorder (map list the-farm-types (but-first map [x -> replace-na x] data)) order e-impacts
-        set i i + 1
-      ]
-      set i-list fput table:from-list (map list e-types e-impacts) i-list
-    ]
+      let data csv:from-row file-read-line
+      set i-types lput item 0 data i-types ;; [ "Clean races" "Build wetland" ... ] 
+      set data but-first data              ;; [ numbers by farm-type ]
+      set impacts lput table:from-list 
+        reorder (map list the-farm-types (map [x -> replace-na x] data)) order impacts
+    ] ;; [ {"SNB" -> xx, "Dairy" -> yy ...} ]
     file-close
     set order get-order i-types mgmt-intervention-types
-    set mgmt-interventions table:from-list reorder (map list i-types i-list) order
+    set result table:from-list reorder (map list i-types impacts) order
   ]
   [
-    print "***\n*** ERROR: problem reading the interventions effects file\n***"
+    print word "***** ERROR: problem reading interventions impacts file " file
     file-close
   ]
+  report result
 end
 
 to read-farm-type-suitabilities-from-file [file]
@@ -181,7 +192,7 @@ to read-farm-type-suitabilities-from-file [file]
     file-close
   ]
   [
-    print "***\n*** ERROR: problem reading farm type suitabilities file\n***"
+    print word "***** ERROR: problem reading farm type suitabilities file " file
     file-close
   ]
 end
@@ -215,7 +226,7 @@ to read-farm-type-change-probs-from-file [file]
     ]
   ]
   [
-    print "***\n*** ERROR: problem reading farm type change costs data file\n***"
+    print word "***** ERROR: problem reading farm type change costs data file " file
     file-close
   ]
 end
@@ -242,18 +253,22 @@ to setup-economic-parameters
 end
 
 to read-production-function-parameters
-  let yields get-parameter-from-file word market-data-folder "commodity-yields.csv"
+  let yields get-parameter-from-file word market-data-folder "yields.csv"
   set commodity-yield-means item 0 yields
   set commodity-yield-sds   item 1 yields
 
-  let costs get-parameter-from-file word market-data-folder "input-costs.csv"
+  let costs get-parameter-from-file word market-data-folder "costs.csv"
   set input-cost-means      item 0 costs
   set input-cost-sds        item 1 costs
-
-  let emissions get-parameter-from-file word market-data-folder "ghg-emissions.csv"
-  set ghg-emission-means    item 0 emissions
-  set ghg-emission-sds      item 1 emissions
-
+  
+  set env-metrics-means table:make
+  set env-metrics-sds table:make
+  foreach environmental-metrics [ metric ->
+    let metric-vals get-parameter-from-file (word market-data-folder metric ".csv")
+    table:put env-metrics-means metric matrix:from-row-list map [t -> table:values t] table:values item 0 metric-vals
+    table:put env-metrics-sds   metric matrix:from-row-list map [t -> table:values t] table:values item 1 metric-vals
+  ]
+    
   set prices get-prices word market-data-folder "prices.csv"
 end
 
@@ -297,7 +312,7 @@ to-report get-parameter-from-file [file]
     file-close
   ]
   [
-    print word "***\n*** ERROR: failed while reading parameter file\n***" file
+    print word "***** ERROR: failed while reading parameter file " file
     file-close
   ]
   report (list means-table sds-table)
@@ -329,7 +344,7 @@ to-report get-prices [file]
     file-close
   ]
   [
-    print "***\n*** ERROR: problem reading prices file\n***"
+    print word "***** ERROR: problem reading prices file " file
     file-close
   ]
   report prices-table
@@ -341,20 +356,20 @@ end
 ;; there is now no base patch level variance, i.e. the mean yield, emissions and
 ;; input costs of every patch of given landuse and LUC combination is effectively
 ;; identical - not initialised with the supplied SD. The SD is applied to patches
-;; each round BUT AT FARM LEVEL. That is, every patch on a given farm with given
+;; each round BUT AT HOLDING LEVEL. That is, every patch on a given holding with given
 ;; LU/LUC experiences same deviation from mean outcomes in a particular year. But a
-;; neighbouring farm might experience quite different deviations.
+;; neighbouring holding might experience quite different deviations.
 to make-matrix-copies-of-data
   ;; each of these is an 8-row 4-col matrix of the stated parameters by LUC and landuse/farm-type
   set m-yield-means    matrix:from-row-list map [t -> table:values t] table:values commodity-yield-means
   set m-yield-sds      matrix:from-row-list map [t -> table:values t] table:values commodity-yield-sds
   set m-cost-means     matrix:from-row-list map [t -> table:values t] table:values input-cost-means
   set m-cost-sds       matrix:from-row-list map [t -> table:values t] table:values input-cost-sds
-  set m-emission-means matrix:from-row-list map [t -> table:values t] table:values ghg-emission-means
-  set m-emission-sds   matrix:from-row-list map [t -> table:values t] table:values ghg-emission-sds
+;  set m-emission-means matrix:from-row-list map [t -> table:values t] table:values env-metrics-means
+;  set m-emission-sds   matrix:from-row-list map [t -> table:values t] table:values env-metrics-sds
   set m-suitabilities  matrix:from-row-list map [t -> table:values t] table:values farm-type-suitabilities
   set m-change-probs   matrix:from-row-list map [t -> table:values t] table:values farm-type-change-probs
-
+  
   ;; a column matrix with one element per landuse/farm-type
   set m-prices col-matrix table:values prices
 
@@ -362,15 +377,19 @@ to make-matrix-copies-of-data
   ;; the type of intervention and columns are landuse/farm-type
   set m-mgmt-intervention-cost-impacts matrix:from-row-list
     map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
-              table:values table:get table:get mgmt-interventions i "costs"] mgmt-intervention-types
+              table:values table:get table:get mgmt-interventions "costs" i] mgmt-intervention-types
 
   ;; note that these two are multiplicatively applied so add 1 to 0.05 -> 1.05, 0 -> 1, etc
   set m-mgmt-intervention-yield-impacts matrix:plus 1 matrix:from-row-list
     map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
-              table:values table:get table:get mgmt-interventions i "yields"] mgmt-intervention-types
-  set m-mgmt-intervention-emissions-impacts matrix:plus 1 matrix:from-row-list
-    map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
-              table:values table:get table:get mgmt-interventions i "emissions"] mgmt-intervention-types
+              table:values table:get table:get mgmt-interventions "yields" i] mgmt-intervention-types
+  
+  set mgmt-intervention-environmental-impacts table:make
+  foreach environmental-metrics [ metric ->
+    let m matrix:plus 1 matrix:from-row-list map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
+      table:values table:get table:get mgmt-interventions "ghg-emissions" i] mgmt-intervention-types
+    table:put mgmt-intervention-environmental-impacts metric m
+  ]
 end
 
 

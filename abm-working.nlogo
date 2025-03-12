@@ -42,6 +42,7 @@ globals [
   not-farm-land           ;; and patches that are not - esp. important for GIS data
 
   farm-types              ;; list of named farm types - likely fixed at 4: Crop Dairy Forestry SNB
+  environmental-metrics   ;; list of (mostly) environmental metrics to be calculated on holdings/farms
 
   farm-type-suitabilities ;; table of list of suitabilities by LUC for each farm-type
   farm-type-change-probs  ;; table of probability of conversion between farm types
@@ -54,8 +55,8 @@ globals [
   commodity-yield-sds     ;; table of sd of yields by LUC and farm-type
   input-cost-means        ;; table of mean input costs by LUC and farm-type
   input-cost-sds          ;; table of sd of input costs by LUC and farm-type
-  ghg-emission-means      ;; table of mean GHG emissions by LUC and farm-type
-  ghg-emission-sds        ;; table of sd of GHG emissions by LUC and farm-type
+  env-metrics-means       ;; table of tables of means of environmental metrics by LUC and farm-type
+  env-metrics-sds         ;; table of tables of sd of environmental metrics by LUC and farm-type
   prices                  ;; table of commodity prices (per ha)
   base-thresholds         ;; table of default farmer decision thresholds for various interventions
 
@@ -79,7 +80,8 @@ globals [
   ;; ordered by intervention-types and farm-types lists
   m-mgmt-intervention-cost-impacts
   m-mgmt-intervention-yield-impacts
-  m-mgmt-intervention-emissions-impacts
+  ;; m-mgmt-intervention-environmental-impacts
+  mgmt-intervention-environmental-impacts ;; table of intervention impact matrices
 
   ;; colour settings - these can be changed in one place, see mtm-render::setup-key-colours procedure
   colour-key              ;; table of colour settings
@@ -156,8 +158,14 @@ to go
     print (word "------------------------------ tick " ticks " ------------------------------")
     ;; update farm status - note that succession may also lead to change of farm type
     ask farmers [ age-and-succeed-farmer ]
-    ask holdings [ update-profit-of-holding ]
-    ask farms [ update-profit-of-farm ]
+    ask holdings [
+      update-environmental-metrics-of-holding
+      update-profit-of-holding
+    ]
+    ask farms [
+      update-environmental-metrics-of-farm
+      update-profit-of-farm
+    ]
     ask farmers [
       let ft-now farm-type
       let loss-making-holdings get-loss-making-holdings
@@ -171,7 +179,7 @@ to go
         ]
         ;; only some holdings are losing money so consider forestry on those
         let holding-change-options consider-holdings-farm-type-change
-              prioritise-forestry-set-aside? "Some holdings losing money: " false
+              prioritise-forestry? "Some holdings losing money: " false
         make-farm-type-changes (sentence farm-conversion-options holding-change-options)
       ]
       [ ;; we're doing OK so think about management interventions instead
@@ -228,6 +236,7 @@ to store-initial-values
     set my-mgmt-interventions-0 matrix:copy my-mgmt-interventions
     set avail-mgmt-interventions-0 matrix:copy avail-mgmt-interventions
     set landuse-luc-profile-0 matrix:copy landuse-luc-profile
+    set my-metrics-0 table:from-json table:to-json my-metrics
   ]
   ask farms [
     set farm-type-0 farm-type
@@ -235,6 +244,7 @@ to store-initial-values
     set current-income-0 current-income
     set current-costs-0 current-costs
     set losses-record-0 losses-record
+    set my-metrics-0 table:from-json table:to-json my-metrics
   ]
   ask farmers [
     set farm-type-0 farm-type
@@ -255,6 +265,7 @@ to restore-initial-values
     set my-mgmt-interventions matrix:copy my-mgmt-interventions-0
     set avail-mgmt-interventions matrix:copy avail-mgmt-interventions-0
     set landuse-luc-profile matrix:copy landuse-luc-profile-0
+    set my-metrics table:from-json table:to-json my-metrics-0
   ]
   ask farms [
     set farm-type farm-type-0
@@ -262,6 +273,7 @@ to restore-initial-values
     set current-income current-income-0
     set current-costs current-costs-0
     set losses-record losses-record-0
+    set my-metrics table:from-json table:to-json my-metrics-0
   ]
   ask farmers [
     set farm-type farm-type-0
@@ -299,10 +311,10 @@ end
 ;; DEALINGS IN THE SOFTWARE.
 @#$#@#$#@
 GRAPHICS-WINDOW
-215
-12
-832
-921
+190
+10
+807
+919
 -1
 -1
 3.0
@@ -326,10 +338,10 @@ Year
 30.0
 
 BUTTON
-118
-38
-201
-71
+100
+10
+180
+43
 NIL
 setup
 NIL
@@ -343,10 +355,10 @@ NIL
 1
 
 SLIDER
-846
-17
-1089
-50
+1040
+730
+1240
+763
 sigmoid-slope
 sigmoid-slope
 0.01
@@ -358,10 +370,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-847
-679
-991
-712
+830
+460
+1010
+493
 seed-setup-rng?
 seed-setup-rng?
 0
@@ -369,10 +381,10 @@ seed-setup-rng?
 -1000
 
 INPUTBOX
-846
-718
-991
-778
+830
+500
+920
+560
 rng-economics
 42.0
 1
@@ -380,38 +392,38 @@ rng-economics
 Number
 
 OUTPUT
-848
-120
-1056
-208
+830
+710
+1010
+920
 11
 
 TEXTBOX
-852
-99
-1039
-117
+830
+690
+1010
+708
 Interventions (for information)
 12
 0.0
 1
 
 SWITCH
-845
-224
-1085
-257
-setup-geography-from-files?
-setup-geography-from-files?
+830
+60
+1010
+93
+geography-from-files?
+geography-from-files?
 1
 1
 -1000
 
 SLIDER
-846
-459
-1073
-492
+830
+250
+1010
+283
 luc-aggregation-steps
 luc-aggregation-steps
 0
@@ -423,20 +435,20 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-847
-388
-968
-406
+830
+180
+1010
+198
 Random landscape
 12
 0.0
 1
 
 SWITCH
-31
-524
-195
-557
+10
+470
+180
+503
 show-luc-codes?
 show-luc-codes?
 0
@@ -444,20 +456,20 @@ show-luc-codes?
 -1000
 
 TEXTBOX
-844
-659
-999
-677
+830
+440
+1010
+458
 Model process RNGs
 12
 0.0
 1
 
 BUTTON
-123
-597
-197
-630
+10
+540
+180
+573
 redraw
 redraw
 NIL
@@ -471,10 +483,10 @@ NIL
 1
 
 BUTTON
-119
-137
-200
-170
+100
+90
+180
+123
 step
 go
 NIL
@@ -488,10 +500,10 @@ NIL
 1
 
 BUTTON
-119
-218
-199
-251
+100
+170
+180
+203
 NIL
 go
 T
@@ -505,20 +517,20 @@ NIL
 1
 
 CHOOSER
-1147
-733
-1285
-778
+824
+10
+916
+55
 region
 region
 "Rangitaiki"
 0
 
 BUTTON
-48
-639
-197
-672
+10
+580
+180
+613
 toggle-labels
 set show-labels? not show-labels?\nifelse show-labels?\n[ ask turtles \n  [ set label-color table:get colour-key \"label\" ] ]\n[ ask turtles\n  [ set label-color [0 0 0 0] ] ]\n
 NIL
@@ -532,10 +544,10 @@ NIL
 1
 
 BUTTON
-48
-680
-197
-713
+10
+620
+180
+653
 toggle-farmers
 ask farmers [\n  set hidden? not hidden?\n]
 NIL
@@ -549,10 +561,10 @@ NIL
 1
 
 SLIDER
-848
-264
-1020
-297
+830
+100
+1010
+133
 max-dimension
 max-dimension
 100
@@ -564,10 +576,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-119
-177
-200
-210
+100
+130
+180
+163
 step-10
 repeat 10 [go]
 NIL
@@ -581,10 +593,10 @@ NIL
 1
 
 SWITCH
-32
-326
-196
-359
+10
+280
+180
+313
 show-landuse?
 show-landuse?
 0
@@ -592,10 +604,10 @@ show-landuse?
 -1000
 
 SWITCH
-31
-461
-195
-494
+10
+410
+180
+443
 farm-type-colours?
 farm-type-colours?
 0
@@ -603,70 +615,60 @@ farm-type-colours?
 -1000
 
 TEXTBOX
-860
-56
-1075
-86
-Bigger numbers amplify the impact of nudges (in both directions)
-11
+1245
+730
+1390
+760
+Bigger numbers amplify the impact of nudges
+10
 0.0
 1
 
 TEXTBOX
-853
-355
-1003
-383
-You'll need the named regional spatial subfolder
-11
-0.0
-1
-
-TEXTBOX
-32
-561
-200
-590
+10
+505
+180
+535
 More intense colours are lower LUC values (better land).
 11
 0.0
 1
 
 TEXTBOX
-35
-363
-187
-447
+10
+315
+180
+405
 Colour key (applies to both landuse and farm symbols)\n  SNB - Brown\n  Dairy - Blue\n  Forestry - Green \n  Crop -Purple
 11
 0.0
 1
 
 TEXTBOX
-32
-498
-200
-516
+10
+445
+180
+465
 Loss-making farms always red
 11
 0.0
 1
 
 TEXTBOX
-1026
-265
-1115
-326
-Longer dimension of map will be this many patches.
+830
+135
+1010
+165
+Longer dimension of map will be this many patches
 11
 0.0
 1
 
 INPUTBOX
-848
-585
-949
-645
+830
+370
+920
+430
 rng-geography
 2.0
 1
@@ -674,10 +676,10 @@ rng-geography
 Number
 
 SWITCH
-847
-543
-1067
-576
+830
+330
+1010
+363
 seed-geography-rng?
 seed-geography-rng?
 0
@@ -685,10 +687,10 @@ seed-geography-rng?
 -1000
 
 BUTTON
-26
-37
-89
-70
+10
+10
+90
+43
 reset
 restore-initial-values\n
 NIL
@@ -702,45 +704,45 @@ NIL
 1
 
 SLIDER
-845
-793
-995
-826
+830
+570
+1010
+603
 run-rng-seed
 run-rng-seed
 0
 100
-1.0
+50.0
 1
 1
 NIL
 HORIZONTAL
 
 TEXTBOX
-999
-774
-1122
-827
+830
+630
+1010
+680
 Set to any value in experiments, but only small range provided for interactive use
 10
 0.0
 1
 
 TEXTBOX
-847
-831
-1026
-849
+830
+610
+1010
+628
 0 for non-seeded randomness
 11
 0.0
 1
 
 BUTTON
-48
-721
-198
-754
+10
+660
+180
+693
 toggle-farms
 ask farms [set hidden? not hidden?]
 NIL
@@ -754,10 +756,10 @@ NIL
 1
 
 SWITCH
-33
-258
-199
-291
+10
+210
+180
+243
 show-events?
 show-events?
 1
@@ -765,30 +767,30 @@ show-events?
 -1000
 
 TEXTBOX
-40
-294
-190
-322
+10
+245
+180
+275
 Turn off messages to speed things up!
 11
 0.0
 1
 
 CHOOSER
-846
-408
-1042
-453
+830
+200
+1010
+245
 random-landscape-method
 random-landscape-method
 "voter-model" "averaging"
 1
 
 SLIDER
-843
-887
-1015
-920
+1040
+690
+1240
+723
 carbon-price
 carbon-price
 0
@@ -800,10 +802,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-845
-500
-1017
-533
+830
+290
+1010
+323
 number-of-farms
 number-of-farms
 10
@@ -815,10 +817,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-99
-97
-202
-130
+10
+50
+180
+83
 force?
 force?
 0
@@ -826,20 +828,20 @@ force?
 -1000
 
 TEXTBOX
-16
-96
-97
-169
-Use this to force model steps even if stop condition is met
+10
+90
+90
+200
+Use force? to make model continue even when stop condition is met
 11
 0.0
 1
 
 BUTTON
-48
-761
-197
-794
+10
+700
+180
+733
 toggle-holdings
 ask holdings [set hidden? not hidden?]
 NIL
@@ -853,10 +855,10 @@ NIL
 1
 
 SWITCH
-28
-805
-196
-838
+10
+740
+180
+773
 show-local-links?
 show-local-links?
 1
@@ -864,10 +866,10 @@ show-local-links?
 -1000
 
 SWITCH
-28
-842
-196
-875
+10
+780
+180
+813
 show-industry-links?
 show-industry-links?
 1
@@ -875,10 +877,10 @@ show-industry-links?
 -1000
 
 SWITCH
-27
-878
-196
-911
+10
+820
+180
+853
 include-networks?
 include-networks?
 1
@@ -886,13 +888,13 @@ include-networks?
 -1000
 
 PLOT
-1142
-544
-1465
-721
+1040
+270
+1440
+390
 Landuse composition
-NIL
-NIL
+Time
+# Cells
 0.0
 10.0
 0.0
@@ -903,10 +905,10 @@ true
 PENS
 
 SWITCH
-1142
-238
-1353
-271
+1040
+610
+1240
+643
 apply-severity-of-losses?
 apply-severity-of-losses?
 0
@@ -914,10 +916,10 @@ apply-severity-of-losses?
 -1000
 
 SLIDER
-1158
-840
-1330
-873
+1040
+850
+1240
+883
 bad-years-trigger
 bad-years-trigger
 0
@@ -929,10 +931,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-1158
-880
-1331
-913
+1040
+890
+1240
+923
 years-to-remember
 years-to-remember
 0
@@ -944,10 +946,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-1143
-280
-1354
-313
+1040
+650
+1240
+683
 apply-suitability?
 apply-suitability?
 0
@@ -955,105 +957,105 @@ apply-suitability?
 -1000
 
 TEXTBOX
-1361
-233
-1511
-272
-On = More severe losses make farm conversion more likely
+1245
+610
+1390
+640
+On: Severe losses make farm conversion more likely
 10
 0.0
 1
 
 TEXTBOX
-1362
-285
-1512
-311
-On = LUC suitability is applied to farm type conversion
+1245
+650
+1390
+680
+On: LUC suitability applied to farm change
 10
 0.0
 1
 
 TEXTBOX
-1339
-891
-1489
-909
+1245
+890
+1390
+920
 Length of memory of losses
 10
 0.0
 1
 
 TEXTBOX
-1338
-838
-1509
-878
-Proportion of years of remembered losses to trigger considering conversion 
+1245
+850
+1390
+880
+Proportion of recent years of losses to trigger conversion 
 10
 0.0
 1
 
 CHOOSER
-1290
-733
-1430
-778
+924
+10
+1016
+55
 scenario
 scenario
 "default" "null-market" "luc-dependent"
-2
+0
 
 SWITCH
-1141
-20
-1464
-53
-consider-landuse-change-on-succession?
-consider-landuse-change-on-succession?
+1040
+530
+1340
+563
+landuse-change-on-succession?
+landuse-change-on-succession?
 0
 1
 -1000
 
 SWITCH
-1142
-195
-1353
-228
-prioritise-forestry-set-aside?
-prioritise-forestry-set-aside?
+1040
+570
+1240
+603
+prioritise-forestry?
+prioritise-forestry?
 0
 1
 -1000
 
 TEXTBOX
-1237
-821
-1387
-839
----- NOT YET IN USE ----
+1040
+830
+1240
+848
+--------- NOT YET IN USE ---------
 11
 15.0
 1
 
 TEXTBOX
-1360
-189
-1531
-231
-Off = Consider all alternative landuses (not only forestry) for unprofitable holdings
+1245
+570
+1390
+600
+Off: Consider all landuses for loss-making holdings
 10
 0.0
 1
 
 PLOT
-1142
-65
-1496
-185
+1040
+10
+1440
+130
 Farmer age distribution
-NIL
-NIL
+Age
+Count
 0.0
 10.0
 0.0
@@ -1065,12 +1067,29 @@ PENS
 "default" 1.0 1 -16777216 true "set-plot-x-range 20 100\nset-plot-pen-interval 5" "histogram [age] of farmers"
 
 PLOT
-1142
-319
-1526
-541
+1040
+140
+1440
+260
 Interventions
-NIL
+Time
+# Cells
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+
+PLOT
+1040
+400
+1440
+520
+Environmental metrics
+Time
 NIL
 0.0
 10.0

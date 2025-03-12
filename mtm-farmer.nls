@@ -75,7 +75,7 @@ to age-and-succeed-farmer
     let ft-now farm-type
     ;; new farmer considers changing the farm type if any holdings are loss-making
     ;; without regard to how long losses have been happening, and with no 'down-weight'
-    if consider-landuse-change-on-succession? and any? my-holdings with [current-profit < 0] [
+    if landuse-change-on-succession? and any? my-holdings with [current-profit < 0] [
       let options consider-farm-type-change 1 "Succession: " false
       if length options > 0 [ make-farm-type-changes options ]
     ]

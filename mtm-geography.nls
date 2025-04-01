@@ -24,7 +24,7 @@ to setup-world-dimensions
     ;; NODATA_value  -9999
     ;;
     carefully [
-      file-open word spatial-data-folder "luc.asc"
+      file-open join-list (list spatial-data-folder "luc.asc") pathdir:get-separator
       set ncols read-from-string item 1 split-string file-read-line " "
       set nrows read-from-string item 1 split-string file-read-line " "
       let skip file-read-line
@@ -34,7 +34,7 @@ to setup-world-dimensions
     ]
     [
       file-close
-      print (word "Problem reading " spatial-data-folder "luc.asc")
+      user-message (word "Problem reading " join-list (list spatial-data-folder "luc.asc") pathdir:get-separator)
     ]
   ]
   let x-extent ncols * raster-pixel-resolution
@@ -88,13 +88,13 @@ end
 ;; set things up from supplied LUC and parcels geospatial datasets
 to setup-geography-from-files
   carefully [
-    print (word "Reading LUC data from " spatial-data-folder "luc.asc")
-    set luc-data gis:load-dataset word spatial-data-folder "luc.asc"
-    print (word "Reading farm data from " spatial-data-folder "parcels.shp")
-    set parcels-data gis:load-dataset word spatial-data-folder "parcels.shp"
+    print (word "Reading LUC data from " join-list (list spatial-data-folder "luc.asc") pathdir:get-separator)
+    set luc-data gis:load-dataset join-list (list spatial-data-folder "luc.asc")     pathdir:get-separator
+    print (word "Reading farm data from " join-list (list spatial-data-folder "parcels.shp") pathdir:get-separator)
+    set parcels-data gis:load-dataset join-list (list spatial-data-folder "parcels.shp") pathdir:get-separator
   ]
   [
-    print "ERROR: problem reading spatial data"
+    user-message "ERROR: problem reading spatial data"
   ]
   gis:apply-raster luc-data luc-code
   ;; there's a gis extension issue related to NANs

@@ -21,6 +21,7 @@ extensions [
   nw       ;; networks for cluster/connectivity detection
   rnd      ;; weighted random draws
   profiler ;; in case we need to figure out why things are slow
+  pathdir
   ;; sr
 ]
 
@@ -29,6 +30,9 @@ globals [
   output-data-folder
   market-data-folder
   spatial-data-folder
+  region
+  scenario
+
   show-labels?            ;; generally don't want to see labels on turtles
 
   epsilon                 ;; for convenience - constant for 'smallest number'
@@ -115,37 +119,65 @@ patches-own [
 to setup
   ;; Setup order is very sensitive to a number of interdependencies among the various
   ;; elements. So be VERY CAREFUL IF CHANGING THE SEQUENCE OF OPERATIONS in this procedure
-  clear-all
+  ifelse reinitialise? or geography-from-files? [
+    clear-all
+    setup-folders  ;; mtm-read-files.nls
+  ]
+  [
+    clear-turtles
+    clear-patches
+    clear-all-plots
+    clear-drawing
+    clear-ticks
+    setup-world-dimensions
+  ]
+  carefully [
+    set epsilon 1e-16
+    set na-value -999
+    set show-labels? false
 
-  set epsilon 1e-16
-  set na-value -999
-  set show-labels? false
-  setup-folders               ;; mtm-read-files.nls
+    if reinitialise? or geography-from-files? [
+      carefully [
+        if geography-from-files? [
+          set region user-one-of "Set the spatial setting" sort filter [d -> first d != "."] pathdir:list spatial-data-folder
+          set spatial-data-folder join-list (list spatial-data-folder region) pathdir:get-separator
+        ]
+        setup-world-dimensions
+        set scenario user-one-of "Set the market scenario" sort filter [d -> first d != "."] pathdir:list market-data-folder
+        set market-data-folder join-list (list market-data-folder scenario) pathdir:get-separator
 
-  ;; this MUST come first (and note that it will read the GIS data if in that mode
-  setup-world-dimensions
+        setup-farmer-parameters     ;; mtm-read-files.nls
+        ;; if we figure out a use for dispositions (Kaine et al. argue against them!) then these
+        ;; will likely be read in from files too, but for now:
+        set dispositions [ "for-profit" "pro-social" "pro-environmental" ]
 
-  setup-farmer-parameters     ;; mtm-read-files.nls
-  ;; if we figure out a use for dispositions (Kaine et al. argue against them!) then these
-  ;; will likely be read in from files too, but for now:
-  set dispositions [ "for-profit" "pro-social" "pro-environmental" ]
+        set reinitialise? false
+      ]
+      [
+        user-message "An initialisation error occurred. Check that you picked geography and scenario folders that contain all necessary files."
+        stop
+      ]
+    ]
+    setup-colours ;; must come AFTER reading farmer parameters since it depends on farm types
+    ask patches [ set pcolor table:get colour-key "background" ]
 
-  setup-colours ;; must come AFTER reading farmer parameters since it depends on farm types
-  ask patches [ set pcolor table:get colour-key "background" ]
+    setup-geography             ;; mtm-geography.nls
+    setup-economic-parameters   ;; mtm-read-files.nls
+    make-matrix-copies-of-data  ;; mtm-read-files.nls
 
-  setup-geography             ;; mtm-geography.nls
-  setup-economic-parameters   ;; mtm-read-files.nls
-  make-matrix-copies-of-data  ;; mtm-read-files.nls
-
-  setup-model-plots           ;; mtm-plots.nls
-  redraw                      ;; mtm-render.nls
-  reset-ticks
-  if run-rng-seed != 0 [ random-seed run-rng-seed ]
-  go ;; this initialises the farms with current net profit and some interventions
-  store-initial-values
-  ;; because set up involves a full go step, we set the seed again to
-  ;; allow repeatability if model is restored to that initial state
-  if run-rng-seed != 0 [ random-seed run-rng-seed ]
+    setup-model-plots           ;; mtm-plots.nls
+    redraw                      ;; mtm-render.nls
+    reset-ticks
+    if run-rng-seed != 0 [ random-seed run-rng-seed ]
+    go ;; this initialises the farms with current net profit and some interventions
+    store-initial-values
+    ;; because set up involves a full go step, we set the seed again to
+    ;; allow repeatability if model is restored to that initial state
+    if run-rng-seed != 0 [ random-seed run-rng-seed ]
+  ]
+  [
+    user-message "Have you initialised the model correctly? Set the initialised? switch On and try setup again ensuring you pick a folder with a complete set of initialisation .csv files."
+  ]
 end
 
 ;; core model loop
@@ -310,314 +342,6 @@ end
 ;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ;; DEALINGS IN THE SOFTWARE.
 @#$#@#$#@
-BUTTON
-10
-10
-90
-43
-reset
-restore-initial-values\n
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-100
-10
-180
-43
-NIL
-setup
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-SWITCH
-10
-50
-180
-83
-force?
-force?
-0
-1
--1000
-
-TEXTBOX
-10
-85
-90
-195
-Use force? to make model continue even when stop condition is met
-11
-0.0
-1
-
-BUTTON
-100
-90
-180
-123
-step
-go
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-100
-130
-180
-163
-step-10
-repeat 10 [go]
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-100
-170
-180
-203
-NIL
-go
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-SWITCH
-10
-210
-180
-243
-show-events?
-show-events?
-1
-1
--1000
-
-TEXTBOX
-10
-245
-180
-275
-Turn off messages to speed things up!
-11
-0.0
-1
-
-SWITCH
-10
-280
-180
-313
-show-landuse?
-show-landuse?
-0
-1
--1000
-
-TEXTBOX
-10
-315
-180
-405
-Colour key (applies to both landuse and farm symbols)\n  SNB - Brown\n  Dairy - Blue\n  Forestry - Green \n  Crop -Purple
-11
-0.0
-1
-
-SWITCH
-10
-410
-180
-443
-farm-type-colours?
-farm-type-colours?
-0
-1
--1000
-
-TEXTBOX
-10
-445
-180
-465
-Loss-making farms always red
-11
-0.0
-1
-
-SWITCH
-10
-470
-180
-503
-show-luc-codes?
-show-luc-codes?
-0
-1
--1000
-
-TEXTBOX
-10
-505
-180
-535
-More intense colours are lower LUC values (better land).
-11
-0.0
-1
-
-BUTTON
-10
-540
-180
-573
-redraw
-redraw
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-10
-580
-180
-613
-toggle-labels
-set show-labels? not show-labels?\nifelse show-labels?\n[ ask turtles \n  [ set label-color table:get colour-key \"label\" ] ]\n[ ask turtles\n  [ set label-color [0 0 0 0] ] ]\n
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-10
-620
-180
-653
-toggle-farmers
-ask farmers [\n  set hidden? not hidden?\n]
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-10
-660
-180
-693
-toggle-farms
-ask farms [set hidden? not hidden?]
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-10
-700
-180
-733
-toggle-holdings
-ask holdings [set hidden? not hidden?]
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-SWITCH
-10
-740
-180
-773
-show-local-links?
-show-local-links?
-1
-1
--1000
-
-SWITCH
-10
-780
-180
-813
-show-industry-links?
-show-industry-links?
-1
-1
--1000
-
-SWITCH
-10
-820
-180
-853
-include-networks?
-include-networks?
-1
-1
--1000
-
 GRAPHICS-WINDOW
 190
 10
@@ -645,31 +369,330 @@ GRAPHICS-WINDOW
 Year
 30.0
 
-CHOOSER
-824
+SWITCH
 10
-916
-55
-region
-region
-"Rangitaiki"
+10
+180
+43
+reinitialise?
+reinitialise?
+1
+1
+-1000
+
+BUTTON
+10
+50
+90
+83
+reset
+restore-initial-values\n
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
 0
 
-CHOOSER
-924
+BUTTON
+100
+50
+180
+83
+NIL
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SWITCH
 10
-1016
-55
-scenario
-scenario
-"default" "null-market" "luc-dependent"
+90
+180
+123
+force?
+force?
 0
+1
+-1000
+
+TEXTBOX
+10
+125
+90
+235
+Use force? to make model continue even when stop condition is met
+11
+0.0
+1
+
+BUTTON
+100
+130
+180
+163
+step
+go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+100
+170
+180
+203
+step-10
+repeat 10 [go]
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+100
+210
+180
+243
+NIL
+go
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SWITCH
+10
+250
+180
+283
+show-events?
+show-events?
+1
+1
+-1000
+
+TEXTBOX
+10
+285
+180
+315
+Turn off messages to speed things up!
+11
+0.0
+1
+
+SWITCH
+10
+320
+180
+353
+show-landuse?
+show-landuse?
+0
+1
+-1000
+
+TEXTBOX
+10
+355
+180
+445
+Colour key (applies to both landuse and farm symbols)\n  SNB - Brown\n  Dairy - Blue\n  Forestry - Green \n  Crop -Purple
+11
+0.0
+1
+
+SWITCH
+10
+440
+180
+473
+farm-type-colours?
+farm-type-colours?
+0
+1
+-1000
+
+TEXTBOX
+10
+485
+180
+505
+Loss-making farms always red
+11
+0.0
+1
+
+SWITCH
+10
+510
+180
+543
+show-luc-codes?
+show-luc-codes?
+0
+1
+-1000
+
+TEXTBOX
+10
+545
+180
+575
+More intense colours are lower LUC values (better land).
+11
+0.0
+1
+
+BUTTON
+10
+580
+180
+613
+redraw
+redraw
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+10
+620
+180
+653
+toggle-labels
+set show-labels? not show-labels?\nifelse show-labels?\n[ ask turtles \n  [ set label-color table:get colour-key \"label\" ] ]\n[ ask turtles\n  [ set label-color [0 0 0 0] ] ]\n
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+10
+660
+180
+693
+toggle-farmers
+ask farmers [\n  set hidden? not hidden?\n]
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+10
+700
+180
+733
+toggle-farms
+ask farms [set hidden? not hidden?]
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+10
+740
+180
+773
+toggle-holdings
+ask holdings [set hidden? not hidden?]
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SWITCH
+10
+780
+180
+813
+show-local-links?
+show-local-links?
+1
+1
+-1000
+
+SWITCH
+10
+820
+180
+853
+show-industry-links?
+show-industry-links?
+1
+1
+-1000
+
+SWITCH
+10
+860
+180
+893
+include-networks?
+include-networks?
+1
+1
+-1000
 
 SWITCH
 830
-60
+10
 1010
-93
+43
 geography-from-files?
 geography-from-files?
 1
@@ -678,9 +701,9 @@ geography-from-files?
 
 SLIDER
 830
-100
+50
 1010
-133
+83
 max-dimension
 max-dimension
 100
@@ -693,9 +716,9 @@ HORIZONTAL
 
 TEXTBOX
 830
-135
+85
 1010
-165
+115
 Longer dimension of map will be this many patches
 11
 0.0
@@ -703,9 +726,9 @@ Longer dimension of map will be this many patches
 
 TEXTBOX
 830
-180
+130
 1010
-198
+148
 Random landscape
 12
 0.0
@@ -713,9 +736,9 @@ Random landscape
 
 CHOOSER
 830
-200
+150
 1010
-245
+195
 random-landscape-method
 random-landscape-method
 "voter-model" "averaging"
@@ -723,9 +746,9 @@ random-landscape-method
 
 SLIDER
 830
-250
+200
 1010
-283
+233
 luc-aggregation-steps
 luc-aggregation-steps
 0
@@ -738,9 +761,9 @@ HORIZONTAL
 
 SLIDER
 830
-290
+240
 1010
-323
+273
 number-of-farms
 number-of-farms
 10
@@ -753,9 +776,9 @@ HORIZONTAL
 
 SWITCH
 830
-330
+280
 1010
-363
+313
 seed-geography-rng?
 seed-geography-rng?
 0
@@ -764,9 +787,9 @@ seed-geography-rng?
 
 INPUTBOX
 830
-370
+320
 920
-430
+380
 rng-geography
 2.0
 1
@@ -775,9 +798,9 @@ Number
 
 TEXTBOX
 830
-440
+390
 1010
-458
+408
 Model process RNGs
 12
 0.0
@@ -785,9 +808,9 @@ Model process RNGs
 
 SWITCH
 830
-460
+410
 1010
-493
+443
 seed-setup-rng?
 seed-setup-rng?
 0
@@ -796,9 +819,9 @@ seed-setup-rng?
 
 INPUTBOX
 830
-500
+450
 920
-560
+510
 rng-economics
 42.0
 1
@@ -807,9 +830,9 @@ Number
 
 SLIDER
 830
-570
+520
 1010
-603
+553
 run-rng-seed
 run-rng-seed
 0
@@ -822,9 +845,9 @@ HORIZONTAL
 
 TEXTBOX
 830
-610
+560
 1010
-628
+578
 0 for non-seeded randomness
 11
 0.0
@@ -832,9 +855,9 @@ TEXTBOX
 
 TEXTBOX
 830
-630
+580
 1010
-680
+630
 Set to any value in experiments, but only small range provided for interactive use
 10
 0.0
@@ -842,9 +865,9 @@ Set to any value in experiments, but only small range provided for interactive u
 
 TEXTBOX
 830
-690
+640
 1010
-708
+658
 Interventions (for information)
 12
 0.0
@@ -852,7 +875,7 @@ Interventions (for information)
 
 OUTPUT
 830
-710
+660
 1010
 920
 11

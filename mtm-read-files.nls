@@ -4,10 +4,10 @@
 
 ;; initialise various folders - here for convenient modification in one place
 to setup-folders
-  let base-data-folder                           "data/"                            ;; 'data/'
-  set output-data-folder  (word base-data-folder "output/" scenario "/" region "/") ;; 'data/output/SCENARIO/REGION/'
-  set market-data-folder  (word base-data-folder "market/" scenario "/")            ;; 'data/market/SCENARIO/'
-  set spatial-data-folder (word base-data-folder "spatial/" region "/")             ;; 'data/spatial/REGION/'
+  let base-data-folder    join-string (list pathdir:get-model-path "data") pathdir:get-separator
+  set output-data-folder  join-string (list base-data-folder "output")     pathdir:get-separator
+  set market-data-folder  join-string (list base-data-folder "market")     pathdir:get-separator
+  set spatial-data-folder join-string (list base-data-folder "spatial")    pathdir:get-separator
 end
 
 
@@ -27,14 +27,13 @@ to setup-farmer-parameters
   ;; Farm_Plan        , 0.7, 0.85,  0.4,    0.6
   ;; Join_ETS         , 0.2, 0.2,   0.9,    0.4
   ;;
-  read-metrics-from-file                 word market-data-folder "environmental-metrics.csv"
-  read-farm-types-from-file              word market-data-folder "farmer-threshold-matrix.csv"
-  read-interventions-from-file           word market-data-folder "farmer-threshold-matrix.csv"
-  read-farmer-thresholds-from-file       word market-data-folder "farmer-threshold-matrix.csv"
-  ;; details of the file formats for the following are provided in each procedure
-  read-intervention-impacts-from-files   ;; word market-data-folder "intervention-impacts.csv"
-  read-farm-type-suitabilities-from-file word market-data-folder "suitabilities.csv"
-  read-farm-type-change-probs-from-file  word market-data-folder "conversion-probabilities.csv"
+  read-metrics-from-file                 join-string (list market-data-folder "environmental-metrics.csv")    pathdir:get-separator
+  read-farm-types-from-file              join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator
+  read-interventions-from-file           join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator
+  read-farmer-thresholds-from-file       join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator
+  read-intervention-impacts-from-files   
+  read-farm-type-suitabilities-from-file join-string (list market-data-folder "suitabilities.csv")            pathdir:get-separator
+  read-farm-type-change-probs-from-file  join-string (list market-data-folder "conversion-probabilities.csv") pathdir:get-separator
 end
 
 ;;
@@ -53,7 +52,7 @@ to read-metrics-from-file [file]
     file-close
   ]
   [
-    print word "***** ERROR: problem reading required metrics from " file
+    user-message word "ERROR: problem reading required metrics from " file
     file-close
   ]
 end
@@ -67,7 +66,7 @@ to read-farm-types-from-file [file]
     file-close
   ]
   [
-    print word "***** ERROR: problem reading farm types from thresholds data file " file
+    user-message word "ERROR: problem reading farm types from thresholds data file " file
     file-close
   ]
 end
@@ -85,7 +84,7 @@ to read-interventions-from-file [file]
     foreach mgmt-intervention-types [ i -> output-print i ]
   ]
   [
-    print word "***** ERROR: problem reading intervention types from thresholds data file " file
+    user-message word "ERROR: problem reading intervention types from thresholds data file " file
     file-close
   ]
 end
@@ -121,7 +120,7 @@ to read-farmer-thresholds-from-file [file]
     file-close
   ]
   [
-    print word "***** ERROR: problem reading the farmer thresholds data file " file
+    user-message word "ERROR: problem reading the farmer thresholds data file " file
     file-close
   ]
 end
@@ -131,7 +130,7 @@ to read-intervention-impacts-from-files
   set mgmt-interventions table:make 
   let impacts-to-read (sentence ["costs" "yields"] environmental-metrics)
   foreach impacts-to-read [ impact ->
-    let fname (word market-data-folder impact "-intervention-impacts.csv")
+    let fname join-list (list market-data-folder (word impact "-intervention-impacts.csv")) pathdir:get-separator
     table:put mgmt-interventions impact read-intervention-impacts-from-file fname
   ] 
 end
@@ -158,7 +157,7 @@ to-report read-intervention-impacts-from-file [file]
     set result table:from-list reorder (map list i-types impacts) order
   ]
   [
-    print word "***** ERROR: problem reading interventions impacts file " file
+    user-message word "ERROR: problem reading interventions impacts file " file
     file-close
   ]
   report result
@@ -192,7 +191,7 @@ to read-farm-type-suitabilities-from-file [file]
     file-close
   ]
   [
-    print word "***** ERROR: problem reading farm type suitabilities file " file
+    user-message word "ERROR: problem reading farm type suitabilities file " file
     file-close
   ]
 end
@@ -226,7 +225,7 @@ to read-farm-type-change-probs-from-file [file]
     ]
   ]
   [
-    print word "***** ERROR: problem reading farm type change costs data file " file
+    user-message word "ERROR: problem reading farm type change costs data file " file
     file-close
   ]
 end
@@ -253,23 +252,23 @@ to setup-economic-parameters
 end
 
 to read-production-function-parameters
-  let yields get-parameter-from-file word market-data-folder "yields.csv"
+  let yields get-parameter-from-file join-string (list market-data-folder "yields.csv") pathdir:get-separator
   set commodity-yield-means item 0 yields
   set commodity-yield-sds   item 1 yields
 
-  let costs get-parameter-from-file word market-data-folder "costs.csv"
+  let costs get-parameter-from-file join-string (list market-data-folder "costs.csv")   pathdir:get-separator
   set input-cost-means      item 0 costs
   set input-cost-sds        item 1 costs
   
   set env-metrics-means table:make
   set env-metrics-sds table:make
   foreach environmental-metrics [ metric ->
-    let metric-vals get-parameter-from-file (word market-data-folder metric ".csv")
+    let metric-vals get-parameter-from-file join-string (list market-data-folder (word metric ".csv")) pathdir:get-separator
     table:put env-metrics-means metric matrix:from-row-list map [t -> table:values t] table:values item 0 metric-vals
     table:put env-metrics-sds   metric matrix:from-row-list map [t -> table:values t] table:values item 1 metric-vals
   ]
     
-  set prices get-prices word market-data-folder "prices.csv"
+  set prices get-prices join-string (list market-data-folder "prices.csv") pathdir:get-separator
 end
 
 ;; return mean and sd tables for a parameter from a file
@@ -312,7 +311,7 @@ to-report get-parameter-from-file [file]
     file-close
   ]
   [
-    print word "***** ERROR: failed while reading parameter file " file
+    user-message word "ERROR: failed while reading parameter file " file
     file-close
   ]
   report (list means-table sds-table)
@@ -344,7 +343,7 @@ to-report get-prices [file]
     file-close
   ]
   [
-    print word "***** ERROR: problem reading prices file " file
+    user-message word "ERROR: problem reading prices file " file
     file-close
   ]
   report prices-table

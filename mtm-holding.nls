@@ -11,8 +11,8 @@ holdings-own [
   current-income           ;; most recent income of farm summed across patches
   current-costs            ;; most recent costs of farm summed across patches
   
-  my-interventions    ;; row matrix of 0/1s indicating adoption of intervention-types
-  avail-interventions ;; row matrix of 0/1s indicating interventions still open for this farm-type
+  my-interventions         ;; row matrix of 0/1s indicating adoption of intervention-types
+  avail-interventions      ;; row matrix of 0/1s indicating interventions still open for this farm-type
   metrics-details
   my-metrics
 
@@ -160,10 +160,10 @@ to update-profit-of-holding
 end
 
 to update-environmental-metrics-of-holding
-  foreach environmental-metrics [ metric ->
+  foreach sort table:keys env-metrics [ metric ->
     table:put metrics-details metric
       ( matrix:plus 
-          table:get env-metrics-means metric 
+          table:get env-metric-means metric 
           get-holding-environmental-metric-variance metric )
     set-metric metric
   ]
@@ -172,7 +172,6 @@ end
 to set-metric [metric]
   table:put my-metrics metric matrix-sum-elements (matrix:map * landuse-luc-profile table:get metrics-details metric)
 end
-
 
 ;; ----------------------------------------------------------------------------
 ;; matrix calculations of holding income etc.
@@ -209,18 +208,6 @@ to-report get-holding-costs [with-var?]
   ;; Multiplications are all element-wise except for last step * Prices
   ifelse with-var? [
     report round ( get-cost-after-interventions + matrix-sum-elements
-;      ( matrix:map *
-;        landuse-luc-profile
-;        ( m-cost-means matrix:+
-;          get-holding-cost-variance matrix:+
-;          ( matrix:map *
-;              ;; here with variance
-;              ( matrix:plus table:get env-metrics-means "ghg-emissions" 
-;                            get-holding-environmental-metric-variance "ghg-emissions" )
-;              get-environmental-metric-after-interventions "ghg-emissions" ) matrix:* carbon-price
-;        )
-;      )
-;    )
       ( ( matrix:map * 
           landuse-luc-profile
           (cost-means matrix:+ get-holding-cost-variance)
@@ -238,7 +225,7 @@ to-report get-holding-costs [with-var?]
         landuse-luc-profile
         ( cost-means matrix:+
           ( matrix:map *
-              table:get env-metrics-means "ghg-emissions" ;; no variance
+              table:get env-metric-means "ghg-emissions" ;; no variance
               get-environmental-metric-after-interventions "ghg-emissions" ) matrix:* carbon-price
         )
       )
@@ -276,7 +263,7 @@ end
 ;; reports a matrix of emissions deviates suppressed by the number of patches
 ;; holding reporter due to landuse-luc-profile
 to-report get-holding-environmental-metric-variance [metric]
-  report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] table:get env-metrics-sds metric 
+  report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] table:get env-metric-sds metric 
                                                              landuse-luc-profile)
 end
 

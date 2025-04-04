@@ -16,10 +16,11 @@ to setup-model-plots
     "Landuse composition" 
     farm-types 
     table:get colour-key "farm-type" ;; use existing colour key for farm-type
+  let e-metrics sort table:keys env-metrics
   setup-extensible-plot 
     "Environmental metrics"
-    environmental-metrics
-    table:from-list (map list environmental-metrics first-n pen-palette (length environmental-metrics))
+    e-metrics
+    table:from-list (map list e-metrics first-n pen-palette (length e-metrics))
 end
 
 ;; Sets up pens in the plot labelled 'plotname' with pen-names provided
@@ -60,9 +61,11 @@ end
 
 ;; update the metrics plot
 to update-metrics-plot
+  let e-metrics sort table:keys env-metrics
   set-current-plot "Environmental metrics"
-  foreach range length environmental-metrics [ i ->
-    set-current-plot-pen item i environmental-metrics
-    plot sum [table:get my-metrics item i environmental-metrics] of farms 
+  foreach range length e-metrics [ i ->
+    set-current-plot-pen item i e-metrics
+    plot count farms with [in-breach? item i e-metrics] / count farms
+;    plot sum [table:get my-metrics item i e-metrics] of farms 
   ]
 end

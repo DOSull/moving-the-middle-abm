@@ -46,13 +46,13 @@ globals [
   not-farm-land           ;; and patches that are not - esp. important for GIS data
 
   farm-types              ;; list of named farm types - likely fixed at 4: Crop Dairy Forestry SNB
-  environmental-metrics   ;; list of (mostly) environmental metrics to be calculated on holdings/farms
   mgmt-intervention-types ;; list of named management interventions - more likely to change over time
   dispositions            ;; list of farmer dispositions
 
   ;; some model parameters are read into tables for relative ease of retrieval
   farm-type-suitabilities ;; table of LUC levels suitable for each farm-type
   farm-type-change-probs  ;; table of probability of conversion between farm types
+  env-metrics             ;; table of environmental metrics with policy limits on per ha. emissions
 
   ;; these tables are only used in setup - the data are passed into matrix copies for use in calculations
   mgmt-interventions      ;; table of tables of management intervention impacts
@@ -67,10 +67,11 @@ globals [
   cost-sds
   yield-means
   yield-sds
-  env-metrics-means       ;; table of matrices of means of environmental metrics by LUC and farm-type
-  env-metrics-sds         ;; table of matrices of sd of environmental metrics by LUC and farm-type
-  prices                  ;; a column matrix of product prices (per ha) ordered by farm-types list
-  ;; rows-cols entries for intervention-type - farm-type respectively
+  env-metric-means        ;; table of matrices of means of environmental metrics by LUC (row) and farm-type (col)
+  env-metric-sds          ;; table of matrices of sd of environmental metrics by LUC (row) and farm-type (col)
+  prices                  ;; column matrix of product prices (per ha) ordered by farm-types list
+
+  ;; matrices with rows-cols entries for intervention-type - farm-type respectively
   ;; ordered by intervention-types and farm-types lists
   intervention-cost-impacts
   intervention-yield-impacts
@@ -998,9 +999,9 @@ Environmental metrics
 Time
 NIL
 0.0
-10.0
 0.0
-10.0
+0.0
+1.0
 true
 true
 "" ""

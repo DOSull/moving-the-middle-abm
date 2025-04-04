@@ -37,18 +37,19 @@ end
 
 ;;
 to read-metrics-from-file [file]
-  set environmental-metrics []
+  set env-metrics table:make
   carefully [
     print word "Reading required metrics from " file
     file-open file
-    let skip file-read-line
+    let header file-read-line
+    let vars but-first csv:from-row header
     while [not file-at-end?] [
       let line file-read-line
       if not (first line = "#") [
-        set environmental-metrics lput (first csv:from-row line) environmental-metrics
+        let data csv:from-row line
+        table:put env-metrics (first data) table:from-list (map list vars but-first data)
       ]
     ]
-    set environmental-metrics sort environmental-metrics
     file-close
   ]
   [
@@ -128,7 +129,7 @@ end
 ;; 
 to read-intervention-impacts-from-files
   set mgmt-interventions table:make 
-  let impacts-to-read (sentence ["costs" "yields"] environmental-metrics)
+  let impacts-to-read (sentence ["costs" "yields"] table:keys env-metrics)
   foreach impacts-to-read [ impact ->
     let fname join-list (list market-data-folder (word impact "-intervention-impacts.csv")) pathdir:get-separator
     let impacts read-intervention-impacts-from-file fname
@@ -228,12 +229,12 @@ to read-production-function-parameters
   set cost-means          matrix:from-row-list map [t -> table:values t] table:values item 0 costs
   set cost-sds            matrix:from-row-list map [t -> table:values t] table:values item 1 costs
   
-  set env-metrics-means table:make
-  set env-metrics-sds table:make
-  foreach environmental-metrics [ metric ->
+  set env-metric-means table:make
+  set env-metric-sds table:make
+  foreach sort table:keys env-metrics [ metric ->
     let metric-vals get-parameter-from-file join-string (list market-data-folder (word metric ".csv")) pathdir:get-separator
-    table:put env-metrics-means metric matrix:from-row-list map [t -> table:values t] table:values item 0 metric-vals
-    table:put env-metrics-sds   metric matrix:from-row-list map [t -> table:values t] table:values item 1 metric-vals
+    table:put env-metric-means metric matrix:from-row-list map [t -> table:values t] table:values item 0 metric-vals
+    table:put env-metric-sds   metric matrix:from-row-list map [t -> table:values t] table:values item 1 metric-vals
   ]
     
   set prices get-prices join-string (list market-data-folder "prices.csv") pathdir:get-separator
@@ -330,7 +331,7 @@ to make-matrix-copies-of-some-data
   set intervention-yield-impacts intervention-farm-type-tbl-to-mtx mgmt-interventions "yields" true
 
   set intervention-env-impacts table:make
-  foreach environmental-metrics [ metric ->
+  foreach sort table:keys env-metrics [ metric ->
     table:put intervention-env-impacts metric intervention-farm-type-tbl-to-mtx mgmt-interventions metric true
   ]
 end

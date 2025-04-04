@@ -34,9 +34,13 @@ to initialise-farm
 end
 
 to update-environmental-metrics-of-farm
-  foreach environmental-metrics [ metric ->
+  foreach sort table:keys env-metrics [ metric ->
     table:put my-metrics metric sum [table:get my-metrics metric] of [my-holdings] of my-farmer
   ]
+end
+
+to-report in-breach? [metric]
+  report table:get my-metrics metric / count the-land > table:get (table:get env-metrics metric) "limit"
 end
 
 ;; farm profit is simple sum of the contributions from its holdings

@@ -1,5 +1,6 @@
-ghg-emissions
-nitrates
-#sediment
-#phosphates
-#e-coli
+,limit
+ghg-emissions,10
+nitrates,10
+#sediment,10
+#phosphates,10
+#e-coli,10

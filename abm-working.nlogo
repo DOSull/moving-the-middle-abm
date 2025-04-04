@@ -47,45 +47,34 @@ globals [
 
   farm-types              ;; list of named farm types - likely fixed at 4: Crop Dairy Forestry SNB
   environmental-metrics   ;; list of (mostly) environmental metrics to be calculated on holdings/farms
-
-  farm-type-suitabilities ;; table of list of suitabilities by LUC for each farm-type
-  farm-type-change-probs  ;; table of probability of conversion between farm types
   mgmt-intervention-types ;; list of named management interventions - more likely to change over time
-  mgmt-interventions      ;; table of tables of management intervention impacts
   dispositions            ;; list of farmer dispositions
 
-  ;; model parameters are read into tables as follows, but...
-  commodity-yield-means   ;; table of mean yields by LUC and farm-type
-  commodity-yield-sds     ;; table of sd of yields by LUC and farm-type
-  input-cost-means        ;; table of mean input costs by LUC and farm-type
-  input-cost-sds          ;; table of sd of input costs by LUC and farm-type
-  env-metrics-means       ;; table of tables of means of environmental metrics by LUC and farm-type
-  env-metrics-sds         ;; table of tables of sd of environmental metrics by LUC and farm-type
-  prices                  ;; table of commodity prices (per ha)
+  ;; some model parameters are read into tables for relative ease of retrieval
+  farm-type-suitabilities ;; table of LUC levels suitable for each farm-type
+  farm-type-change-probs  ;; table of probability of conversion between farm types
+
+  ;; these tables are only used in setup - the data are passed into matrix copies for use in calculations
+  mgmt-interventions      ;; table of tables of management intervention impacts
   base-thresholds         ;; table of default farmer decision thresholds for various interventions
 
-  ;; ... matrix equivalents of the above tables, which have priority in running the model
-  ;; it may, in time make sense to drop the tables entirely, although they are more self-documenting
-  ;; than the matrices which have no information about what each row-col refers to
-
+  ;; data stored as matrices for use in calculations
   ;; First 6 matrices have rows - cols entries for LUC - farm-type respectively
   ;; rows order LUC1 to LUC8, cols ordered alphabetically by farm-type
-  m-yield-means
-  m-yield-sds
-  m-cost-means
-  m-cost-sds
-  m-emission-means
-  m-emission-sds
-  m-suitabilities
-  m-change-probs
-  ;; a column matrix of product prices (per ha) ordered by farm-types list
-  m-prices
+  ;; Note that the table env-metrics-means and env-metrics-sds contain similar
+  ;; matrices in a table indexed by the metric name
+  cost-means
+  cost-sds
+  yield-means
+  yield-sds
+  env-metrics-means       ;; table of matrices of means of environmental metrics by LUC and farm-type
+  env-metrics-sds         ;; table of matrices of sd of environmental metrics by LUC and farm-type
+  prices                  ;; a column matrix of product prices (per ha) ordered by farm-types list
   ;; rows-cols entries for intervention-type - farm-type respectively
   ;; ordered by intervention-types and farm-types lists
-  m-mgmt-intervention-cost-impacts
-  m-mgmt-intervention-yield-impacts
-  ;; m-mgmt-intervention-environmental-impacts
-  mgmt-intervention-environmental-impacts ;; table of intervention impact matrices
+  intervention-cost-impacts
+  intervention-yield-impacts
+  intervention-env-impacts ;; table of intervention impact matrices indexed by 'ghg-emissions', 'nitrates' etc.
 
   ;; colour settings - these can be changed in one place, see mtm-render::setup-key-colours procedure
   colour-key              ;; table of colour settings
@@ -164,9 +153,9 @@ to setup
   set show-local-links? include-networks?
 
   carefully [
-    setup-geography             ;; mtm-geography.nls
-    setup-economic-parameters   ;; mtm-read-files.nls
-    make-matrix-copies-of-data  ;; mtm-read-files.nls
+    setup-geography                  ;; mtm-geography.nls
+    setup-economic-parameters        ;; mtm-read-files.nls
+    make-matrix-copies-of-some-data  ;; mtm-read-files.nls
   ]
   [
     user-message "Have you initialised the model correctly? Set the initialised? switch On and try setup again ensuring you pick a folder with a complete set of initialisation .csv files."
@@ -267,8 +256,8 @@ to store-initial-values
     set current-income-0 current-income
     set current-costs-0 current-costs
     ;; important to COPY here to get a new matrix, not a reference to the old one
-    set my-mgmt-interventions-0 matrix:copy my-mgmt-interventions
-    set avail-mgmt-interventions-0 matrix:copy avail-mgmt-interventions
+    set my-interventions-0 matrix:copy my-interventions
+    set avail-interventions-0 matrix:copy avail-interventions
     set landuse-luc-profile-0 matrix:copy landuse-luc-profile
     set my-metrics-0 table:from-json table:to-json my-metrics
   ]
@@ -296,8 +285,8 @@ to restore-initial-values
     set current-income current-income-0
     set current-costs current-costs-0
     ;; important to COPY here to get a new matrix, not a reference to the old one
-    set my-mgmt-interventions matrix:copy my-mgmt-interventions-0
-    set avail-mgmt-interventions matrix:copy avail-mgmt-interventions-0
+    set my-interventions matrix:copy my-interventions-0
+    set avail-interventions matrix:copy avail-interventions-0
     set landuse-luc-profile matrix:copy landuse-luc-profile-0
     set my-metrics table:from-json table:to-json my-metrics-0
   ]

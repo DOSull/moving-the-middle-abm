@@ -31,8 +31,7 @@ to setup-farmer-parameters
   read-farm-types-from-file              join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator
   read-interventions-from-file           join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator
   read-farmer-thresholds-from-file       join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator
-  read-intervention-impacts-from-files   
-  ;; read-farm-type-suitabilities-from-file join-string (list market-data-folder "suitabilities.csv")            pathdir:get-separator
+  read-intervention-impacts-from-files  
   read-farm-type-change-probs-from-file  join-string (list market-data-folder "conversion-probabilities.csv") pathdir:get-separator
 end
 
@@ -42,10 +41,11 @@ to read-metrics-from-file [file]
   carefully [
     print word "Reading required metrics from " file
     file-open file
+    let skip file-read-line
     while [not file-at-end?] [
       let line file-read-line
       if not (first line = "#") [
-        set environmental-metrics lput line environmental-metrics
+        set environmental-metrics lput (first csv:from-row line) environmental-metrics
       ]
     ]
     set environmental-metrics sort environmental-metrics
@@ -131,7 +131,8 @@ to read-intervention-impacts-from-files
   let impacts-to-read (sentence ["costs" "yields"] environmental-metrics)
   foreach impacts-to-read [ impact ->
     let fname join-list (list market-data-folder (word impact "-intervention-impacts.csv")) pathdir:get-separator
-    table:put mgmt-interventions impact read-intervention-impacts-from-file fname
+    let impacts read-intervention-impacts-from-file fname
+    table:put mgmt-interventions impact impacts
   ] 
 end
 
@@ -161,39 +162,6 @@ to-report read-intervention-impacts-from-file [file]
     file-close
   ]
   report result
-end
-
-to read-farm-type-suitabilities-from-file [file]
-  ;; CSV file looks like this (spacing added for clarity)
-  ;;
-  ;;     , SNB, Dairy, Forest, Crop
-  ;; LUC1,   1,     1,      1,    1
-  ;; LUC2,   1,     1,      1,    1
-  ;; LUC3,   1,     1,      1,    1
-  ;; LUC4,   1,     1,      1,    0
-  ;; LUC5,   1,     1,      1,    0
-  ;; LUC6,   1,     0,      1,    0
-  ;; LUC7,   1,     0,      1,    0
-  ;; LUC8,   1,     0,      1,    0
-  set farm-type-suitabilities table:make
-  carefully [
-    print word "Reading farm type suitabilities from file " file
-    file-open file
-    let the-farm-types but-first csv:from-row file-read-line
-    let order get-order the-farm-types farm-types
-    let luc 1
-    while [not file-at-end?] [
-      let data but-first csv:from-row file-read-line
-      let suitabilities table:from-list reorder (map list the-farm-types data) order
-      table:put farm-type-suitabilities luc suitabilities
-      set luc luc + 1
-    ]
-    file-close
-  ]
-  [
-    user-message word "ERROR: problem reading farm type suitabilities file " file
-    file-close
-  ]
 end
 
 to read-farm-type-change-probs-from-file [file]
@@ -253,12 +221,12 @@ end
 
 to read-production-function-parameters
   let yields get-parameter-from-file join-string (list market-data-folder "yields.csv") pathdir:get-separator
-  set commodity-yield-means item 0 yields
-  set commodity-yield-sds   item 1 yields
-
+  set yield-means         matrix:from-row-list map [t -> table:values t] table:values item 0 yields
+  set yield-sds           matrix:from-row-list map [t -> table:values t] table:values item 1 yields
+          
   let costs get-parameter-from-file join-string (list market-data-folder "costs.csv")   pathdir:get-separator
-  set input-cost-means      item 0 costs
-  set input-cost-sds        item 1 costs
+  set cost-means          matrix:from-row-list map [t -> table:values t] table:values item 0 costs
+  set cost-sds            matrix:from-row-list map [t -> table:values t] table:values item 1 costs
   
   set env-metrics-means table:make
   set env-metrics-sds table:make
@@ -331,64 +299,56 @@ to-report get-prices [file]
   ;; NOTE: the taxes part of this has been replaced by a slider
   ;; since carbon taxes are a fixed price across all landuses
   ;;
-  let prices-table nobody
-  let taxes-table nobody
+  let price-data nobody
   carefully [
     print word "Reading prices from " file
     file-open file
     let the-farm-types but-first csv:from-row file-read-line
     let order get-order the-farm-types farm-types
-    let price-data but-first csv:from-row file-read-line
-    set prices-table table:from-list reorder (map list the-farm-types price-data) order
+    set price-data col-matrix reorder but-first csv:from-row file-read-line order
     file-close
   ]
   [
     user-message word "ERROR: problem reading prices file " file
     file-close
   ]
-  report prices-table
+  report price-data
 end
 
-;; There is potential in matrix approaches for speeding up the calculations and
-;; perhaps even making them more 'sophisticated'. However some of this may come
-;; at the cost of (i) less readable code, and (ii) less variance. On (ii) specifically
-;; there is now no base patch level variance, i.e. the mean yield, emissions and
-;; input costs of every patch of given landuse and LUC combination is effectively
-;; identical - not initialised with the supplied SD. The SD is applied to patches
-;; each round BUT AT HOLDING LEVEL. That is, every patch on a given holding with given
-;; LU/LUC experiences same deviation from mean outcomes in a particular year. But a
-;; neighbouring holding might experience quite different deviations.
-to make-matrix-copies-of-data
-  ;; each of these is an 8-row 4-col matrix of the stated parameters by LUC and landuse/farm-type
-  set m-yield-means    matrix:from-row-list map [t -> table:values t] table:values commodity-yield-means
-  set m-yield-sds      matrix:from-row-list map [t -> table:values t] table:values commodity-yield-sds
-  set m-cost-means     matrix:from-row-list map [t -> table:values t] table:values input-cost-means
-  set m-cost-sds       matrix:from-row-list map [t -> table:values t] table:values input-cost-sds
-;  set m-emission-means matrix:from-row-list map [t -> table:values t] table:values env-metrics-means
-;  set m-emission-sds   matrix:from-row-list map [t -> table:values t] table:values env-metrics-sds
-  set m-suitabilities  matrix:from-row-list map [t -> table:values t] table:values farm-type-suitabilities
-  set m-change-probs   matrix:from-row-list map [t -> table:values t] table:values farm-type-change-probs
-  
+;; There is potential in matrix approaches for speeding up the calculations, perhaps even making them more 
+;; 'sophisticated'. However some of this may come at the cost of (i) less readable code, and (ii) less 
+;; variance. On (ii) specifically there is now no base patch level variance, i.e. the mean yield, emissions
+;; and input costs of every patch of given landuse and LUC combination is effectively identical - not 
+;; initialised with the supplied SD. The SD is applied to patches each round BUT AT HOLDING LEVEL. That is,
+;; every patch on a given holding with given LU/LUC experiences same deviation from mean outcomes in a 
+;; particular year. But a neighbouring holding might experience quite different deviations.
+to make-matrix-copies-of-some-data
   ;; a column matrix with one element per landuse/farm-type
-  set m-prices col-matrix table:values prices
+;  set m-prices col-matrix table:values prices
 
-  ;; each of the next three is a n-row 4-col of intervention impacts, where rows are
-  ;; the type of intervention and columns are landuse/farm-type
-  set m-mgmt-intervention-cost-impacts matrix:from-row-list
-    map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
-              table:values table:get table:get mgmt-interventions "costs" i] mgmt-intervention-types
+  set intervention-cost-impacts intervention-farm-type-tbl-to-mtx mgmt-interventions "costs" false
+  set intervention-yield-impacts intervention-farm-type-tbl-to-mtx mgmt-interventions "yields" true
 
-  ;; note that these two are multiplicatively applied so add 1 to 0.05 -> 1.05, 0 -> 1, etc
-  set m-mgmt-intervention-yield-impacts matrix:plus 1 matrix:from-row-list
-    map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
-              table:values table:get table:get mgmt-interventions "yields" i] mgmt-intervention-types
-  
-  set mgmt-intervention-environmental-impacts table:make
+  set intervention-env-impacts table:make
   foreach environmental-metrics [ metric ->
-    let m matrix:plus 1 matrix:from-row-list map [i -> map [x -> replace x na-value 0] ;; convert NAs to 0
-      table:values table:get table:get mgmt-interventions "ghg-emissions" i] mgmt-intervention-types
-    table:put mgmt-intervention-environmental-impacts metric m
+    table:put intervention-env-impacts metric intervention-farm-type-tbl-to-mtx mgmt-interventions metric true
   ]
+end
+
+to-report intervention-farm-type-tbl-to-mtx [tbl impact multiplicative?]
+  ;; impact will be one of 'costs', 'yields', 'ghg-emissions' or any of the environmental-impacts
+  let impacts table:get tbl impact
+  let rows []
+  foreach mgmt-intervention-types [ intervention ->
+    let impacts-by-farm-type table:get impacts intervention
+    let effects map [ft -> table:get impacts-by-farm-type ft] farm-types
+    set effects map [x -> replace x na-value 0] effects
+    if multiplicative? [
+      set effects map [x -> x + 1] effects
+    ]
+    set rows lput effects rows
+  ]
+  report matrix:from-row-list rows
 end
 
 

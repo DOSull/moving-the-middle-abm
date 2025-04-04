@@ -11,8 +11,8 @@ holdings-own [
   current-income           ;; most recent income of farm summed across patches
   current-costs            ;; most recent costs of farm summed across patches
   
-  my-mgmt-interventions    ;; row matrix of 0/1s indicating adoption of intervention-types
-  avail-mgmt-interventions ;; row matrix of 0/1s indicating interventions still open for this farm-type
+  my-interventions    ;; row matrix of 0/1s indicating adoption of intervention-types
+  avail-interventions ;; row matrix of 0/1s indicating interventions still open for this farm-type
   metrics-details
   my-metrics
 
@@ -21,8 +21,8 @@ holdings-own [
   current-profit-0
   current-income-0
   current-costs-0
-  my-mgmt-interventions-0
-  avail-mgmt-interventions-0
+  my-interventions-0
+  avail-interventions-0
   my-metrics-0
 ]
 
@@ -36,8 +36,8 @@ to initialise-holding
   set label farm-type
   set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
   ;; interventions are a 1 row matrix of 0s to start
-  set my-mgmt-interventions matrix:make-constant 1 (length mgmt-intervention-types) 0
-  set avail-mgmt-interventions possible-interventions
+  set my-interventions matrix:make-constant 1 (length mgmt-intervention-types) 0
+  set avail-interventions possible-interventions
   set metrics-details table:make
   set my-metrics table:make
 end
@@ -47,9 +47,9 @@ to holding-change-farm-type [ft]
   set farm-type ft
   ask the-land [set landuse ft]
   set landuse-luc-profile get-landuse-luc-profile the-land
-  set my-mgmt-interventions matrix:times-element-wise possible-interventions my-mgmt-interventions
-  set avail-mgmt-interventions matrix:map [x -> ifelse-value x < 1 [0] [1]] 
-                                          (possible-interventions matrix:- my-mgmt-interventions) 
+  set my-interventions matrix:times-element-wise possible-interventions my-interventions
+  set avail-interventions matrix:map [x -> ifelse-value x < 1 [0] [1]] 
+                                          (possible-interventions matrix:- my-interventions) 
 end
 
 ;; reports a column matrix from the column sums of current landuse-luc-profile matrix
@@ -92,13 +92,13 @@ end
 ;; to reflect implementation of intervention i-type
 to implement-intervention [i-type]
   let col position i-type mgmt-intervention-types
-  matrix:set my-mgmt-interventions 0 col 1
-  matrix:set avail-mgmt-interventions 0 col 0
+  matrix:set my-interventions 0 col 1
+  matrix:set avail-interventions 0 col 0
 end
 
 ;; returns true if there are any remaining available interventions
 to-report any-interventions-to-do?
-  report matrix-sum-elements avail-mgmt-interventions > 0
+  report matrix-sum-elements avail-interventions > 0
 end
 
 ;; tests if intervention is applicable by checking if the result is in interventions table
@@ -119,13 +119,13 @@ end
 to-report my-interventions-as-list
   ;; slice by ones returns items in the first list that match 1s in the second
   ;; so e.g. ["A" "B" "C" "D"] [0 1 1 0] -> ["B" "C"]
-  report slice-by-ones mgmt-intervention-types (matrix:get-row my-mgmt-interventions 0)
+  report slice-by-ones mgmt-intervention-types (matrix:get-row my-interventions 0)
 end
 
 ;; reports available-interventions as a list of intervention-type names for convenience
 ;; farm reporter
 to-report available-interventions-as-list
-  report slice-by-ones mgmt-intervention-types (matrix:get-row avail-mgmt-interventions 0)
+  report slice-by-ones mgmt-intervention-types (matrix:get-row avail-interventions 0)
 end
 
 ;; scores a potential intervention by comparing expected income and costs
@@ -135,7 +135,7 @@ end
 ;; farm reporter because the cost and income reporters invoked are farm reporters
 to-report get-intervention-score [i-type show-messages?]
   let col (position i-type mgmt-intervention-types)
-  matrix:set my-mgmt-interventions 0 col 1
+  matrix:set my-interventions 0 col 1
   ;; get long-term expect costs and incomes, i.e. without variance
   let new-costs get-holding-costs false
   let new-income get-holding-income false
@@ -148,7 +148,7 @@ to-report get-intervention-score [i-type show-messages?]
     show (word "Delta costs  : " delta-costs   " Delta income  : " delta-income)
   ]
   ;; undo the intervention... we are only trying them on for size here!
-  matrix:set my-mgmt-interventions 0 col 0
+  matrix:set my-interventions 0 col 0
   report delta-income - delta-costs
 end
 
@@ -189,15 +189,15 @@ to-report get-holding-income [with-var?]
     report round matrix-sum-elements (
       ( matrix:map [[a b c] -> a * b * c]
         landuse-luc-profile
-        matrix:plus m-yield-means get-holding-yield-variance
-        get-yield-after-interventions ) matrix:* m-prices )
+        matrix:plus yield-means get-holding-yield-variance
+        get-yield-after-interventions ) matrix:* prices )
   ]
   [ 
     report round matrix-sum-elements (
       ( matrix:map [[a b c] -> a * b * c]
         landuse-luc-profile
-        m-yield-means  ;; no variance
-        get-yield-after-interventions ) matrix:* m-prices )
+        yield-means  ;; no variance
+        get-yield-after-interventions ) matrix:* prices )
   ]
 end
 
@@ -223,7 +223,7 @@ to-report get-holding-costs [with-var?]
 ;    )
       ( ( matrix:map * 
           landuse-luc-profile
-          (m-cost-means matrix:+ get-holding-cost-variance)
+          (cost-means matrix:+ get-holding-cost-variance)
         ) matrix:+
         ( ( matrix:map *
           landuse-luc-profile
@@ -236,7 +236,7 @@ to-report get-holding-costs [with-var?]
     report round ( get-cost-after-interventions + matrix-sum-elements
       ( matrix:map *
         landuse-luc-profile
-        ( m-cost-means matrix:+
+        ( cost-means matrix:+
           ( matrix:map *
               table:get env-metrics-means "ghg-emissions" ;; no variance
               get-environmental-metric-after-interventions "ghg-emissions" ) matrix:* carbon-price
@@ -264,13 +264,13 @@ end
 ;; reports a matrix of yield deviates suppressed by the number of patches
 ;; holding reporter due to landuse-luc-profile
 to-report get-holding-yield-variance
-  report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] m-yield-sds landuse-luc-profile)
+  report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] yield-sds landuse-luc-profile)
 end
 
 ;; reports a matrix of cost deviates suppressed by the number of patches
 ;; holding reporter due to landuse-luc-profile
 to-report get-holding-cost-variance
-  report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] m-cost-sds landuse-luc-profile)
+  report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] cost-sds landuse-luc-profile)
 end
 
 ;; reports a matrix of emissions deviates suppressed by the number of patches
@@ -288,8 +288,8 @@ to-report get-cost-after-interventions
   ;;                       [ cols: farm-type    ]   [ rows: farm-type ]
   ;;
   report round matrix-sum-elements
-         ( my-mgmt-interventions matrix:*
-           m-mgmt-intervention-cost-impacts matrix:*
+         ( my-interventions matrix:*
+           intervention-cost-impacts matrix:*
            get-landuse-profile )
 end
 
@@ -305,8 +305,8 @@ to-report get-yield-after-interventions
            matrix-duplicate-cols (
              matrix-column-products ( ;; cumulative product of adopted impacts
              ( matrix:map [[a b] -> ifelse-value a = 0 [1] [b]] ;; map non-adopted interventions to 1
-               matrix-duplicate-cols matrix:transpose my-mgmt-interventions length farm-types ;; dup for each farm-type
-               m-mgmt-intervention-yield-impacts )
+               matrix-duplicate-cols matrix:transpose my-interventions length farm-types ;; dup for each farm-type
+               intervention-yield-impacts )
              )
            ) 8 ;; duplicated for each LUC
 end
@@ -319,8 +319,8 @@ to-report get-environmental-metric-after-interventions [metric]
            matrix-duplicate-cols (
              matrix-column-products (
              ( matrix:map [[a b] -> ifelse-value a = 0 [1] [b]]
-               matrix-duplicate-cols matrix:transpose my-mgmt-interventions length farm-types
-               table:get mgmt-intervention-environmental-impacts metric)
+               matrix-duplicate-cols matrix:transpose my-interventions length farm-types
+               table:get intervention-env-impacts metric)
              )
            ) 8
 end

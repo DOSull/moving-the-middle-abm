@@ -45,7 +45,7 @@ to update-interventions-plot
   set-current-plot "Interventions"
   foreach range length mgmt-intervention-types [ i ->
     set-current-plot-pen item i mgmt-intervention-types
-    plot sum [count the-land] of holdings with [matrix:get my-mgmt-interventions 0 i = 1]
+    plot sum [count the-land] of holdings with [matrix:get my-interventions 0 i = 1]
   ]
 end
 

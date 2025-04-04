@@ -91,7 +91,7 @@ globals [
   colour-key              ;; table of colour settings
 ]
 
-undirected-link-breed [industry-links industry-link]
+undirected-link-breed [catchment-links catchment-link]
 undirected-link-breed [local-links local-link]
 
 breed [holdings holding]  ;; where the action happens (profit calculated, landuse changed, interventions applied)
@@ -131,53 +131,55 @@ to setup
     clear-ticks
     setup-world-dimensions
   ]
-  carefully [
-    set epsilon 1e-16
-    set na-value -999
-    set show-labels? false
+  set epsilon 1e-16
+  set na-value -999
+  set show-labels? false
 
-    if reinitialise? or geography-from-files? [
-      carefully [
-        if geography-from-files? [
-          set region user-one-of "Set the spatial setting" sort filter [d -> first d != "."] pathdir:list spatial-data-folder
-          set spatial-data-folder join-list (list spatial-data-folder region) pathdir:get-separator
-        ]
-        setup-world-dimensions
-        set scenario user-one-of "Set the market scenario" sort filter [d -> first d != "."] pathdir:list market-data-folder
-        set market-data-folder join-list (list market-data-folder scenario) pathdir:get-separator
-
-        setup-farmer-parameters     ;; mtm-read-files.nls
-        ;; if we figure out a use for dispositions (Kaine et al. argue against them!) then these
-        ;; will likely be read in from files too, but for now:
-        set dispositions [ "for-profit" "pro-social" "pro-environmental" ]
-
-        set reinitialise? false
+  if reinitialise? or geography-from-files? [
+    carefully [
+      if geography-from-files? [
+        set region user-one-of "Set the spatial setting" sort filter [d -> first d != "."] pathdir:list spatial-data-folder
+        set spatial-data-folder join-list (list spatial-data-folder region) pathdir:get-separator
       ]
-      [
-        user-message "An initialisation error occurred. Check that you picked geography and scenario folders that contain all necessary files."
-        stop
-      ]
+      setup-world-dimensions
+      set scenario user-one-of "Set the market scenario" sort filter [d -> first d != "."] pathdir:list market-data-folder
+      set market-data-folder join-list (list market-data-folder scenario) pathdir:get-separator
+
+      setup-farmer-parameters     ;; mtm-read-files.nls
+      ;; if we figure out a use for dispositions (Kaine et al. argue against them!) then these
+      ;; will likely be read in from files too, but for now:
+      set dispositions [ "for-profit" "pro-social" "pro-environmental" ]
+
+      set reinitialise? false
     ]
-    setup-colours ;; must come AFTER reading farmer parameters since it depends on farm types
-    ask patches [ set pcolor table:get colour-key "background" ]
+    [
+      user-message "An initialisation error occurred. Check that you picked geography and scenario folders that contain all necessary files."
+      stop
+    ]
+  ]
+  setup-colours ;; must come AFTER reading farmer parameters since it depends on farm types
+  ask patches [ set pcolor table:get colour-key "background" ]
 
+  set include-networks? correlated-landuse?
+  set show-local-links? include-networks?
+
+  carefully [
     setup-geography             ;; mtm-geography.nls
     setup-economic-parameters   ;; mtm-read-files.nls
     make-matrix-copies-of-data  ;; mtm-read-files.nls
-
-    setup-model-plots           ;; mtm-plots.nls
-    redraw                      ;; mtm-render.nls
-    reset-ticks
-    if run-rng-seed != 0 [ random-seed run-rng-seed ]
-    go ;; this initialises the farms with current net profit and some interventions
-    store-initial-values
-    ;; because set up involves a full go step, we set the seed again to
-    ;; allow repeatability if model is restored to that initial state
-    if run-rng-seed != 0 [ random-seed run-rng-seed ]
   ]
   [
     user-message "Have you initialised the model correctly? Set the initialised? switch On and try setup again ensuring you pick a folder with a complete set of initialisation .csv files."
   ]
+  setup-model-plots           ;; mtm-plots.nls
+  redraw                      ;; mtm-render.nls
+  reset-ticks
+  if run-rng-seed != 0 [ random-seed run-rng-seed ]
+  go ;; this initialises the farms with current net profit and some interventions
+  store-initial-values
+  ;; because set up involves a full go step, we set the seed again to
+  ;; allow repeatability if model is restored to that initial state
+  if run-rng-seed != 0 [ random-seed run-rng-seed ]
 end
 
 ;; core model loop
@@ -662,7 +664,7 @@ SWITCH
 813
 show-local-links?
 show-local-links?
-1
+0
 1
 -1000
 
@@ -671,8 +673,8 @@ SWITCH
 820
 180
 853
-show-industry-links?
-show-industry-links?
+show-catchment-links?
+show-catchment-links?
 1
 1
 -1000
@@ -684,7 +686,7 @@ SWITCH
 893
 include-networks?
 include-networks?
-1
+0
 1
 -1000
 
@@ -796,11 +798,37 @@ rng-geography
 0
 Number
 
-TEXTBOX
+SWITCH
 830
 390
 1010
-408
+423
+correlated-landuse?
+correlated-landuse?
+0
+1
+-1000
+
+SLIDER
+830
+430
+1010
+463
+landuse-aggregation-steps
+landuse-aggregation-steps
+0
+20
+5.0
+1
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+830
+470
+1010
+488
 Model process RNGs
 12
 0.0
@@ -808,9 +836,9 @@ Model process RNGs
 
 SWITCH
 830
-410
+490
 1010
-443
+523
 seed-setup-rng?
 seed-setup-rng?
 0
@@ -819,9 +847,9 @@ seed-setup-rng?
 
 INPUTBOX
 830
-450
+530
 920
-510
+590
 rng-economics
 42.0
 1
@@ -830,9 +858,9 @@ Number
 
 SLIDER
 830
-520
+600
 1010
-553
+633
 run-rng-seed
 run-rng-seed
 0
@@ -845,9 +873,9 @@ HORIZONTAL
 
 TEXTBOX
 830
-560
+640
 1010
-578
+658
 0 for non-seeded randomness
 11
 0.0
@@ -855,9 +883,9 @@ TEXTBOX
 
 TEXTBOX
 830
-580
+660
 1010
-630
+710
 Set to any value in experiments, but only small range provided for interactive use
 10
 0.0
@@ -865,9 +893,9 @@ Set to any value in experiments, but only small range provided for interactive u
 
 TEXTBOX
 830
-640
+720
 1010
-658
+738
 Interventions (for information)
 12
 0.0
@@ -875,7 +903,7 @@ Interventions (for information)
 
 OUTPUT
 830
-660
+740
 1010
 920
 11
@@ -1028,7 +1056,7 @@ SWITCH
 763
 apply-severity-of-losses?
 apply-severity-of-losses?
-0
+1
 1
 -1000
 

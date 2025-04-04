@@ -32,7 +32,7 @@ to setup-farmer-parameters
   read-interventions-from-file           join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator
   read-farmer-thresholds-from-file       join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator
   read-intervention-impacts-from-files   
-  read-farm-type-suitabilities-from-file join-string (list market-data-folder "suitabilities.csv")            pathdir:get-separator
+  ;; read-farm-type-suitabilities-from-file join-string (list market-data-folder "suitabilities.csv")            pathdir:get-separator
   read-farm-type-change-probs-from-file  join-string (list market-data-folder "conversion-probabilities.csv") pathdir:get-separator
 end
 

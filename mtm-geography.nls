@@ -56,6 +56,8 @@ end
 ;; invoked at setup, delegates the initialisation of the landscape to either a random process
 ;; or reading in from geospatial data files; other steps are the same for either method
 to setup-geography
+  ;; have to do this first for setup
+  read-farm-type-suitabilities-from-file join-string (list market-data-folder "suitabilities.csv") pathdir:get-separator
   with-local-randomness [
     ifelse geography-from-files?
     [ setup-geography-from-files ]
@@ -200,7 +202,17 @@ to setup-farmers
   if include-networks? [
     ask farmers [
       make-farmer-local-links
-      make-farmer-industry-links
+      make-farmer-catchment-links
+    ]
+    repeat landuse-aggregation-steps [
+      ask farmers [
+        set farm-type [farm-type] of one-of local-link-neighbors
+      ]
+    ]
+    ask farmers [
+      ask the-land [
+        set landuse [farm-type] of myself
+      ]
     ]
   ]
 end

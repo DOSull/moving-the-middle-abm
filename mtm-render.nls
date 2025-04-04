@@ -56,7 +56,7 @@ to redraw-farm
   ]
   [ set color table:get colour-key "loss" ]
   ask local-links [ set hidden? not show-local-links? ]
-  ask industry-links [ set hidden? not show-industry-links? ]
+  ask catchment-links [ set hidden? not show-catchment-links? ]
   colour-patches the-land show-landuse?
 end
 
@@ -103,7 +103,7 @@ to setup-colours
   table:put colour-key "label" violet - 2
   table:put colour-key "background" grey
   table:put colour-key "local-link" red
-  table:put colour-key "industry-link" blue
+  table:put colour-key "catchment-link" blue
 end
 
 

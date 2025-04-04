@@ -20,8 +20,16 @@ to initialise-farmer
   set color table:get colour-key "farmer"
   set shape "person"
   ;; set hidden? true
-  ;; would be better if this were dependent on the LUC values of the-land
-  set farm-type one-of farm-types
+  ;; it's better if this is dependent on the LUC values of the-land
+  ;; but note that it means there may be very little 'Crop' land
+  ifelse apply-suitability? [
+    let worst-land max [luc-code] of the-land
+    set farm-type one-of map [x -> item 0 x] 
+                         filter [x -> item 1 x = 1] 
+                         table:to-list 
+                         table:get farm-type-suitabilities worst-land
+  ]
+  [ set farm-type one-of farm-types ]
   set disposition one-of dispositions
   set succession-stage 0 
 end
@@ -54,11 +62,11 @@ end
 
 ;; not currently used
 ;; make links between farmers based on landuse/industry
-to make-farmer-industry-links
-  let colleagues n-of 6 (other farmers with [ farm-type != [farm-type] of myself ])
-  create-industry-links-with colleagues [ 
-    set color table:get colour-key "industry-link"
-    set hidden? not show-industry-links?
+to make-farmer-catchment-links
+  let colleagues n-of 6 (other farmers with [ not member? self [local-link-neighbors] of myself ])
+  create-catchment-links-with colleagues [ 
+    set color table:get colour-key "catchment-link"
+    set hidden? not show-catchment-links?
   ]
 end
 

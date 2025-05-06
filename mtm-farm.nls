@@ -39,6 +39,7 @@ to update-environmental-metrics-of-farm
   ]
 end
 
+;; note that this is also runnable by a holding...
 to-report in-breach? [metric]
   report table:get my-metrics metric / count the-land > table:get (table:get env-metrics metric) "limit"
 end

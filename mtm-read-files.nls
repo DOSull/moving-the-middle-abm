@@ -56,6 +56,9 @@ to read-metrics-from-file [file]
     user-message word "ERROR: problem reading required metrics from " file
     file-close
   ]
+  ifelse set-carbon-price-from-file?
+  [ set carbon-price table:get table:get env-metrics "ghg-emissions" "price" ]
+  [ table:put table:get env-metrics "ghg-emissions" "price" carbon-price ]
 end
 
 ;; setup farm types and interventions

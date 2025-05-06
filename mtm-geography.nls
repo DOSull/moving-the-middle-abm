@@ -3,6 +3,20 @@
 ;; NOTE: this includes the farmers not just LUC codes
 ;; ----------------------------------------------------------------------------
 
+;; possibly of interest later use eXtraWidgets to add tabs...
+;to setup-geography-interface 
+;  xw:create-tab "geog" [
+;    xw:set-title "Geography"
+;  ]
+;  foreach ["alpha" "beta" "gamma"] [ name ->
+;    xw:create-slider name [ 
+;      xw:set-color one-of base-colors
+;      xw:set-label xw:key
+;    ]
+;  ]
+;end
+
+
 ;; note that set-world-size kills all turtles so this must be done BEFORE any 
 ;; turtles are initialised
 to setup-world-dimensions
@@ -229,21 +243,25 @@ to setup-farmers
       ]
     ]
   ])
-  if include-networks? [
-    ask farmers [
-      make-farmer-local-links
-      make-farmer-catchment-links
-    ]
+  ;; for correlated landuse we make a spatial network for this purpose only
+  if correlated-landuse? [
+    ask farmers [ create-links-with other farmers in-radius 30 ]
     repeat landuse-aggregation-steps [
       ask farmers [
-        set farm-type [farm-type] of one-of local-link-neighbors
+        set farm-type [farm-type] of one-of link-neighbors
       ]
     ]
-    ask farmers [
-      ask the-land [
-        set landuse [farm-type] of myself
-      ]
+    ;; and then delete it
+    ask links [ die ]
+  ]
+  if include-networks? [
+    ask farmers [ 
+      make-farmer-local-links
+      make-farmer-catchment-links 
     ]
+  ]
+  ask farmers [
+    ask the-land [ set landuse [farm-type] of myself ]
   ]
 end
 

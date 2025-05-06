@@ -28,8 +28,9 @@ holdings-own [
 
 ;; farm 'constructor'
 to initialise-holding
-  ;; will be called by the farm which is 'myself' in this context
-  set my-farm myself
+  ;; will be called by the farmer which is 'myself' in this context
+  set my-farmer myself
+  set my-farm [my-farm] of my-farmer
   move-to approximate-centroid the-land
   set shape "square 3"
   set hidden? false
@@ -47,7 +48,7 @@ to holding-change-farm-type [ft]
   set farm-type ft
   ask the-land [set landuse ft]
   set landuse-luc-profile get-landuse-luc-profile the-land
-  set my-interventions matrix:times-element-wise possible-interventions my-interventions
+  set my-interventions  ( matrix:map * possible-interventions my-interventions )
   set avail-interventions matrix:map [x -> ifelse-value x < 1 [0] [1]] 
                                           (possible-interventions matrix:- my-interventions) 
 end
@@ -73,7 +74,7 @@ end
 ;; not a holding reporter but usually run on the-land of holding turtles
 to-report get-landuse-luc-profile [poly]
   let luc-i [position luc-code range-from-to 1 9] of poly
-  let lu-j [position landuse farm-types] of poly
+  let lu-j  [position landuse farm-types] of poly
   let nrow 8
   let ncol length farm-types
   let farm-profile matrix:make-constant nrow ncol 0
@@ -94,6 +95,11 @@ to implement-intervention [i-type]
   let col position i-type mgmt-intervention-types
   matrix:set my-interventions 0 col 1
   matrix:set avail-interventions 0 col 0
+  ;; also update the interventions of the parent farmer
+  let row position farm-type farm-types
+  ask my-farmer [
+    matrix:set my-interventions row col 1
+  ]
 end
 
 ;; returns true if there are any remaining available interventions
@@ -132,14 +138,14 @@ end
 ;; were it to be implemented relative to current income and costs
 ;; TODO: consider if this actually makes sense... in a good year when current income was high
 ;; and current costs low the score might be lower which is slightly counter-intuitive.
-;; farm reporter because the cost and income reporters invoked are farm reporters
+;; holding reporter because the cost and income reporters invoked are holding reporters
 to-report get-intervention-score [i-type show-messages?]
   let col (position i-type mgmt-intervention-types)
   matrix:set my-interventions 0 col 1
   ;; get long-term expect costs and incomes, i.e. without variance
-  let new-costs get-holding-costs false
-  let new-income get-holding-income false
-  let delta-costs relative-change current-costs new-costs
+  let new-costs    get-holding-costs false
+  let new-income   get-holding-income false
+  let delta-costs  relative-change current-costs new-costs
   let delta-income relative-change current-income new-income
   if show-messages? [
     show i-type
@@ -155,22 +161,24 @@ end
 ;; wrapper to invoke the various profit and loss reporters
 to update-profit-of-holding
   set current-income get-holding-income true
-  set current-costs get-holding-costs true
+  set current-costs  get-holding-costs true
   set current-profit current-income - current-costs
 end
 
 to update-environmental-metrics-of-holding
   foreach sort table:keys env-metrics [ metric ->
-    table:put metrics-details metric
-      ( matrix:plus 
-          table:get env-metric-means metric 
-          get-holding-environmental-metric-variance metric )
+    table:put metrics-details metric matrix:map [x -> precision x 3]
+    ( table:get env-metric-means metric 
+      matrix:+
+      get-holding-environmental-metric-variance metric )
     set-metric metric
   ]
 end
 
 to set-metric [metric]
-  table:put my-metrics metric matrix-sum-elements (matrix:map * landuse-luc-profile table:get metrics-details metric)
+  table:put my-metrics metric precision 
+                                matrix-sum-elements 
+                                (matrix:map * landuse-luc-profile table:get metrics-details metric) 3
 end
 
 ;; ----------------------------------------------------------------------------
@@ -180,15 +188,15 @@ end
 ;; which it would be inefficient to reassemble on the fly and is updated rarely
 
 ;; holding reporter due to landuse-luc-profile
-to-report get-holding-income [with-var?]
+to-report get-holding-income [include-variance?]
   ;; calculation here is SUM [ LUC/LU * Yield * Impact of interventions * Prices ]
   ;; Yield component optionally includes variance
   ;; Multiplications are all element-wise except for last step * Prices
-  ifelse with-var? [
+  ifelse include-variance? [
     report round matrix-sum-elements (
       ( matrix:map [[a b c] -> a * b * c]
         landuse-luc-profile
-        matrix:plus yield-means get-holding-yield-variance
+        ( yield-means matrix:+ get-holding-yield-variance )
         get-yield-after-interventions ) matrix:* prices )
   ]
   [ 
@@ -200,38 +208,49 @@ to-report get-holding-income [with-var?]
   ]
 end
 
+;; note that currently this is hard-coded for carbon taxes only
+;; addition of a model parameter could readily change that so that
+;; taxes were applicable to other environmental metrics
 ;; holding reporter due to landuse-luc-profile
-to-report get-holding-costs [with-var?]
+to-report get-holding-costs [include-variance?]
   ;; calculation here is
-  ;; Cost of interventions + SUM [ LUC/LU * (Costs + (Emissions * Impact of interventions) * tax) ]
-  ;; Emissions optionally includes variance
-  ;; Multiplications are all element-wise except for last step * Prices
-  ifelse with-var? [
-    report round ( get-cost-after-interventions + matrix-sum-elements
-      ( ( matrix:map * 
-          landuse-luc-profile
-          (cost-means matrix:+ get-holding-cost-variance)
-        ) matrix:+
-        ( ( matrix:map *
-          landuse-luc-profile
-          table:get metrics-details "ghg-emissions"
-        ) matrix:* carbon-price )
-      )
+  ;; Cost of interventions + SUM [ LUC/LU * Costs + Taxes ]
+  ;; Costs optionally include variance
+  ifelse include-variance? [
+    report round ( get-cost-after-interventions + 
+      matrix-sum-elements (
+      ( matrix:map * landuse-luc-profile (cost-means matrix:+ get-holding-cost-variance) )
+      matrix:+
+      get-net-environmental-taxes true )
     )
   ]
   [ 
-    report round ( get-cost-after-interventions + matrix-sum-elements
-      ( matrix:map *
-        landuse-luc-profile
-        ( cost-means matrix:+
-          ( matrix:map *
-              table:get env-metric-means "ghg-emissions" ;; no variance
-              get-environmental-metric-after-interventions "ghg-emissions" ) matrix:* carbon-price
-        )
-      )
+    report round ( get-cost-after-interventions + 
+      matrix-sum-elements (
+      ( matrix:map * landuse-luc-profile cost-means )
+      matrix:+ 
+      get-net-environmental-taxes true ) 
     )
   ]
 end
+
+;; we provide a boolean argument here for the (usual?) case where 
+;; there is only a carbon-tax
+to-report get-net-environmental-taxes [carbon-only?]
+  let metrics [ "ghg-emissions" ]
+  let tax-levels (list carbon-price)
+  if not carbon-only? [
+    set metrics table:keys env-metrics 
+    set tax-levels map [m -> table:get m "price"] table:values env-metrics
+  ]
+  report matrix:map [m -> round m] 
+           reduce [[a b] -> a matrix:+ b] 
+             (map [[m t] -> ( matrix:map * 
+                              landuse-luc-profile
+                              table:get metrics-details m ) matrix:* t] 
+              metrics tax-levels)
+end
+
 
 ;; Reduced variance normal deviates for sample size n
 ;; This simulates the central tendency effect of deviations from mean
@@ -261,6 +280,7 @@ to-report get-holding-cost-variance
 end
 
 ;; reports a matrix of emissions deviates suppressed by the number of patches
+;; in accordance with the central limit theorem...
 ;; holding reporter due to landuse-luc-profile
 to-report get-holding-environmental-metric-variance [metric]
   report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] table:get env-metric-sds metric 

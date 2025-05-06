@@ -4,6 +4,7 @@ farmers-own [
   disposition      ;; for-profit, pro-environmental, pro-social (not used at present
   age              ;; age controls succession probabilities see age-and-succeed-farmer
   succession-stage ;; how many times this farmer has moved on...
+  my-interventions ;; 1-0 matrix of interventions adopted by landuse
 
   my-farm          ;; farm turtle of this farmer's farm
   my-holdings      ;; turtle-set of holdings of this farmer
@@ -12,6 +13,7 @@ farmers-own [
   disposition-0
   age-0
   succession-stage-0
+  my-interventions-0
 ]
 
 ;; farmer 'constructor'
@@ -29,6 +31,7 @@ to initialise-farmer
   [ set farm-type one-of farm-types ]
   set disposition one-of dispositions
   set succession-stage 0 
+  set my-interventions matrix:make-constant (length farm-types) (length mgmt-intervention-types) 0
 end
 
 ;; farmer age might be set by a relatively complex procedure so 
@@ -106,6 +109,20 @@ to-report all-holdings-loss-making?
   report count get-loss-making-holdings = count my-holdings
 end
 
+;; get a list of all the metrics which this farmer's farms is in breach of
+to-report get-breached-metrics
+  report filter [m -> [in-breach? m] of my-farm] table:keys env-metrics
+end
+
+;; get turtle-set of holdings in breach on this farm
+to-report get-holdings-in-breach [metrics]
+  let holdings-in-breach turtle-set nobody
+  foreach metrics [ m ->
+    set holdings-in-breach (turtle-set holdings-in-breach my-holdings with [in-breach? m])
+  ]
+  report holdings-in-breach
+end
+
 ;; returns threshold for the supplied intervention
 ;; this or a wrapper for this could include farmer demography 'shifts'
 ;; or social/geographic network shifts
@@ -142,9 +159,9 @@ to-report consider-farm-type-change [down-weight prefix show-messages?]
   report options
 end
 
-to-report consider-holdings-farm-type-change [forestry-only? prefix show-messages?]
+to-report consider-holdings-farm-type-change [holdings-under-consideration forestry-only? prefix show-messages?]
   let options []
-  ask my-holdings with [current-profit < 0] [
+  ask holdings-under-consideration [
     let ft farm-type
     ifelse forestry-only? [
       set options lput (list (list (turtle-set self) "one-holding" farm-type "Forest") 
@@ -207,20 +224,29 @@ end
 ;; ]
 to-report consider-management-changes [prefix show-messages?]
   let options []
+  ;; replace the 1s below with some weight factors to control extent of network influence
+  let network-nudges nobody
+  ifelse include-networks? 
+  [ set network-nudges get-network-nudges 1 1 1 ]
+  [ set network-nudges get-network-nudges 1 0 0 ]
   ask my-holdings with [any-interventions-to-do?] [
     let ft farm-type
     ;; list the interevention types that are to be considered
     let to-consider available-interventions-as-list
-    ;; get nudge score for this intervention from the farm
-    let scores map [poss -> [get-intervention-score poss show-messages?] of self] to-consider
+    ;; get nudge score for this intervention from the holding
+    let nudges map [poss -> [get-intervention-score poss show-messages?] of self] to-consider
+    ;; the network nudge scores for the landuse on this holding 
+    let to-consider-idxs map [x -> position x mgmt-intervention-types] to-consider
+    let nwk-nudges map [i -> item i matrix:get-row network-nudges position ft farm-types] to-consider-idxs
     ;; get the base probabilities for this farmer (which might be changeable over time)
     let base-probs map [poss -> get-adoption-probability poss] to-consider
     ;; adjust probabilities using the sigmoid function
-    let new-probs (map [[prob score] -> nudged-probability prob score] base-probs scores)
+    let new-probs (map [[prob nudge nwk-nudge] -> nudged-probability prob (nudge + nwk-nudge)] base-probs nudges nwk-nudges)
     if show-messages? [
       show farm-type
       show to-consider
-      show map [s -> precision s 4] scores
+      show map [s -> precision s 4] nudges
+      show map [s -> precision s 4] nwk-nudges
       show map [p -> precision p 4] base-probs
       show map [p -> precision p 4] new-probs
     ]
@@ -230,6 +256,18 @@ to-report consider-management-changes [prefix show-messages?]
     set options lput (list self rnd:weighted-one-of-list management-changes [ [p] -> last p ]) options
   ]
   report options
+end
+
+;; reports a combined nudge based on the proportion of holdings that have taken
+;; up various interventions by landuse type weighted somehow
+to-report get-network-nudges [w1 w2 w3]
+  ifelse include-networks? [
+    let farm-interventions      w1 matrix:* my-interventions
+    let local-interventions     w2 matrix:* sum-matrices [my-interventions] of local-link-neighbors
+    let catchment-interventions w3 matrix:* sum-matrices [my-interventions] of catchment-link-neighbors
+    report sum-matrices (list farm-interventions local-interventions catchment-interventions)
+  ]
+  [ report w1 matrix:* my-interventions ]
 end
 
 ;; probabilistically make changes in the supplied [holding [intervention prob]]

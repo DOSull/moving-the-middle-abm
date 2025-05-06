@@ -23,6 +23,7 @@ extensions [
   profiler ;; in case we need to figure out why things are slow
   pathdir
   ;; sr
+  ;; xw
 ]
 
 globals [
@@ -150,7 +151,6 @@ to setup
   setup-colours ;; must come AFTER reading farmer parameters since it depends on farm types
   ask patches [ set pcolor table:get colour-key "background" ]
 
-  set include-networks? correlated-landuse?
   set show-local-links? include-networks?
 
   carefully [
@@ -192,28 +192,42 @@ to go
     ]
     ask farmers [
       let ft-now farm-type
+      let farm-conversion-options []
       let loss-making-holdings get-loss-making-holdings
-      ifelse any? loss-making-holdings [
-        let farm-conversion-options []
-        if [current-profit] of my-farm < 0 [ ;; and mean losses-record > bad-years-trigger] of my-farm [
-          ;; we're losing lots of money so consider changing direction completely
-          let down-weight ifelse-value apply-severity-of-losses?
-            [ 1 - (sum [count the-land] of loss-making-holdings) / count the-land ] [ 1 ]
-          set farm-conversion-options consider-farm-type-change down-weight "Losing money: " false
+      ( ;; first we check if there are any holdings losing money
+        ifelse any? loss-making-holdings [
+          if [current-profit] of my-farm < 0 [ ;; losing lots of money so consider complete change
+            let down-weight ifelse-value apply-severity-of-losses?
+              [ 1 - (sum [count the-land] of loss-making-holdings) / count the-land ] [ 1 ]
+            set farm-conversion-options consider-farm-type-change down-weight "Losing money: " false
+          ]
+          ;; only some holdings are losing money so consider forestry on those
+          let holding-change-options consider-holdings-farm-type-change loss-making-holdings
+                prioritise-forestry? "Some holdings losing money: " false
+          make-farm-type-changes (sentence farm-conversion-options holding-change-options)
         ]
-        ;; only some holdings are losing money so consider forestry on those
-        let holding-change-options consider-holdings-farm-type-change
-              prioritise-forestry? "Some holdings losing money: " false
-        make-farm-type-changes (sentence farm-conversion-options holding-change-options)
-      ]
-      [ ;; we're doing OK so think about management interventions instead
-        if any? my-holdings with [any-interventions-to-do?] [
-          ;; this reports a [holding [intervention-type probability]] list
-          let potential-changes consider-management-changes "Management change: " false
-          ;; which we pass to make-management-changes
-          if length potential-changes > 0 [ make-management-changes potential-changes ]
+        ;;
+        ;; further consider landuse changes if any holdings breach environmental regs
+        ;;
+        any-true? map [k -> [in-breach? k] of my-farm] table:keys env-metrics [
+          let breached-metrics get-breached-metrics
+          let holdings-in-breach get-holdings-in-breach breached-metrics
+          let holding-change-options consider-holdings-farm-type-change holdings-in-breach
+                prioritise-forestry? "Some holdings in breach of regulations: " false
+          make-farm-type-changes (sentence farm-conversion-options holding-change-options)
         ]
-      ]
+        ;;
+        ;; we're doing OK so think about management interventions instead
+        ;;
+        [
+          if any? my-holdings with [any-interventions-to-do?] [
+            ;; this reports a [holding [intervention-type probability]] list
+            let potential-changes consider-management-changes "Management change: " false
+            ;; which we pass to make-management-changes
+            if length potential-changes > 0 [ make-management-changes potential-changes ]
+          ]
+        ]
+      )
       set color ifelse-value farm-type = ft-now [ black ] [ red ]
     ]
     ask farms [redraw-farm]
@@ -245,8 +259,7 @@ end
 ;; these procedures store the initial state
 ;; of the model to allow quick reset
 ;;
-;; DON'T FORGET UPDATE IF NEW VARIABLES ARE
-;; ADDED!
+;; DON'T FORGET TO UPDATE IF NEW VARIABLES ARE ADDED!
 ;; ----------------------------------------------------------------------------
 
 to store-initial-values
@@ -275,6 +288,7 @@ to store-initial-values
     set disposition-0 disposition
     set age-0 age
     set succession-stage-0 succession-stage
+    set my-interventions-0 matrix:copy my-interventions
   ]
 end
 
@@ -304,6 +318,7 @@ to restore-initial-values
     set disposition disposition-0
     set age age-0
     set succession-stage succession-stage-0
+    set my-interventions matrix:copy my-interventions-0
   ]
   redraw-farms-and-holdings
   reset-ticks
@@ -855,7 +870,7 @@ run-rng-seed
 run-rng-seed
 0
 100
-50.0
+51.0
 1
 1
 NIL
@@ -901,7 +916,7 @@ OUTPUT
 SLIDER
 1040
 10
-1240
+1210
 43
 carbon-price
 carbon-price
@@ -913,25 +928,36 @@ carbon-price
 NIL
 HORIZONTAL
 
+SWITCH
+1220
+10
+1430
+43
+set-carbon-price-from-file?
+set-carbon-price-from-file?
+0
+1
+-1000
+
 SLIDER
 1040
 50
-1240
+1210
 83
 sigmoid-slope
 sigmoid-slope
 0.01
 20
-20.0
+10.0
 0.01
 1
 NIL
 HORIZONTAL
 
 TEXTBOX
-1245
+1215
 54
-1390
+1360
 79
 Bigger numbers amplify the impact of nudges
 10

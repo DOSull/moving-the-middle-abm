@@ -128,6 +128,15 @@ to-report matrix-duplicate-cols [m n]
   report matrix:from-column-list map [c -> col] range n
 end
 
+to-report sum-matrices [lst]
+  report reduce [[a b] -> a matrix:+ b] lst
+end
+
+to-report mean-matrices [lst]
+  let n length lst
+  report map [x -> x / n] reduce [[a b] -> a matrix:+ b] lst
+end
+
 ;; ----------------------------------------------------------------------------
 ;; list stuff
 ;; ----------------------------------------------------------------------------
@@ -177,6 +186,7 @@ to-report reorder [lst order]
 end
 
 to-report flatten-list [lst]
+  if length lst = 0 [ report [] ]
   report reduce [[a b] -> sentence a b] lst
 end
 
@@ -204,6 +214,13 @@ to-report last-n [lst n]
   report sublist lst (length lst - 2) length lst
 end
 
+to-report any-true? [lst]
+  report length filter [x -> x = true] lst > 0
+end
+
+to-report all-true? [lst]
+  report length filter [x -> x = true] lst = length lst
+end
 
 ;; ------------------------------------------------------------------------------
 ;; string stuff

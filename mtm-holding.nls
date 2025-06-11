@@ -221,7 +221,7 @@ to-report get-holding-costs [include-variance?]
       matrix-sum-elements (
       ( matrix:map * landuse-luc-profile (cost-means matrix:+ get-holding-cost-variance) )
       matrix:+
-      get-net-environmental-taxes true )
+      get-net-environmental-taxes )
     )
   ]
   [ 
@@ -229,20 +229,16 @@ to-report get-holding-costs [include-variance?]
       matrix-sum-elements (
       ( matrix:map * landuse-luc-profile cost-means )
       matrix:+ 
-      get-net-environmental-taxes true ) 
+      get-net-environmental-taxes ) 
     )
   ]
 end
 
 ;; we provide a boolean argument here for the (usual?) case where 
 ;; there is only a carbon-tax
-to-report get-net-environmental-taxes [carbon-only?]
-  let metrics [ "ghg-emissions" ]
-  let tax-levels (list carbon-price)
-  if not carbon-only? [
-    set metrics table:keys env-metrics 
-    set tax-levels map [m -> table:get m "price"] table:values env-metrics
-  ]
+to-report get-net-environmental-taxes
+  let metrics filter [k -> table:get table:get env-metrics k "price" != na-value] table:keys env-metrics
+  let tax-levels map [m -> table:get m "price"] map [k -> table:get env-metrics k] metrics
   report matrix:map [m -> round m] 
            reduce [[a b] -> a matrix:+ b] 
              (map [[m t] -> ( matrix:map * 

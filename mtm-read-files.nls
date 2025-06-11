@@ -47,7 +47,7 @@ to read-metrics-from-file [file]
       let line file-read-line
       if not (first line = "#") [
         let data csv:from-row line
-        table:put env-metrics (first data) table:from-list (map list vars but-first data)
+        table:put env-metrics (first data) table:from-list (map list vars (map [x -> replace-na x] but-first data))
       ]
     ]
     file-close
@@ -56,9 +56,6 @@ to read-metrics-from-file [file]
     user-message word "ERROR: problem reading required metrics from " file
     file-close
   ]
-  ifelse set-carbon-price-from-file?
-  [ set carbon-price table:get table:get env-metrics "ghg-emissions" "price" ]
-  [ table:put table:get env-metrics "ghg-emissions" "price" carbon-price ]
 end
 
 ;; setup farm types and interventions

@@ -193,10 +193,7 @@ to make-farm-type-changes [possible-changes]
   if show-events? [ show "Entered make-farm-type-changes" ]
   let changes-to-make rnd:weighted-one-of-list possible-changes [ [p] -> last p ]
   if random-float 1 < last changes-to-make [
-    let holdings-to-change item 0 first changes-to-make
-    let change-type        item 1 first changes-to-make
-    let current-farm-type  item 2 first changes-to-make
-    let new-farm-type      item 3 first changes-to-make
+    let [holdings-to-change change-type current-farm-type new-farm-type] first changes-to-make
     ask holdings-to-change [
       if show-events? [ show "Show considering holdings changes" ]
       holding-change-farm-type new-farm-type
@@ -227,7 +224,7 @@ to-report consider-management-changes [prefix show-messages?]
   ;; replace the 1s below with some weight factors to control extent of network influence
   let network-nudges nobody
   ifelse include-networks? 
-  [ set network-nudges get-network-nudges 1 1 1 ]
+  [ set network-nudges get-network-nudges 1 rel-weight-locals rel-weight-catchment ]
   [ set network-nudges get-network-nudges 1 0 0 ]
   ask my-holdings with [any-interventions-to-do?] [
     let ft farm-type
@@ -274,9 +271,8 @@ end
 ;; list. All are considered but only applied on passing the associated probability test
 to make-management-changes [possible-changes] 
   foreach possible-changes [ change ->
-    let the-holding        item 0 change
-    let i-type      item 0 item 1 change
-    let prob        item 1 item 1 change
+    let the-holding   item 0 change
+    let [i-type prob] item 1 change
     if random-float 1 < prob [
       if show-events? [ show (word "Implementing " i-type " on " the-holding) ]
       ask the-holding [ implement-intervention i-type ]

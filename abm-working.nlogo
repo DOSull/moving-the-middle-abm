@@ -350,9 +350,9 @@ end
 ;; DEALINGS IN THE SOFTWARE.
 @#$#@#$#@
 GRAPHICS-WINDOW
-190
+201
 10
-807
+818
 919
 -1
 -1
@@ -379,7 +379,7 @@ Year
 SWITCH
 10
 10
-180
+190
 43
 reinitialise?
 reinitialise?
@@ -390,7 +390,7 @@ reinitialise?
 BUTTON
 10
 50
-90
+100
 83
 reset
 restore-initial-values\n
@@ -405,9 +405,9 @@ NIL
 0
 
 BUTTON
-100
+110
 50
-180
+190
 83
 NIL
 setup
@@ -424,7 +424,7 @@ NIL
 SWITCH
 10
 90
-180
+100
 123
 force?
 force?
@@ -443,10 +443,10 @@ Use force? to make model continue even when stop condition is met
 1
 
 BUTTON
-100
-130
-180
-163
+110
+90
+190
+123
 step
 go
 NIL
@@ -460,10 +460,10 @@ NIL
 1
 
 BUTTON
-100
-170
-180
-203
+110
+130
+190
+163
 step-10
 repeat 10 [go]
 NIL
@@ -477,10 +477,10 @@ NIL
 1
 
 BUTTON
-100
-210
-180
-243
+110
+170
+190
+203
 NIL
 go
 T
@@ -495,9 +495,9 @@ NIL
 
 SWITCH
 10
-250
-180
-283
+210
+190
+243
 show-events?
 show-events?
 1
@@ -506,9 +506,9 @@ show-events?
 
 TEXTBOX
 10
-285
-180
-315
+245
+190
+275
 Turn off messages to speed things up!
 11
 0.0
@@ -516,9 +516,9 @@ Turn off messages to speed things up!
 
 SWITCH
 10
-320
-180
-353
+280
+190
+313
 show-landuse?
 show-landuse?
 0
@@ -527,19 +527,19 @@ show-landuse?
 
 TEXTBOX
 10
-355
-180
-445
-Colour key (applies to both landuse and farm symbols)\n  SNB - Brown\n  Dairy - Blue\n  Forestry - Green \n  Crop -Purple
+315
+190
+375
+Colour key (applies to both landuse and farm symbols)\n  Crop: Purple       Dairy: Blue\n  Forestry: Green  SNB: Brown
 11
 0.0
 1
 
 SWITCH
 10
-440
-180
-473
+385
+190
+418
 farm-type-colours?
 farm-type-colours?
 0
@@ -548,9 +548,9 @@ farm-type-colours?
 
 TEXTBOX
 10
-485
-180
-505
+420
+190
+440
 Loss-making farms always red
 11
 0.0
@@ -558,9 +558,9 @@ Loss-making farms always red
 
 SWITCH
 10
-510
-180
-543
+445
+190
+478
 show-luc-codes?
 show-luc-codes?
 0
@@ -569,9 +569,9 @@ show-luc-codes?
 
 TEXTBOX
 10
-545
-180
-575
+480
+190
+510
 More intense colours are lower LUC values (better land).
 11
 0.0
@@ -579,9 +579,9 @@ More intense colours are lower LUC values (better land).
 
 BUTTON
 10
-580
-180
-613
+520
+190
+553
 redraw
 redraw
 NIL
@@ -596,28 +596,11 @@ NIL
 
 BUTTON
 10
-620
-180
-653
-toggle-labels
-set show-labels? not show-labels?\nifelse show-labels?\n[ ask turtles \n  [ set label-color table:get colour-key \"label\" ] ]\n[ ask turtles\n  [ set label-color [0 0 0 0] ] ]\n
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-10
-660
-180
-693
+560
+190
+593
 toggle-farmers
-ask farmers [\n  set hidden? not hidden?\n]
+ask farmers [ set hidden? not hidden? ]
 NIL
 1
 T
@@ -630,9 +613,9 @@ NIL
 
 BUTTON
 10
-700
-180
-733
+600
+190
+633
 toggle-farms
 ask farms [set hidden? not hidden?]
 NIL
@@ -647,9 +630,9 @@ NIL
 
 BUTTON
 10
-740
-180
-773
+640
+190
+673
 toggle-holdings
 ask holdings [set hidden? not hidden?]
 NIL
@@ -664,36 +647,66 @@ NIL
 
 SWITCH
 10
-780
-180
-813
-show-local-links?
-show-local-links?
-0
-1
--1000
-
-SWITCH
-10
-820
-180
-853
-show-catchment-links?
-show-catchment-links?
+690
+190
+723
+include-networks?
+include-networks?
 1
 1
 -1000
 
 SWITCH
 10
-860
-180
-893
-include-networks?
-include-networks?
-0
+730
+190
+763
+show-local-links?
+show-local-links?
+1
 1
 -1000
+
+SWITCH
+10
+770
+190
+803
+show-catchment-links?
+show-catchment-links?
+1
+1
+-1000
+
+SLIDER
+10
+810
+190
+843
+rel-weight-locals
+rel-weight-locals
+0
+1
+0.5
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+10
+850
+190
+883
+rel-weight-catchment
+rel-weight-catchment
+0
+1
+0.1
+0.01
+1
+NIL
+HORIZONTAL
 
 SWITCH
 830
@@ -912,32 +925,6 @@ OUTPUT
 1010
 920
 11
-
-SLIDER
-1040
-10
-1210
-43
-carbon-price
-carbon-price
-0
-50
-5.0
-1
-1
-NIL
-HORIZONTAL
-
-SWITCH
-1220
-10
-1430
-43
-set-carbon-price-from-file?
-set-carbon-price-from-file?
-0
-1
--1000
 
 SLIDER
 1040

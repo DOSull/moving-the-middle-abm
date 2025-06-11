@@ -245,7 +245,13 @@ to setup-farmers
   ])
   ;; for correlated landuse we make a spatial network for this purpose only
   if correlated-landuse? [
-    ask farmers [ create-links-with other farmers in-radius 30 ]
+    ask farmers [ 
+      let locals other (turtle-set [the-owner] of patch-set flatten-list [neighbors4] of the-land)
+      if count locals > 6 [
+        set locals min-n-of 6 locals [distance myself]
+      ]
+      create-links-with locals
+    ]
     repeat landuse-aggregation-steps [
       ask farmers [
         set farm-type [farm-type] of one-of link-neighbors

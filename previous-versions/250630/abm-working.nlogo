@@ -7,7 +7,6 @@ __includes [
   "mtm-farm.nls"           ;; code for farm turtles
   "mtm-holding.nls"        ;; code for holding turtles
   "mtm-plots.nls"          ;; plotting code allowing for varying numbers of pens
-  "mtm-results.nls"
   "distribution-utils.nls" ;; generic statistical function
   "list-utils.nls"         ;; generic list utilities
   "mtm-profile.nls"        ;; profiling stuff goes here
@@ -34,7 +33,6 @@ globals [
   spatial-data-folder
   region
   scenario
-  results
 
   show-labels?            ;; generally don't want to see labels on turtles
 
@@ -164,7 +162,6 @@ to setup
     user-message "Have you initialised the model correctly? Set the initialised? switch On and try setup again ensuring you pick a folder with a complete set of initialisation .csv files."
   ]
   setup-model-plots           ;; mtm-plots.nls
-  setup-results-tables
   redraw                      ;; mtm-render.nls
   reset-ticks
   if run-rng-seed != 0 [ random-seed run-rng-seed ]
@@ -236,7 +233,6 @@ to go
     ask farms [redraw-farm]
     ask holdings [redraw-holding]
     update-model-plots
-    update-model-results
     tick
   ]
 end
@@ -325,7 +321,6 @@ to restore-initial-values
     set my-interventions matrix:copy my-interventions-0
   ]
   redraw-farms-and-holdings
-  reset-results-tables
   reset-ticks
   tick
   if run-rng-seed != 0 [ random-seed run-rng-seed ]
@@ -1157,23 +1152,6 @@ TEXTBOX
 Length of memory of losses
 10
 0.0
-1
-
-BUTTON
-1041
-10
-1164
-43
-output-results
-output-results
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
 1
 
 @#$#@#$#@

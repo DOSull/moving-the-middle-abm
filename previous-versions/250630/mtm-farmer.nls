@@ -1,0 +1,338 @@
+farmers-own [
+  the-land         ;; patch-set of patches of this farmer, this farm, or this holding
+  farm-type        ;; farm-type - one of the global farm-types       
+  disposition      ;; for-profit, pro-environmental, pro-social (not used at present
+  age              ;; age controls succession probabilities see age-and-succeed-farmer
+  succession-stage ;; how many times this farmer has moved on...
+  my-interventions ;; 1-0 matrix of interventions adopted by landuse
+
+  my-farm          ;; farm turtle of this farmer's farm
+  my-holdings      ;; turtle-set of holdings of this farmer
+  
+  farm-type-0      ;; initial values stored to allow easy reset
+  disposition-0
+  age-0
+  succession-stage-0
+  my-interventions-0
+]
+
+;; farmer 'constructor'
+to initialise-farmer
+  set size 4
+  set color table:get colour-key "farmer"
+  set shape "person"
+  ;; set hidden? true
+  ;; it's better if this is dependent on the LUC values of the-land
+  ;; but note that it means there may be very little 'Crop' land
+  ifelse apply-suitability? [
+    let worst-land round mean [luc-code] of the-land
+    set farm-type one-of table:get farm-type-suitabilities worst-land
+  ]
+  [ set farm-type one-of farm-types ]
+  set disposition one-of dispositions
+  set succession-stage 0 
+  set my-interventions matrix:make-constant (length farm-types) (length mgmt-intervention-types) 0
+end
+
+;; farmer age might be set by a relatively complex procedure so 
+;; delegate to this reporter
+to-report get-new-farmer-age [model-initialisation?]
+  ;; this gives us a reasonable(ish) age distribution at least for now
+  ifelse model-initialisation? 
+  ;; age distribution of initial population leans older than that of new entrants
+  [ report 20 + random-beta-binomial 70 5 4 ]
+  [ report 20 + random-beta-binomial 45 4 2 ]
+end
+
+;; not currently used
+;; make links between farmers based on proximity
+to make-farmer-local-links 
+  let locals other (turtle-set [the-owner] of patch-set flatten-list [neighbors4] of the-land)
+  if count locals < 10 [
+    set locals other (turtle-set locals farmers in-radius 30)
+  ]
+  if count locals > 6 [
+    set locals n-of 6 locals
+  ]
+  create-local-links-with locals [ 
+    set color table:get colour-key "local-link" 
+    set hidden? not show-local-links? 
+  ]
+end
+
+;; not currently used
+;; make links between farmers based on landuse/industry
+to make-farmer-catchment-links
+  let colleagues n-of 6 (other farmers with [ not member? self [local-link-neighbors] of myself ])
+  create-catchment-links-with colleagues [ 
+    set color table:get colour-key "catchment-link"
+    set hidden? not show-catchment-links?
+  ]
+end
+
+;; age farmer by 1 year, then determine if they die/leave/otherwise exit
+;; the 'new' farmer is not actually a new farmer, just the old one with a new age...
+to age-and-succeed-farmer
+  ;; don't actually need to create a new farmer, just have to change age and
+  ;; consider some other changes
+  set age age + 1
+  if random-float 1 < (1 / (91 - age)) [
+    set age get-new-farmer-age false
+    set succession-stage succession-stage + 1
+    set disposition one-of dispositions
+    let ft-now farm-type
+    ;; new farmer considers changing the farm type if any holdings are loss-making
+    ;; without regard to how long losses have been happening, and with no 'down-weight'
+    if landuse-change-on-succession? and any? my-holdings with [current-profit < 0] [
+      let options consider-farm-type-change 1 "Succession: " false
+      if length options > 0 [ make-farm-type-changes options ]
+    ]
+    set color ifelse-value farm-type = ft-now [ black ] [ yellow ]
+  ]
+end
+
+;; reporter to get the plurality landuse type of the farmer
+to-report majority-farm-type
+  let counts map [x -> sum x] transpose [matrix-column-sums landuse-luc-profile] of my-holdings
+  let max-count max counts
+  let max-indices filter [i -> item i counts = max-count] n-values length farm-types [i -> i]
+  report one-of map [i -> item i farm-types] max-indices
+end
+
+;; report turtle set of all holdings losing money
+to-report get-loss-making-holdings
+  report my-holdings with [current-profit < 0]
+end
+
+;; reports true if all holdings are loss making
+to-report all-holdings-loss-making?
+  report count get-loss-making-holdings = count my-holdings
+end
+
+;; get a list of all the metrics which this farmer's farms is in breach of
+to-report get-breached-metrics
+  report filter [m -> [in-breach? m] of my-farm] table:keys env-metrics
+end
+
+;; get turtle-set of holdings in breach on this farm
+to-report get-holdings-in-breach [metrics]
+  let holdings-in-breach turtle-set nobody
+  foreach metrics [ m ->
+    set holdings-in-breach (turtle-set holdings-in-breach my-holdings with [in-breach? m])
+  ]
+  report holdings-in-breach
+end
+
+;; returns threshold for the supplied intervention
+;; this or a wrapper for this could include farmer demography 'shifts'
+;; or social/geographic network shifts
+to-report get-adoption-probability [i-type]
+  report table:get table:get base-thresholds i-type farm-type
+end
+
+;; reports list of possible changes in landuse by holding and an associated probability
+;; the list items are
+;;
+;;   [[holdings-to-change-set "all-of-farm"|"one-holding" from-farm-type to-farm-type] relative-probability]
+;;
+to-report consider-farm-type-change [down-weight prefix show-messages?]
+  if show-messages? [
+    show (word prefix "Considering changing landuse because holdings profits are " 
+               [precision (current-profit / count the-land) 1] of get-loss-making-holdings)
+  ]
+  ;; for convenience record this farmer's farmer-type
+  let ft farm-type
+  ;; only other farm-types are options for change - and Forest is not an option
+  let options filter [new-ft -> new-ft != ft and ft != "Forest"] farm-types
+  if apply-suitability? [
+    ;; only landuses suitable for the typical land on the farm are considered
+    let luc-constraint round mean [luc-code] of (the-land with [landuse = ft])
+    ;; set options filter [new-ft -> table:get table:get farm-type-suitabilities luc-constraint new-ft = 1] options
+    set options table:get farm-type-suitabilities luc-constraint
+;    set options filter-farm-types-by-luc options luc-constraint
+  ]
+  let affected-holdings my-holdings with [farm-type = ft]
+  set options map [new-ft -> 
+    (list (list affected-holdings "all-of-farm" ft new-ft) 
+          (down-weight * table:get table:get farm-type-change-probs ft new-ft))
+  ] options
+  report options
+end
+
+to-report consider-holdings-farm-type-change [holdings-under-consideration forestry-only? prefix show-messages?]
+  let options []
+  ask holdings-under-consideration [
+    let ft farm-type
+    ifelse forestry-only? [
+      set options lput (list (list (turtle-set self) "one-holding" farm-type "Forest") 
+                             (table:get table:get farm-type-change-probs farm-type "Forest")) options
+    ]
+    [
+      let new-possible-farm-types filter [nft -> nft != farm-type] farm-types
+      if apply-suitability? [
+        let luc-constraint round mean [luc-code] of (the-land with [landuse = ft]) 
+        set new-possible-farm-types table:get farm-type-suitabilities luc-constraint
+;        set new-possible-farm-types filter-farm-types-by-luc new-possible-farm-types luc-constraint
+      ]
+      foreach new-possible-farm-types [ nft ->
+        set options lput (list (list (turtle-set self) "one-holding" farm-type nft) 
+                               (table:get table:get farm-type-change-probs farm-type nft)) options
+      ]
+    ]
+  ]
+  report options
+end
+
+;to-report filter-farm-types-by-luc [fts limiting-luc]
+;  report filter [nft -> table:get table:get farm-type-suitabilities limiting-luc nft = 1] fts
+;end
+
+;; given a list of options per the consider-farm-type-change or consider-forestry reporters
+;; picks one and potentially applies it
+to make-farm-type-changes [possible-changes] 
+  if show-events? [ show "Entered make-farm-type-changes" ]
+  let changes-to-make rnd:weighted-one-of-list possible-changes [ [p] -> last p ]
+  if random-float 1 < last changes-to-make [
+    let [holdings-to-change change-type current-farm-type new-farm-type] first changes-to-make
+    ask holdings-to-change [
+      if show-events? [ show "Show considering holdings changes" ]
+      holding-change-farm-type new-farm-type
+    ]
+    ifelse change-type = "all-of-farm" [
+      if show-events? [ show "Making all of farm change" ]
+      set farm-type new-farm-type
+      ask my-farm [ set farm-type new-farm-type ]
+    ]
+    [
+      set farm-type majority-farm-type
+      ask my-farm [ set farm-type [ farm-type ] of myself ]
+    ]  
+  ]
+end
+
+;; loop through holdings with interventions remaining to be done
+;; calculate associated probability of adoption for all interventions remaining on each holding
+;; pick one by weighted probability and add it to the options output
+;; the list returned to the calling context will be
+;; [
+;;   [ holding1 [ intervention probability ] ]
+;;   [ holding2 [ intervention probability ] ]
+;;     ...
+;; ]
+to-report consider-management-changes [prefix show-messages?]
+  let options []
+  ;; replace the 1s below with some weight factors to control extent of network influence
+  let network-nudges nobody
+  ifelse include-networks? 
+  [ set network-nudges get-network-nudges 1 rel-weight-locals rel-weight-catchment ]
+  [ set network-nudges get-network-nudges 1 0 0 ]
+  ask my-holdings with [any-interventions-to-do?] [
+    let ft farm-type
+    ;; list the interevention types that are to be considered
+    let to-consider available-interventions-as-list
+    ;; get nudge score for this intervention from the holding
+    let nudges map [poss -> [get-intervention-score poss show-messages?] of self] to-consider
+    ;; the network nudge scores for the landuse on this holding 
+    let to-consider-idxs map [x -> position x mgmt-intervention-types] to-consider
+    let nwk-nudges map [i -> item i matrix:get-row network-nudges position ft farm-types] to-consider-idxs
+    ;; get the base probabilities for this farmer (which might be changeable over time)
+    let base-probs map [poss -> get-adoption-probability poss] to-consider
+    ;; adjust probabilities using the sigmoid function
+    let new-probs (map [[prob nudge nwk-nudge] -> nudged-probability prob (nudge + nwk-nudge)] base-probs nudges nwk-nudges)
+    if show-messages? [
+      show farm-type
+      show to-consider
+      show map [s -> precision s 4] nudges
+      show map [s -> precision s 4] nwk-nudges
+      show map [p -> precision p 4] base-probs
+      show map [p -> precision p 4] new-probs
+    ]
+    ;; put results in a list of tuples [[<INTERVENTION> <PROBABILITY>]], select one
+    ;; by weighted random draw and return it to the calling context
+    let management-changes (map list to-consider new-probs)
+    set options lput (list self rnd:weighted-one-of-list management-changes [ [p] -> last p ]) options
+  ]
+  report options
+end
+
+;; reports a combined nudge based on the proportion of holdings that have taken
+;; up various interventions by landuse type weighted somehow
+to-report get-network-nudges [w1 w2 w3]
+  ifelse include-networks? [
+    let farm-interventions      w1 matrix:* my-interventions
+    let local-interventions     w2 matrix:* sum-matrices [my-interventions] of local-link-neighbors
+    let catchment-interventions w3 matrix:* sum-matrices [my-interventions] of catchment-link-neighbors
+    report sum-matrices (list farm-interventions local-interventions catchment-interventions)
+  ]
+  [ report w1 matrix:* my-interventions ]
+end
+
+;; probabilistically make changes in the supplied [holding [intervention prob]]
+;; list. All are considered but only applied on passing the associated probability test
+to make-management-changes [possible-changes] 
+  foreach possible-changes [ change ->
+    let the-holding   item 0 change
+    let [i-type prob] item 1 change
+    if random-float 1 < prob [
+      if show-events? [ show (word "Implementing " i-type " on " the-holding) ]
+      ask the-holding [ implement-intervention i-type ]
+    ]
+  ]
+end
+
+
+;; ----------------------------------------------------------------------------
+;; sigmoid function related
+;; ----------------------------------------------------------------------------
+
+;; see https://en.wikipedia.org/wiki/Sigmoid_function
+;; the argument a increases the slope at (0, 0.5)
+to-report sigmoid [x a]
+  report 1 / (1 + exp (a * (- x)))
+end
+
+;; see https://en.wikipedia.org/wiki/Logit
+;; inverse of the sigmoid function - used to determine
+;; where on the sigmoid a given probability lies
+;; The 'epsilon correction' for 0 and 1 avoids errors from
+;; overflow/underflow even if introduces slight errors
+;; but hey! nothing is impossible, nor a sure thing!
+to-report logit [p a]
+  (ifelse
+    p = 0.5 [ report 0 ]
+    p = 1 [ report logit (1 - epsilon) a ]
+    p = 0 [ report logit epsilon a ]
+    [ report ln (p / (1 - p)) / a ])
+end
+
+;; reports revised probability from 'nudging' initial
+;; initial probability p along a sigmoid curve
+to-report nudged-probability [p nudge]
+  let centre logit p sigmoid-slope
+  report sigmoid (centre + nudge) sigmoid-slope
+end
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-25 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.
+

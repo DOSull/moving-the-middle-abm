@@ -256,10 +256,6 @@ to-report split-string [str sep]
   [ report sentence words this-word ]
 end
 
-to-report str-replace [s a b]
-  report join-string (split-string s a) b
-end
-
 
 ;; ------------------------------------------------------------------------------
 ;; drawing utilities (see netlogo-utils repo)

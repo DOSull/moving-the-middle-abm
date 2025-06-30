@@ -1,0 +1,432 @@
+;; ----------------------------------------------------------------------------
+;; landscape setup
+;; NOTE: this includes the farmers not just LUC codes
+;; ----------------------------------------------------------------------------
+
+;; possibly of interest later use eXtraWidgets to add tabs...
+;to setup-geography-interface 
+;  xw:create-tab "geog" [
+;    xw:set-title "Geography"
+;  ]
+;  foreach ["alpha" "beta" "gamma"] [ name ->
+;    xw:create-slider name [ 
+;      xw:set-color one-of base-colors
+;      xw:set-label xw:key
+;    ]
+;  ]
+;end
+
+
+;; note that set-world-size kills all turtles so this must be done BEFORE any 
+;; turtles are initialised
+to setup-world-dimensions
+  let cell-size 3
+  let ncols 270
+  let nrows 400
+  let raster-pixel-resolution 3 ;; i.e. the patch cellsize in the NetLogo view
+  ;; if initialising from geospatial data we override some of these defaults
+  if geography-from-files? [
+    print "Getting model dimensions from GIS data"
+    ;; read dimensions of the raster from header of an Esri raster .asc file
+    ;; which looks like this
+    ;;
+    ;; ncols         623
+    ;; nrows         1201
+    ;; xllcorner     1883097.0153
+    ;; yllcorner     5676986.4123
+    ;; cellsize      100
+    ;; NODATA_value  -9999
+    ;;
+    carefully [
+      file-open join-list (list spatial-data-folder "luc.asc") pathdir:get-separator
+      set ncols read-from-string item 1 split-string file-read-line " "
+      set nrows read-from-string item 1 split-string file-read-line " "
+      let skip file-read-line
+      set skip file-read-line
+      set raster-pixel-resolution read-from-string item 1 split-string file-read-line " "
+      file-close
+    ]
+    [
+      file-close
+      user-message (word "Problem reading " join-list (list spatial-data-folder "luc.asc") pathdir:get-separator)
+    ]
+  ]
+  let x-extent ncols * raster-pixel-resolution
+  let y-extent nrows * raster-pixel-resolution
+  let x-scale x-extent / max-dimension ;; max-dimension is in the UI
+  let y-scale y-extent / max-dimension
+  let sf max (list x-scale y-scale)
+  let x (list 0 (round (x-extent / sf) - 1))
+  let y (list 0 (round (y-extent / sf) - 1))
+  print join-string (list "Setting world dimensions:" ncols nrows "\n"
+                          "                cellsize:" raster-pixel-resolution "extents:" x-extent y-extent "\n"
+                          "                  scales:" x-scale y-scale sf "NetLogo window:" x y) " "
+  resize-world item 0 x item 1 x item 0 y item 1 y
+  print (word "Setting model dimensions to " x " by " y )
+  set-patch-size cell-size * max-dimension / max (list world-width world-height)
+  ask patches [ set pcolor grey ]
+end
+
+;; invoked at setup, delegates the initialisation of the landscape to either a random process
+;; or reading in from geospatial data files; other steps are the same for either method
+to setup-geography
+  ;; have to do this first for setup
+  read-farm-type-suitabilities-from-file join-string (list market-data-folder "suitabilities.csv") pathdir:get-separator
+  with-local-randomness [
+    ifelse geography-from-files?
+    [ setup-geography-from-files ]
+    [ setup-random-geography ]
+
+    ;; both the above will return patches tagged with temp-id which we use to determine farms
+    ;; first, find all the connected sets of patches based on temp-id
+    label-connected-regions (list farm-land) [x -> [temp-id] of x] true
+    ;; after labelling sequential farm id is in region-id patch variable so apply it to farm-id
+    ask farm-land [set farm-id region-id]
+    ;; remove farms of one pixel
+    merge-singletons farm-land [x -> [farm-id] of x] [[x y] -> ask x [set farm-id [farm-id] of y]]
+    
+    ;; now label sub-farm holdings by luc-code - this could be based on something else
+    ;; note that here we send each farm as a separate patch-set 
+    let psets map [id -> farm-land with [farm-id = id]] remove-duplicates [farm-id] of farm-land
+    label-connected-regions psets [p -> [luc-code] of p] false
+    ;; after labelling a sequential holding-id is in the region-id of variables so apply it
+    ask farm-land [set holding-id region-id]
+    
+    ;; now set up patch, farmer, farm, holding relations
+    setup-farmers
+    setup-farms
+    setup-holdings
+
+    colour-all-patches true
+  ]
+end
+
+to read-farm-type-suitabilities-from-file [file]
+  ;; CSV file looks like this (spacing added for clarity)
+  ;; 1, SNB, Dairy, Forest, Crop
+  ;; 2, SNB, Dairy, Forest, Crop
+  ;; 3, SNB, Dairy, Forest, Crop
+  ;; 4, SNB, Dairy, Forest
+  ;; 5, SNB, Dairy, Forest
+  ;; 6, SNB, Forest
+  ;; 7, SNB, Forest
+  ;; 8, SNB, Forest
+  ;; Each row shows the min and max (inclusive) LUCs suitable for that landuse
+  set farm-type-suitabilities table:make
+  carefully [
+    print word "Reading farm type suitabilities from file " file
+    file-open file
+    set farm-type-suitabilities table:make
+    while [not file-at-end?] [
+      let data csv:from-row file-read-line
+      let luc first data
+      let suitable-landuses but-first data
+      table:put farm-type-suitabilities luc suitable-landuses
+    ]
+    file-close
+  ]
+  [
+    user-message word "ERROR: problem reading farm type suitabilities file " file
+    file-close
+  ]
+end
+
+;; set things up from supplied LUC and parcels geospatial datasets
+to setup-geography-from-files
+  carefully [
+    print (word "Reading LUC data from " join-list (list spatial-data-folder "luc.asc") pathdir:get-separator)
+    set luc-data gis:load-dataset join-list (list spatial-data-folder "luc.asc")     pathdir:get-separator
+    print (word "Reading farm data from " join-list (list spatial-data-folder "parcels.shp") pathdir:get-separator)
+    set parcels-data gis:load-dataset join-list (list spatial-data-folder "parcels.shp") pathdir:get-separator
+  ]
+  [
+    user-message "ERROR: problem reading spatial data"
+  ]
+  gis:apply-raster luc-data luc-code
+  ;; there's a gis extension issue related to NANs
+  ;; see https://github.com/NetLogo/GIS-Extension/issues/5
+  ;;     https://github.com/NetLogo/NetLogo/issues/894   
+  set farm-land patches with [not is-nan? luc-code and luc-code > 0]
+  colour-all-patches false
+  display ;; do this early for reassurance...
+  let bgcolor table:get colour-key "background"
+  set not-farm-land patches with [pcolor = bgcolor]
+
+  ;; setup farms based on distinct parcels identified by ID in the parcels data
+  ;; This relies on a STR_ID variable which is unique string for each farm parcel.
+  ;;
+  ;; **** IT IS IMPORTANT THAT THIS BE A NUMBER STORED AS A STRING!!! ****
+  ;;
+  ;; This is because of automatic interpolation that the GIS extension applies when 
+  ;; assigning values from a shapefile to patches only partly contained in polygons.
+  ;; Strings are 'interpolated' by a plurality rule thus avoiding meaningless 
+  ;; averaging of numerical IDs.
+  gis:apply-coverage parcels-data "STR_ID" temp-id
+  ;; might get some new NaN values, so clean up farm-land and not-farm-land patch-sets
+  let more-not-farm-land farm-land with [not is-string? temp-id]
+  ask more-not-farm-land [ set pcolor bgcolor ]
+  set not-farm-land (patch-set not-farm-land more-not-farm-land)
+  ;; could use not-farm-land membership in border drawing but that is slow, so
+  ;; make 'the-owner' of not-farm-land patches nobody (which is apt...)
+  ask not-farm-land [ set the-owner nobody ]
+  set farm-land farm-land with [not member? self more-not-farm-land]
+  ;; temp-id is numeric in the random initialisation so make it numeric here to match
+  ask farm-land [ set temp-id read-from-string temp-id ]
+end
+
+;; random process uses random farm centres from sequential spatial inhibition
+;; and either averaging or a voter model for LUC codes
+to setup-random-geography
+  ifelse seed-geography-rng?
+  [ random-seed rng-geography ]
+  [ random-seed random timer ]
+  set farm-land patch-set patches
+  set not-farm-land patch-set nobody
+  ;; Use disposable node agents to make voronoi polygon farms
+  ;; To avoid teeny tiny farms use sequential-spatial inhibition
+  ;; Inhibition distance is 0.4 * expected mean NND for random point process
+  let inhibition-distance 0.4 / (2 * sqrt (number-of-farms / world-width / world-height))
+  print word "Setting inhibition distance for farm centres to " precision inhibition-distance 3
+  create-nodes number-of-farms [ 
+    while [any? other nodes in-radius inhibition-distance] [
+      setxy random-xcor random-ycor 
+    ]
+  ]
+  ;; assign temp-id which will be used to make up farms later
+  ask patches [ set temp-id [who] of min-one-of (nodes with-min [distance myself]) [who] ]
+  ;; get rid of the temporary farm generator turtles
+  ask nodes [ die ]
+  setup-random-luc-codes
+end
+
+;; use a either spatial averaging or a voter model to set up LUC codes
+to setup-random-luc-codes
+  set farm-land patches
+  ifelse random-landscape-method = "averaging" [
+    ;; averaging method
+    ask patches [ set luc-code random-normal 0 1 ]
+    repeat luc-aggregation-steps [ diffuse4 luc-code (4 / 5) ]
+    let min-x min [luc-code] of patches
+    let max-x max [luc-code] of patches
+    ;; rescale range and bin them from 1 to 8
+    ask patches [
+      set luc-code round rescale luc-code min-x max-x 0.5 8.4999
+    ]
+  ]
+  [ ;; voter model method - this may yield wildly uneven distributions!
+    ;; we iterate more in this method - although this is all very arbitrary
+    ask patches [ set luc-code 1 + random 8 ]
+    repeat luc-aggregation-steps * 3 [
+      ask patches [ set luc-code [luc-code] of one-of neighbors4 ]
+    ]
+  ]
+  colour-all-patches false
+  display
+end
+
+;; setup farmers using the farm-id and holding-id variables in the patches
+to setup-farmers 
+  let ids remove-duplicates [farm-id] of farm-land
+  let psets map [id -> farm-land with [farm-id = id]] ids
+  (foreach psets ids [ [pset id] ->
+    let this-farmer nobody
+    ask approximate-centroid pset [
+      sprout-farmers 1 [
+        set the-land pset
+        set this-farmer self
+        initialise-farmer
+        set age get-new-farmer-age true
+      ]
+      ask pset [
+        set the-owner this-farmer
+        set landuse [farm-type] of this-farmer
+      ]
+    ]
+  ])
+  ;; for correlated landuse we make a spatial network for this purpose only
+  if correlated-landuse? [
+    ask farmers [ 
+      let locals other (turtle-set [the-owner] of patch-set flatten-list [neighbors4] of the-land)
+      if count locals > 6 [
+        set locals min-n-of 6 locals [distance myself]
+      ]
+      create-links-with locals
+    ]
+    repeat landuse-aggregation-steps [
+      ask farmers [
+        set farm-type [farm-type] of one-of link-neighbors
+      ]
+    ]
+    ;; and then delete it
+    ask links [ die ]
+  ]
+  if include-networks? [
+    ask farmers [ 
+      make-farmer-local-links
+      make-farmer-catchment-links 
+    ]
+  ]
+  ask farmers [
+    ask the-land [ set landuse [farm-type] of myself ]
+  ]
+end
+
+;; setup farms using the farmer information
+;; also initialises the farmer's my-farm variable
+to setup-farms
+  ask farmers [
+    let this-farm nobody
+    hatch-farms 1 [
+      initialise-farm
+      set this-farm self
+    ]
+    set my-farm this-farm
+  ]
+end
+
+;; setup holdings using farmer information and holding-id of patches
+;; also initialises the farmer's my-holdings variable
+to setup-holdings
+  ask farmers [
+    let this-holding nobody
+    let these-holdings (turtle-set nobody)
+    let ids remove-duplicates [holding-id] of the-land
+    let psets map [id -> the-land with [holding-id = id]] ids 
+    (foreach psets ids [ [pset id] ->
+      hatch-holdings 1 [
+        initialise-holding
+        set the-land pset
+        set landuse-luc-profile get-landuse-luc-profile the-land
+        move-to approximate-centroid pset
+        set this-holding self
+      ]
+      set these-holdings (turtle-set these-holdings this-holding)
+    ])
+    set my-holdings these-holdings 
+  ]
+end
+
+;; returns approximate centroid of a patch-set
+to-report approximate-centroid [poly]
+  let centroid nobody
+  with-local-randomness [
+    let mean-x mean [pxcor] of poly
+    let mean-y mean [pycor] of poly
+    ;; make sure it's actually a patch in the set
+    set centroid one-of poly with-min [distancexy mean-x mean-y]
+  ]
+  report centroid
+end
+
+
+;; ------------------------------------------------------------------------
+;; labelling of connected sets of patches
+;; ------------------------------------------------------------------------
+
+;; This can also be done by iterated assembly of neighbouring patches starting 
+;; at some root - however, the nw extension's weak clusters method provides a 
+;; quicker and more scaleable solution, even if it involves creating and 
+;; killing thousands of node turtles!
+
+;; Labels a list of patchsets based on the supplied region-id-reporter, which is
+;; an anonymous function such as 
+;; 
+;;    [x -> [some-var] of x]. 
+;; This allows an arbitrary patch variable to be used for determining regions.
+;; 
+;; Labels are NOT values of that reporter, but sequential integers starting from 0
+;; and unique across the list of all patchsets. The resulting label is stored in
+;; the region-id attribute and IS NOT merely the value of the supplied variable 
+;; because patches that share a value of that variable but are not orthogonally 
+;; connected are considered as distinct regions.
+to label-connected-regions [patch-sets region-id-reporter n4?]
+  let first-id 0
+  foreach patch-sets [ ps ->
+    set first-id label-connected-region ps region-id-reporter first-id n4?
+  ]
+end
+
+;; Labels the supplied patchset pset with respect to the region-id-reporter, 
+;; starting from id0. Reports the 'id it got to' so that the calling context can 
+;; continue on to label more patchsets starting from the next value. Implementation 
+;; uses the nw:weak-component-clusters reporter
+to-report label-connected-region [pset region-id-reporter id0 n4?]
+  ask pset [ sprout-nodes 1 ]
+  ask nodes [
+    ifelse n4? [
+      ask (nodes-on neighbors4) with [x1-var-matches-x2-var? self myself region-id-reporter] [
+        create-link-with myself
+      ]
+    ]
+    [
+      ask (nodes-on neighbors) with [x1-var-matches-x2-var? self myself region-id-reporter] [
+        create-link-with myself
+      ]
+    ]
+  ]
+  nw:set-context nodes links
+  foreach nw:weak-component-clusters [ c ->
+    ask c [ set region-id id0 ]
+    set id0 id0 + 1
+  ]
+  ask nodes [die]
+  report id0
+end
+
+;; merges isolated singletons - NOT CONFIDENT OF THIS IMPLEMENTATION
+;; TODO: would also like to extend this to filter out connected regions smaller than
+;; some threshold value
+;; var-getter is an anonymous reporter like   [p -> [farm-id] of p]
+;; var-matcher is an anonymous procedure like [[x y] -> ask x [set farm-id [farm-id] of y]]
+to merge-singletons [pset var-getter var-matcher]
+  let singletons get-singletons pset var-getter
+  while [any? singletons] [
+    ifelse count pset = count singletons [
+      ask singletons [
+        let p one-of singletons
+        let others [ other singletons ] of p
+        foreach sort others [ q ->
+          set-x1-var-to-x2-var p q var-matcher
+        ]
+      ]
+    ]
+    [
+      ask singletons [
+        let non-singleton-neighbours neighbors4 with [member? self pset and not member? self singletons]
+        if any? non-singleton-neighbours [
+          set-x1-var-to-x2-var self one-of non-singleton-neighbours var-matcher
+        ]
+      ]
+    ]
+    set singletons get-singletons pset var-getter
+  ]
+end
+
+;; this only detects singleton members of pset with neighbors4 with matching values of var-getter
+to-report get-singletons [pset var-getter]
+  report pset with [not any? neighbors4 with [x1-var-matches-x2-var? self myself var-getter and member? self pset]]
+end
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-25 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.

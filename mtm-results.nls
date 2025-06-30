@@ -1,0 +1,133 @@
+;; ----------------------------------------------------------------------------
+;; Extensible model results output
+;; ----------------------------------------------------------------------------
+
+to setup-results-tables
+  set results table:make
+  table:put results "interventions" table:from-list (map list mgmt-intervention-types n-values length mgmt-intervention-types [i -> []]) 
+  table:put results "landuse"       table:from-list (map list farm-types              n-values length farm-types [i -> []])
+  table:put results "env-metrics"   table:from-list (map list table:keys env-metrics  n-values length table:keys env-metrics [i -> []])
+end
+
+to reset-results-tables
+  foreach table:values results [ tbl ->
+    foreach table:keys tbl [ k ->
+      let reset-time-series sublist table:get tbl k 0 1
+      table:put tbl k reset-time-series
+    ]
+  ]
+end
+
+to update-model-results
+  update-interventions-results
+  update-landuse-results
+  update-metrics-results
+end
+
+to update-interventions-results
+  (foreach range length mgmt-intervention-types [ i ->
+    let intervention item i mgmt-intervention-types
+    let time-series table:get table:get results "interventions" intervention
+    set time-series lput sum [count the-land] of holdings with [matrix:get my-interventions 0 i = 1] time-series
+    table:put table:get results "interventions" intervention time-series
+  ])
+end
+
+to update-landuse-results
+  foreach farm-types [ ft ->
+    let time-series table:get table:get results "landuse" ft
+    set time-series lput count farm-land with [landuse = ft] time-series
+    table:put table:get results "landuse" ft time-series
+  ]
+end
+
+to update-metrics-results
+  let e-metrics sort table:keys env-metrics
+  foreach range length e-metrics [ i ->
+    let metric item i e-metrics
+    let time-series table:get table:get results "env-metrics" metric
+    set time-series lput (count farms with [in-breach? item i e-metrics] / count farms) time-series
+    table:put table:get results "env-metrics" metric time-series
+  ]
+end
+
+to-report results-base-filename
+  let dt-elements split-string date-and-time " "
+  let dt join-string (list
+    join-string reverse split-string item 2 dt-elements "-" "-"
+    str-replace item 0 split-string item 0 dt-elements "." ":" "-"
+    item 1 dt-elements
+  ) "-"
+  report (word output-data-folder "/results-" dt)
+end
+
+to output-results
+  let basename results-base-filename
+  let header-fname (word basename "-header.csv")
+  carefully [
+    file-open header-fname
+    file-print results-header
+    file-close
+  ]
+  [
+    print (list "Failed to write results header file to " header-fname)
+    stop
+  ]
+  let results-fname (word basename ".csv")
+  let keys []
+  foreach table:keys results [ k1 ->
+    foreach table:keys (table:get results k1) [ k2 ->
+      set keys lput (list k1 k2) keys
+    ] 
+  ] 
+  carefully [
+    file-open results-fname
+    file-print csv:to-row (sentence "tick" (map [k -> join-string k "_"] keys))
+    foreach range ticks [ t ->
+      let line (list t)
+      foreach keys [ k ->
+        let [k1 k2] k
+        set line lput item t (table:get (table:get results k1) k2) line
+      ]
+      file-print csv:to-row line
+    ]
+    file-close
+  ]
+  [
+    print (word "Failed to write results to " results-fname)
+    stop
+  ]
+end
+
+to-report results-header
+  report csv:to-string (list 
+    (list "parameter_name"               "value")
+    (list "output_data_folder"           output-data-folder)
+    (list "market_data_folder"           market-data-folder)
+    (list "spatial_data_folder"          spatial-data-folder) 
+    (list "geography_from_files"         geography-from-files?)
+    (list "region"                       region)
+    (list "scenario"                     scenario)
+    (list "parcels_data"                 parcels-data)
+    (list "LUC_data"                     luc-data)
+    (list "seed_geography_RNG"           seed-geography-rng?)
+    (list "RNG_geography"                rng-geography)
+    (list "random_landscape_method"      random-landscape-method)
+    (list "LUC_aggregation_steps"        luc-aggregation-steps)
+    (list "number_of_farms"              number-of-farms)
+    (list "correlated_landuse"           correlated-landuse?)
+    (list "landuse_aggregation_steps"    landuse-aggregation-steps)
+    (list "seed_setup_RNG"               seed-setup-rng?)
+    (list "RNG_economics"                rng-economics)
+    (list "include_networks"             include-networks?)
+    (list "rel_weight_locals"            rel-weight-locals)
+    (list "rel_weight_catchment"         rel-weight-catchment)
+    (list "sigmoid_slope"                sigmoid-slope)
+    (list "landuse_change_on_succession" landuse-change-on-succession?)
+    (list "prioritise_forestry"          prioritise-forestry?)
+    (list "apply_severity_of_losses"     apply-severity-of-losses?)
+    (list "apply_suitability"            apply-suitability?)
+    (list "bad_years_trigger"            bad-years-trigger)
+    (list "years_to_remember"            years-to-remember)
+  )
+end

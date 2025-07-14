@@ -383,9 +383,9 @@ Year
 
 SWITCH
 10
-10
+50
 190
-43
+83
 reinitialise?
 reinitialise?
 1
@@ -394,9 +394,9 @@ reinitialise?
 
 BUTTON
 10
-50
+90
 100
-83
+123
 reset
 restore-initial-values\n
 NIL
@@ -411,9 +411,9 @@ NIL
 
 BUTTON
 110
-50
+90
 190
-83
+123
 NIL
 setup
 NIL
@@ -428,9 +428,9 @@ NIL
 
 SWITCH
 10
-90
+130
 100
-123
+163
 force?
 force?
 0
@@ -439,9 +439,9 @@ force?
 
 TEXTBOX
 10
-125
+165
 90
-235
+275
 Use force? to make model continue even when stop condition is met
 11
 0.0
@@ -449,28 +449,11 @@ Use force? to make model continue even when stop condition is met
 
 BUTTON
 110
-90
-190
-123
-step
-go
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-110
 130
 190
 163
-step-10
-repeat 10 [go]
+step
+go
 NIL
 1
 T
@@ -486,6 +469,23 @@ BUTTON
 170
 190
 203
+step-10
+repeat 10 [go]
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+110
+210
+190
+243
 NIL
 go
 T
@@ -500,9 +500,9 @@ NIL
 
 SWITCH
 10
-210
+250
 190
-243
+283
 show-events?
 show-events?
 1
@@ -511,9 +511,9 @@ show-events?
 
 TEXTBOX
 10
-245
+285
 190
-275
+315
 Turn off messages to speed things up!
 11
 0.0
@@ -521,9 +521,9 @@ Turn off messages to speed things up!
 
 SWITCH
 10
-280
+320
 190
-313
+353
 show-landuse?
 show-landuse?
 0
@@ -532,9 +532,9 @@ show-landuse?
 
 TEXTBOX
 10
-315
+355
 190
-375
+395
 Colour key (applies to both landuse and farm symbols)\n  Crop: Purple       Dairy: Blue\n  Forestry: Green  SNB: Brown
 11
 0.0
@@ -542,9 +542,9 @@ Colour key (applies to both landuse and farm symbols)\n  Crop: Purple       Dair
 
 SWITCH
 10
-385
+425
 190
-418
+458
 farm-type-colours?
 farm-type-colours?
 0
@@ -553,9 +553,9 @@ farm-type-colours?
 
 TEXTBOX
 10
-420
+460
 190
-440
+480
 Loss-making farms always red
 11
 0.0
@@ -563,9 +563,9 @@ Loss-making farms always red
 
 SWITCH
 10
-445
+485
 190
-478
+518
 show-luc-codes?
 show-luc-codes?
 0
@@ -574,9 +574,9 @@ show-luc-codes?
 
 TEXTBOX
 10
-480
+520
 190
-510
+550
 More intense colours are lower LUC values (better land).
 11
 0.0
@@ -584,28 +584,11 @@ More intense colours are lower LUC values (better land).
 
 BUTTON
 10
-520
-190
-553
-redraw
-redraw
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-10
 560
 190
 593
-toggle-farmers
-ask farmers [ set hidden? not hidden? ]
+redraw
+redraw
 NIL
 1
 T
@@ -621,8 +604,8 @@ BUTTON
 600
 190
 633
-toggle-farms
-ask farms [set hidden? not hidden?]
+toggle-farmers
+ask farmers [ set hidden? not hidden? ]
 NIL
 1
 T
@@ -638,6 +621,23 @@ BUTTON
 640
 190
 673
+toggle-farms
+ask farms [set hidden? not hidden?]
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+10
+680
+190
+713
 toggle-holdings
 ask holdings [set hidden? not hidden?]
 NIL
@@ -652,9 +652,9 @@ NIL
 
 SWITCH
 10
-690
+10
 190
-723
+43
 include-networks?
 include-networks?
 1

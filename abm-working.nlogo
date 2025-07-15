@@ -383,6 +383,17 @@ Year
 
 SWITCH
 10
+10
+190
+43
+include-networks?
+include-networks?
+1
+1
+-1000
+
+SWITCH
+10
 50
 190
 83
@@ -652,17 +663,6 @@ NIL
 
 SWITCH
 10
-10
-190
-43
-include-networks?
-include-networks?
-1
-1
--1000
-
-SWITCH
-10
 730
 190
 763
@@ -841,7 +841,7 @@ landuse-aggregation-steps
 landuse-aggregation-steps
 0
 20
-5.0
+10.0
 1
 1
 NIL
@@ -849,46 +849,24 @@ HORIZONTAL
 
 TEXTBOX
 830
-470
+490
 1010
-488
-Model process RNGs
+508
+Model run RNG
 12
 0.0
 1
 
-SWITCH
-830
-490
-1010
-523
-seed-setup-rng?
-seed-setup-rng?
-0
-1
--1000
-
-INPUTBOX
-830
-530
-920
-590
-rng-economics
-42.0
-1
-0
-Number
-
 SLIDER
 830
-600
+510
 1010
-633
+543
 run-rng-seed
 run-rng-seed
 0
 100
-51.0
+1.0
 1
 1
 NIL
@@ -896,9 +874,9 @@ HORIZONTAL
 
 TEXTBOX
 830
-640
+550
 1010
-658
+568
 0 for non-seeded randomness
 11
 0.0
@@ -906,13 +884,28 @@ TEXTBOX
 
 TEXTBOX
 830
-660
+570
 1010
-710
+620
 Set to any value in experiments, but only small range provided for interactive use
 10
 0.0
 1
+
+SLIDER
+830
+650
+1010
+683
+sigmoid-slope
+sigmoid-slope
+0.01
+20
+10.0
+0.01
+1
+NIL
+HORIZONTAL
 
 TEXTBOX
 830
@@ -931,53 +924,65 @@ OUTPUT
 920
 11
 
-SLIDER
-1040
-50
-1210
-83
-sigmoid-slope
-sigmoid-slope
-0.01
-20
-10.0
-0.01
+INPUTBOX
+1020
+10
+1240
+70
+experiment-name
+scratch
 1
+0
+String
+
+BUTTON
+1250
+10
+1420
+43
+output-results
+output-results
 NIL
-HORIZONTAL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 TEXTBOX
-1215
-54
-1360
-79
-Bigger numbers amplify the impact of nudges
-10
+1250
+45
+1430
+88
+experiment-name should be an existing subfolder of the output folder
+11
 0.0
 1
 
 PLOT
-1040
+1020
 90
-1440
+1420
 220
-Farmer age distribution
-Age
-Count
+Income-costs
+Time
+$ Total
 0.0
 10.0
 0.0
 10.0
 true
-false
+true
 "" ""
 PENS
-"default" 1.0 1 -16777216 true "set-plot-x-range 20 100\nset-plot-pen-interval 5" "histogram [age] of farmers"
 
 PLOT
-1040
+1020
 230
-1440
+1420
 360
 Interventions
 Time
@@ -992,9 +997,9 @@ true
 PENS
 
 PLOT
-1040
+1020
 370
-1440
+1420
 500
 Landuse composition
 Time
@@ -1009,9 +1014,9 @@ true
 PENS
 
 PLOT
-1040
+1020
 510
-1440
+1420
 640
 Environmental metrics
 Time
@@ -1026,9 +1031,9 @@ true
 PENS
 
 SWITCH
-1040
+1020
 650
-1340
+1320
 683
 landuse-change-on-succession?
 landuse-change-on-succession?
@@ -1037,9 +1042,9 @@ landuse-change-on-succession?
 -1000
 
 SWITCH
-1040
+1020
 690
-1240
+1220
 723
 prioritise-forestry?
 prioritise-forestry?
@@ -1048,9 +1053,9 @@ prioritise-forestry?
 -1000
 
 TEXTBOX
-1245
+1225
 694
-1390
+1370
 719
 Off: Consider all landuses for loss-making holdings
 10
@@ -1058,9 +1063,9 @@ Off: Consider all landuses for loss-making holdings
 1
 
 SWITCH
-1040
+1020
 730
-1240
+1220
 763
 apply-severity-of-losses?
 apply-severity-of-losses?
@@ -1069,9 +1074,9 @@ apply-severity-of-losses?
 -1000
 
 TEXTBOX
-1245
+1225
 734
-1390
+1370
 759
 On: Severe losses make farm conversion more likely
 10
@@ -1079,9 +1084,9 @@ On: Severe losses make farm conversion more likely
 1
 
 SWITCH
-1040
+1020
 770
-1240
+1220
 803
 apply-suitability?
 apply-suitability?
@@ -1090,9 +1095,9 @@ apply-suitability?
 -1000
 
 TEXTBOX
-1245
+1225
 774
-1390
+1370
 799
 On: LUC suitability applied to farm change
 10
@@ -1100,9 +1105,9 @@ On: LUC suitability applied to farm change
 1
 
 TEXTBOX
-1040
+1020
 820
-1240
+1220
 838
 --------- NOT YET IN USE ---------
 11
@@ -1110,9 +1115,9 @@ TEXTBOX
 1
 
 SLIDER
-1040
+1020
 840
-1240
+1220
 873
 bad-years-trigger
 bad-years-trigger
@@ -1125,9 +1130,9 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-1245
+1225
 844
-1390
+1370
 869
 Proportion of recent years of losses to trigger conversion 
 10
@@ -1135,9 +1140,9 @@ Proportion of recent years of losses to trigger conversion
 1
 
 SLIDER
-1040
+1020
 880
-1240
+1220
 913
 years-to-remember
 years-to-remember
@@ -1150,30 +1155,13 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-1245
+1225
 884
-1390
+1370
 909
 Length of memory of losses
 10
 0.0
-1
-
-BUTTON
-1041
-10
-1164
-43
-output-results
-output-results
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
 1
 
 @#$#@#$#@

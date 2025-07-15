@@ -9,6 +9,10 @@ to setup-model-plots
   show "Setting up model plots"
   let pen-palette [ black red orange green sky blue violet magenta ]
   setup-extensible-plot 
+    "Income-costs" 
+    (list "Income" "Costs") 
+    table:from-list (map list (list "Income" "Costs") (list black red))
+  setup-extensible-plot 
     "Interventions" 
     mgmt-intervention-types 
     table:from-list (map list mgmt-intervention-types first-n pen-palette (length mgmt-intervention-types))
@@ -35,10 +39,20 @@ to setup-extensible-plot [plotname pen-names colours]
 end
 
 ;; update the model's extensible plots (only)
-to update-model-plots 
+to update-model-plots
+  update-income-costs-plot
   update-interventions-plot
   update-landuse-plot
   update-metrics-plot
+end
+
+;; update the interventions plot
+to update-income-costs-plot
+  set-current-plot "Income-costs"
+  set-current-plot-pen "Income"
+  plot sum [current-income] of farms
+  set-current-plot-pen "Costs"
+  plot sum [current-costs] of farms
 end
 
 ;; update the interventions plot

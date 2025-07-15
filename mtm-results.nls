@@ -4,9 +4,10 @@
 
 to setup-results-tables
   set results table:make
+  table:put results "income_costs"  table:from-list (map list (list "income" "costs") n-values 2 [i -> []]) 
   table:put results "interventions" table:from-list (map list mgmt-intervention-types n-values length mgmt-intervention-types [i -> []]) 
   table:put results "landuse"       table:from-list (map list farm-types              n-values length farm-types [i -> []])
-  table:put results "env-metrics"   table:from-list (map list table:keys env-metrics  n-values length table:keys env-metrics [i -> []])
+  table:put results "env_metrics"   table:from-list (map list table:keys env-metrics  n-values length table:keys env-metrics [i -> []])
 end
 
 to reset-results-tables
@@ -19,9 +20,19 @@ to reset-results-tables
 end
 
 to update-model-results
+  update-income-costs-results
   update-interventions-results
   update-landuse-results
   update-metrics-results
+end
+
+to update-income-costs-results
+  let time-series table:get table:get results "income_costs" "income"
+  set time-series lput sum [current-income] of farms time-series
+  table:put table:get results "income_costs" "income" time-series
+  set time-series table:get table:get results "income_costs" "costs"
+  set time-series lput sum [current-costs] of farms time-series
+  table:put table:get results "income_costs" "costs" time-series
 end
 
 to update-interventions-results
@@ -58,7 +69,7 @@ to-report results-base-filename
     str-replace item 0 split-string item 0 dt-elements "." ":" "-"
     item 1 dt-elements
   ) "-"
-  report (word output-data-folder "/results-" dt)
+  report (word output-data-folder "/" experiment-name "/results-" dt)
 end
 
 to output-results
@@ -117,8 +128,6 @@ to-report results-header
     (list "number_of_farms"              number-of-farms)
     (list "correlated_landuse"           correlated-landuse?)
     (list "landuse_aggregation_steps"    landuse-aggregation-steps)
-    (list "seed_setup_RNG"               seed-setup-rng?)
-    (list "RNG_economics"                rng-economics)
     (list "include_networks"             include-networks?)
     (list "rel_weight_locals"            rel-weight-locals)
     (list "rel_weight_catchment"         rel-weight-catchment)

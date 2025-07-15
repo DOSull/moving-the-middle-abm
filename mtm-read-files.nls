@@ -212,12 +212,8 @@ end
 ;; economic setup procedures
 ;; ----------------------------------------------------------------------------
 to setup-economic-parameters
-  with-local-randomness [
-    ifelse seed-setup-rng?
-    [ random-seed rng-economics ]
-    [ random-seed timer ]
-    read-production-function-parameters
-  ]
+  read-production-function-parameters
+  set prices get-prices join-string (list market-data-folder "prices.csv") pathdir:get-separator
 end
 
 to read-production-function-parameters
@@ -236,8 +232,6 @@ to read-production-function-parameters
     table:put env-metric-means metric matrix:from-row-list map [t -> table:values t] table:values item 0 metric-vals
     table:put env-metric-sds   metric matrix:from-row-list map [t -> table:values t] table:values item 1 metric-vals
   ]
-    
-  set prices get-prices join-string (list market-data-folder "prices.csv") pathdir:get-separator
 end
 
 ;; return mean and sd tables for a parameter from a file

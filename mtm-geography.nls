@@ -260,11 +260,9 @@ to setup-farmers
     ;; and then delete it
     ask links [ die ]
   ]
-  if include-networks? [
-    ask farmers [ 
-      make-farmer-local-links
-      make-farmer-catchment-links 
-    ]
+  ask farmers [ 
+    make-farmer-local-links
+    make-farmer-catchment-links 
   ]
   ask farmers [
     ask the-land [ set landuse [farm-type] of myself ]

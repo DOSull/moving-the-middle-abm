@@ -11,3 +11,4 @@ data/spatial/*
 *.tif
 *.gpkg
 .Rproj.user
+data/output/scratch/*

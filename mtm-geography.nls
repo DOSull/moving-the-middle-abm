@@ -53,8 +53,8 @@ to setup-world-dimensions
   ]
   let x-extent ncols * raster-pixel-resolution
   let y-extent nrows * raster-pixel-resolution
-  let x-scale x-extent / max-dimension ;; max-dimension is in the UI
-  let y-scale y-extent / max-dimension
+  let x-scale x-extent / min (list max-dimension ncols) ;; max-dimension is in the UI
+  let y-scale y-extent / min (list max-dimension nrows)
   let sf max (list x-scale y-scale)
   let x (list 0 (round (x-extent / sf) - 1))
   let y (list 0 (round (y-extent / sf) - 1))
@@ -64,7 +64,6 @@ to setup-world-dimensions
   resize-world item 0 x item 1 x item 0 y item 1 y
   print (word "Setting model dimensions to " x " by " y )
   set-patch-size cell-size * max-dimension / max (list world-width world-height)
-  ask patches [ set pcolor grey ]
 end
 
 ;; invoked at setup, delegates the initialisation of the landscape to either a random process
@@ -93,6 +92,7 @@ to setup-geography
     ask farm-land [set holding-id region-id]
     
     ;; now set up patch, farmer, farm, holding relations
+    ;; this also involves setting up the landuse
     setup-farmers
     setup-farms
     setup-holdings
@@ -135,9 +135,16 @@ end
 to setup-geography-from-files
   carefully [
     print (word "Reading LUC data from " join-list (list spatial-data-folder "luc.asc") pathdir:get-separator)
-    set luc-data gis:load-dataset join-list (list spatial-data-folder "luc.asc")     pathdir:get-separator
+    set luc-data gis:load-dataset join-list (list spatial-data-folder "luc.asc") pathdir:get-separator
+    
+    print (word "Reading landuse data from " join-list (list spatial-data-folder "landuse.asc") pathdir:get-separator)
+    set landuse-data gis:load-dataset join-list (list spatial-data-folder "landuse.asc") pathdir:get-separator
+    
     print (word "Reading farm data from " join-list (list spatial-data-folder "parcels.shp") pathdir:get-separator)
     set parcels-data gis:load-dataset join-list (list spatial-data-folder "parcels.shp") pathdir:get-separator
+
+    print (word "Reading farms raster from " join-list (list spatial-data-folder "parcels_r.asc") pathdir:get-separator)
+    set parcels-raster gis:load-dataset join-list (list spatial-data-folder "parcels_r.asc") pathdir:get-separator
   ]
   [
     user-message "ERROR: problem reading spatial data"
@@ -172,6 +179,14 @@ to setup-geography-from-files
   set farm-land farm-land with [not member? self more-not-farm-land]
   ;; temp-id is numeric in the random initialisation so make it numeric here to match
   ask farm-land [ set temp-id read-from-string temp-id ]
+
+;; Alternative setup from aligned raster (possibly)
+;; gis:apply-raster parcels-raster temp-id
+;; let more-not-farm-land farm-land with [is-nan? temp-id]
+;; ask more-not-farm-land [ set pcolor bgcolor ]
+;; set not-farm-land (patch-set not-farm-land more-not-farm-land)
+;: ask not-farm-land [ set the-owner nobody ]
+;: set farm-land farm-land with [not member? self more-not-farm-land]
 end
 
 ;; random process uses random farm centres from sequential spatial inhibition
@@ -226,6 +241,17 @@ end
 
 ;; setup farmers using the farm-id and holding-id variables in the patches
 to setup-farmers 
+  setup-farmers-land
+  ifelse geography-from-files?
+  [ setup-landuse-from-gis-data ]
+  [ setup-random-landuse ]
+  ask farmers [ 
+    make-farmer-local-links
+    make-farmer-catchment-links 
+  ]
+end
+
+to setup-farmers-land
   let ids remove-duplicates [farm-id] of farm-land
   let psets map [id -> farm-land with [farm-id = id]] ids
   (foreach psets ids [ [pset id] ->
@@ -239,10 +265,41 @@ to setup-farmers
       ]
       ask pset [
         set the-owner this-farmer
-        set landuse [farm-type] of this-farmer
       ]
     ]
   ])
+end
+  
+to setup-landuse-from-gis-data
+  gis:apply-raster landuse-data landuse
+  ask farm-land [
+    ifelse landuse = 1000 
+    [ set landuse "Not-farmed" ]
+    [ set landuse item landuse farm-types ]
+  ]
+  ask farmers [
+    let fts sort remove-duplicates [landuse] of the-land
+    ifelse length fts = 1 [
+      set farm-type item 0 fts
+    ]
+    [
+      let ft-counts map [lu -> count the-land with [landuse = lu]] fts
+      let max-count max ft-counts
+      let idx position max-count ft-counts
+      set farm-type item idx fts
+    ]
+    ask the-land [ set landuse [farm-type] of myself ]
+  ]
+  ask farmers with [farm-type = "Not-farmed"] [ die ]
+  let not-farmed-colour table:get colour-key "not-farmed"
+  ask patches with [landuse = "Not-farmed"] [ set pcolor not-farmed-colour ]
+  set farm-land farm-land with [landuse != "Not-farmed"]
+  set not-farm-land patches with [not member? self farm-land]
+end
+
+to setup-random-landuse
+  ask farm-land [ set landuse one-of farm-types ]
+  ask farmers [ set farm-type [landuse] of one-of the-land ]
   ;; for correlated landuse we make a spatial network for this purpose only
   if correlated-landuse? [
     ask farmers [ 
@@ -260,13 +317,7 @@ to setup-farmers
     ;; and then delete it
     ask links [ die ]
   ]
-  ask farmers [ 
-    make-farmer-local-links
-    make-farmer-catchment-links 
-  ]
-  ask farmers [
-    ask the-land [ set landuse [farm-type] of myself ]
-  ]
+  ask farmers [ ask the-land [ set landuse [farm-type] of myself ] ]
 end
 
 ;; setup farms using the farmer information
@@ -338,9 +389,12 @@ end
 ;; because patches that share a value of that variable but are not orthogonally 
 ;; connected are considered as distinct regions.
 to label-connected-regions [patch-sets region-id-reporter n4?]
-  let first-id 0
-  foreach patch-sets [ ps ->
-    set first-id label-connected-region ps region-id-reporter first-id n4?
+  with-local-randomness [
+    random-seed 0
+    let first-id 0
+    foreach patch-sets [ ps ->
+      set first-id label-connected-region ps region-id-reporter first-id n4?
+    ]
   ]
 end
 
@@ -349,25 +403,28 @@ end
 ;; continue on to label more patchsets starting from the next value. Implementation 
 ;; uses the nw:weak-component-clusters reporter
 to-report label-connected-region [pset region-id-reporter id0 n4?]
-  ask pset [ sprout-nodes 1 ]
-  ask nodes [
-    ifelse n4? [
-      ask (nodes-on neighbors4) with [x1-var-matches-x2-var? self myself region-id-reporter] [
-        create-link-with myself
+  with-local-randomness [
+    random-seed 0
+    ask pset [ sprout-nodes 1 ]
+    ask nodes [
+      ifelse n4? [
+        ask (nodes-on neighbors4) with [x1-var-matches-x2-var? self myself region-id-reporter] [
+          create-link-with myself
+        ]
+      ]
+      [
+        ask (nodes-on neighbors) with [x1-var-matches-x2-var? self myself region-id-reporter] [
+          create-link-with myself
+        ]
       ]
     ]
-    [
-      ask (nodes-on neighbors) with [x1-var-matches-x2-var? self myself region-id-reporter] [
-        create-link-with myself
-      ]
+    nw:set-context nodes links
+    foreach nw:weak-component-clusters [ c ->
+      ask c [ set region-id id0 ]
+      set id0 id0 + 1
     ]
+    ask nodes [die]
   ]
-  nw:set-context nodes links
-  foreach nw:weak-component-clusters [ c ->
-    ask c [ set region-id id0 ]
-    set id0 id0 + 1
-  ]
-  ask nodes [die]
   report id0
 end
 

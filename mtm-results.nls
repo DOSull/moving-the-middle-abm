@@ -56,9 +56,9 @@ to update-metrics-results
   let e-metrics sort table:keys env-metrics
   foreach range length e-metrics [ i ->
     let metric item i e-metrics
-    let time-series table:get table:get results "env-metrics" metric
+    let time-series table:get table:get results "env_metrics" metric
     set time-series lput (count farms with [in-breach? item i e-metrics] / count farms) time-series
-    table:put table:get results "env-metrics" metric time-series
+    table:put table:get results "env_metrics" metric time-series
   ]
 end
 

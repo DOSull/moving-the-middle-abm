@@ -1,10 +1,10 @@
 <PAMDataset>
   <PAMRasterBand band="1">
-    <Description>landuse-hires</Description>
+    <Description>STR_ID</Description>
     <Metadata>
-      <MDI key="STATISTICS_MAXIMUM">1000</MDI>
+      <MDI key="STATISTICS_MAXIMUM">1270</MDI>
       <MDI key="STATISTICS_MEAN">-9999</MDI>
-      <MDI key="STATISTICS_MINIMUM">0</MDI>
+      <MDI key="STATISTICS_MINIMUM">3</MDI>
       <MDI key="STATISTICS_STDDEV">-9999</MDI>
     </Metadata>
   </PAMRasterBand>

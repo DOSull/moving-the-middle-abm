@@ -43,7 +43,9 @@ globals [
                           ;; NA value. In time-honoured GIS tradition it will be set to -999
 
   parcels-data            ;; GIS functionality depends on reading the data into an object
-  luc-data                ;; then acccessing it again later, so these do that for parcels and LUC
+  luc-data                ;; then acccessing it again later, so these do that for parcels, LUC,
+  landuse-data            ;; and landuse
+  parcels-raster
 
   farm-land               ;; patches that are on farms
   not-farm-land           ;; and patches that are not - esp. important for GIS data
@@ -357,8 +359,8 @@ end
 GRAPHICS-WINDOW
 201
 10
-818
-919
+675
+918
 -1
 -1
 3.0
@@ -372,9 +374,9 @@ GRAPHICS-WINDOW
 0
 1
 0
-202
+155
 0
-299
+300
 1
 1
 1
@@ -720,7 +722,7 @@ SWITCH
 43
 geography-from-files?
 geography-from-files?
-1
+0
 1
 -1000
 
@@ -733,8 +735,8 @@ max-dimension
 max-dimension
 100
 600
-300.0
-10
+301.0
+1
 1
 NIL
 HORIZONTAL
@@ -841,7 +843,7 @@ landuse-aggregation-steps
 landuse-aggregation-steps
 0
 20
-10.0
+5.0
 1
 1
 NIL
@@ -866,7 +868,7 @@ run-rng-seed
 run-rng-seed
 0
 100
-1.0
+42.0
 1
 1
 NIL

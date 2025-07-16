@@ -99,9 +99,10 @@ to setup-colours
   table:put colour-key "profit" grey - 3
   table:put colour-key "loss" [255 0 0 180]
   table:put colour-key "label" violet - 2
-  table:put colour-key "background" grey
+  table:put colour-key "background" grey - 1
   table:put colour-key "local-link" red
   table:put colour-key "catchment-link" blue
+  table:put colour-key "not-farmed" grey
 end
 
 

@@ -42,6 +42,9 @@ globals [
   na-value                ;; matrices can only store numbers, unlike tables, so we need a sentinel
                           ;; NA value. In time-honoured GIS tradition it will be set to -999
 
+  geography-seed
+  run-seed
+
   parcels-data            ;; GIS functionality depends on reading the data into an object
   luc-data                ;; then acccessing it again later, so these do that for parcels, LUC,
   landuse-data            ;; and landuse
@@ -130,6 +133,9 @@ to setup
   set na-value -999
   set show-labels? false
 
+  set geography-seed ifelse-value user-geography-seed? [geography-rng-seed] [new-seed]
+  set run-seed ifelse-value user-run-seed? [run-rng-seed] [new-seed]
+
   if reinitialise? or geography-from-files? [
     carefully [
       if geography-from-files? [
@@ -144,7 +150,6 @@ to setup
       ;; if we figure out a use for dispositions (Kaine et al. argue against them!) then these
       ;; will likely be read in from files too, but for now:
       set dispositions [ "for-profit" "pro-social" "pro-environmental" ]
-
       set reinitialise? false
     ]
     [
@@ -154,7 +159,6 @@ to setup
   ]
   setup-colours ;; must come AFTER reading farmer parameters since it depends on farm types
   ask patches [ set pcolor table:get colour-key "background" ]
-
   set show-local-links? include-networks?
 
   carefully [
@@ -165,16 +169,14 @@ to setup
   [
     user-message "Have you initialised the model correctly? Set the initialised? switch On and try setup again ensuring you pick a folder with a complete set of initialisation .csv files."
   ]
-  setup-model-plots           ;; mtm-plots.nls
-  setup-results-tables
+  setup-results-tables        ;; mtm-results.nls
   reset-ticks
-  if run-rng-seed != 0 [ random-seed run-rng-seed ]
+  random-seed 0 ;; make the burn-in tick identical regardless of seed settings
   go ;; this initialises the farms with current net profit and some interventions
   store-initial-values   ;; store
+  setup-model-plots      ;; mtm-plots.nls
   restore-initial-values ;; restore to that resetting is exactly the same
-;  ;; because set up involves a full go step, we set the seed again to
-;  ;; allow repeatability if model is restored to that initial state
-;  if run-rng-seed != 0 [ random-seed run-rng-seed ]
+;  restore-initial-values ;; restore to that resetting is exactly the same
 end
 
 ;; core model loop
@@ -238,7 +240,7 @@ to go
     ask farms [redraw-farm]
     ask holdings [redraw-holding]
     if ticks > 0 [
-      update-model-plots
+      update-model-plots true
     ]
     update-model-results
     tick
@@ -329,12 +331,17 @@ to restore-initial-values
     set my-interventions matrix:copy my-interventions-0
   ]
   redraw-farms-and-holdings
-  update-model-plots
+  update-model-plots false
   update-model-results
   reset-results-tables
   reset-ticks
   tick
-  if run-rng-seed != 0 [ random-seed run-rng-seed ]
+  random-seed run-seed
+end
+
+to reset-rng
+  set run-seed ifelse-value user-run-seed? [run-rng-seed] [new-seed]
+  random-seed run-seed
 end
 
 ;; The MIT License (MIT)
@@ -363,7 +370,7 @@ end
 GRAPHICS-WINDOW
 201
 10
-818
+677
 922
 -1
 -1
@@ -378,7 +385,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-202
+155
 0
 300
 1
@@ -443,25 +450,21 @@ NIL
 NIL
 1
 
-SWITCH
+BUTTON
 10
 130
 100
 163
-force?
-force?
-0
+NIL
+reset-rng
+NIL
 1
--1000
-
-TEXTBOX
-10
-165
-90
-275
-Use force? to make model continue even when stop condition is met
-11
-0.0
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
 1
 
 BUTTON
@@ -481,6 +484,17 @@ NIL
 NIL
 1
 
+SWITCH
+10
+170
+100
+203
+force?
+force?
+0
+1
+-1000
+
 BUTTON
 110
 170
@@ -496,6 +510,16 @@ NIL
 NIL
 NIL
 NIL
+1
+
+TEXTBOX
+10
+205
+95
+235
+Go even if stop condition met
+11
+0.0
 1
 
 BUTTON
@@ -726,7 +750,7 @@ SWITCH
 43
 geography-from-files?
 geography-from-files?
-1
+0
 1
 -1000
 
@@ -757,19 +781,52 @@ Longer dimension of map will be this many patches
 
 TEXTBOX
 830
-130
+120
 1010
-148
+138
 Random landscape
 12
 0.0
 1
 
+INPUTBOX
+830
+140
+1010
+200
+geography-rng-seed
+3.0
+1
+0
+Number
+
+SWITCH
+830
+205
+1010
+238
+user-geography-seed?
+user-geography-seed?
+0
+1
+-1000
+
+MONITOR
+830
+245
+1010
+290
+NIL
+geography-seed
+0
+1
+11
+
 CHOOSER
 830
-150
+300
 1010
-195
+345
 random-landscape-method
 random-landscape-method
 "voter-model" "averaging"
@@ -777,9 +834,9 @@ random-landscape-method
 
 SLIDER
 830
-200
+350
 1010
-233
+383
 luc-aggregation-steps
 luc-aggregation-steps
 0
@@ -792,9 +849,9 @@ HORIZONTAL
 
 SLIDER
 830
-240
+390
 1010
-273
+423
 number-of-farms
 number-of-farms
 10
@@ -807,31 +864,9 @@ HORIZONTAL
 
 SWITCH
 830
-280
+430
 1010
-313
-seed-geography-rng?
-seed-geography-rng?
-0
-1
--1000
-
-INPUTBOX
-830
-320
-920
-380
-rng-geography
-3.0
-1
-0
-Number
-
-SWITCH
-830
-390
-1010
-423
+463
 correlated-landuse?
 correlated-landuse?
 0
@@ -840,9 +875,9 @@ correlated-landuse?
 
 SLIDER
 830
-430
+470
 1010
-463
+503
 landuse-aggregation-steps
 landuse-aggregation-steps
 0
@@ -855,54 +890,52 @@ HORIZONTAL
 
 TEXTBOX
 830
-490
+510
 1010
-508
+528
 Model run RNG
 12
 0.0
 1
 
-SLIDER
+INPUTBOX
 830
-510
+530
 1010
-543
+590
 run-rng-seed
-run-rng-seed
-0
-100
 42.0
 1
+0
+Number
+
+SWITCH
+830
+595
+1010
+628
+user-run-seed?
+user-run-seed?
+0
 1
+-1000
+
+MONITOR
+830
+635
+1010
+680
 NIL
-HORIZONTAL
-
-TEXTBOX
-830
-550
-1010
-568
-0 for non-seeded randomness
+run-seed
+0
+1
 11
-0.0
-1
-
-TEXTBOX
-830
-570
-1010
-620
-Set to any value in experiments, but only small range provided for interactive use
-10
-0.0
-1
 
 SLIDER
 830
-650
+690
 1010
-683
+723
 sigmoid-slope
 sigmoid-slope
 0.01
@@ -915,9 +948,9 @@ HORIZONTAL
 
 TEXTBOX
 830
-720
+740
 1010
-738
+758
 Interventions (for information)
 12
 0.0
@@ -925,7 +958,7 @@ Interventions (for information)
 
 OUTPUT
 830
-740
+760
 1010
 920
 11

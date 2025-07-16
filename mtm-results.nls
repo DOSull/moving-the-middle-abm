@@ -113,6 +113,8 @@ end
 to-report results-header
   report csv:to-string (list 
     (list "parameter_name"               "value")
+    (list "run-seed"                     run-seed)
+    (list "geography-seed"               geography-seed)
     (list "output_data_folder"           output-data-folder)
     (list "market_data_folder"           market-data-folder)
     (list "spatial_data_folder"          spatial-data-folder) 
@@ -121,8 +123,6 @@ to-report results-header
     (list "scenario"                     scenario)
     (list "parcels_data"                 parcels-data)
     (list "LUC_data"                     luc-data)
-    (list "seed_geography_RNG"           seed-geography-rng?)
-    (list "RNG_geography"                rng-geography)
     (list "random_landscape_method"      random-landscape-method)
     (list "LUC_aggregation_steps"        luc-aggregation-steps)
     (list "number_of_farms"              number-of-farms)

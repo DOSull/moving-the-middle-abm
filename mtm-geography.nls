@@ -58,9 +58,13 @@ to setup-world-dimensions
   let sf max (list x-scale y-scale)
   let x (list 0 (round (x-extent / sf) - 1))
   let y (list 0 (round (y-extent / sf) - 1))
-  print join-string (list "Setting world dimensions:" ncols nrows "\n"
-                          "                cellsize:" raster-pixel-resolution "extents:" x-extent y-extent "\n"
-                          "                  scales:" x-scale y-scale sf "NetLogo window:" x y) " "
+  print join-string (list 
+    join-string (list "World dimensions:" ncols nrows) " "
+    join-string (list "        cellsize:" raster-pixel-resolution) " "
+    join-string (list "         extents:" x-extent y-extent) " "
+    join-string (list "          scales:" x-scale y-scale sf) " "
+    join-string (list "  NetLogo window:" x y) " "
+  ) "\n"
   resize-world item 0 x item 1 x item 0 y item 1 y
   print (word "Setting model dimensions to " x " by " y )
   set-patch-size cell-size * max-dimension / max (list world-width world-height)
@@ -69,36 +73,30 @@ end
 ;; invoked at setup, delegates the initialisation of the landscape to either a random process
 ;; or reading in from geospatial data files; other steps are the same for either method
 to setup-geography
-  ;; have to do this first for setup
   read-farm-type-suitabilities-from-file join-string (list market-data-folder "suitabilities.csv") pathdir:get-separator
-  with-local-randomness [
+  ;; this repetition of code-blocks seems necessary to control random elements
+  ;; that affect how random seed controls initialisation from GIS data
+  ifelse geography-from-files? [ 
     random-seed 0
-    ifelse geography-from-files? 
-    [ setup-geography-from-files ]
-    [ setup-random-geography ]
-    ;; both the above will return patches tagged with temp-id which we use to determine farms
-    ;; first, find all the connected sets of patches based on temp-id
-    label-connected-regions (list farm-land) [x -> [temp-id] of x] true
-    ;; after labelling sequential farm id is in region-id patch variable so apply it to farm-id
-    ask farm-land [set farm-id region-id]
-    ;; remove farms of one pixel
-    merge-singletons farm-land [x -> [farm-id] of x] [[x y] -> ask x [set farm-id [farm-id] of y]]
-    
-    ;; now label sub-farm holdings by luc-code - this could be based on something else
-    ;; note that here we send each farm as a separate patch-set 
-    let psets map [id -> farm-land with [farm-id = id]] remove-duplicates [farm-id] of farm-land
-    label-connected-regions psets [p -> [luc-code] of p] false
-    ;; after labelling a sequential holding-id is in the region-id of variables so apply it
-    ask farm-land [set holding-id region-id]
-    
-    ;; now set up patch, farmer, farm, holding relations
-    ;; this also involves setting up the landuse
-    setup-farmers
+    setup-geography-from-files 
+    setup-farm-boundaries
+    setup-farmers-land
+    setup-landuse-from-gis-data
+    setup-farmer-networks
     setup-farms
     setup-holdings
-
-    colour-all-patches true
   ]
+  [ 
+    random-seed geography-seed
+    setup-random-geography 
+    setup-farm-boundaries
+    setup-farmers-land
+    setup-random-landuse
+    setup-farmer-networks
+    setup-farms
+    setup-holdings
+  ]
+  colour-all-patches true
 end
 
 to read-farm-type-suitabilities-from-file [file]
@@ -134,10 +132,10 @@ end
 ;; set things up from supplied LUC and parcels geospatial datasets
 to setup-geography-from-files
   carefully [
-    print (word "Reading LUC data from " join-list (list spatial-data-folder "luc-hires.asc") pathdir:get-separator)
+    print (word "Reading LUC data from " join-list (list spatial-data-folder "luc.asc") pathdir:get-separator)
     set luc-data gis:load-dataset join-list (list spatial-data-folder "luc.asc") pathdir:get-separator
     
-    print (word "Reading landuse data from " join-list (list spatial-data-folder "landuse-hires.asc") pathdir:get-separator)
+    print (word "Reading landuse data from " join-list (list spatial-data-folder "landuse.asc") pathdir:get-separator)
     set landuse-data gis:load-dataset join-list (list spatial-data-folder "landuse.asc") pathdir:get-separator
     
     print (word "Reading farm data from " join-list (list spatial-data-folder "parcels.shp") pathdir:get-separator)
@@ -192,9 +190,6 @@ end
 ;; random process uses random farm centres from sequential spatial inhibition
 ;; and either averaging or a voter model for LUC codes
 to setup-random-geography
-  ifelse seed-geography-rng?
-  [ random-seed rng-geography ]
-  [ random-seed random timer ]
   set farm-land patch-set patches
   set not-farm-land patch-set nobody
   ;; Use disposable node agents to make voronoi polygon farms
@@ -239,18 +234,25 @@ to setup-random-luc-codes
   display
 end
 
-;; setup farmers using the farm-id and holding-id variables in the patches
-to setup-farmers 
-  setup-farmers-land
-  ifelse geography-from-files?
-  [ setup-landuse-from-gis-data ]
-  [ setup-random-landuse ]
-  ask farmers [ 
-    make-farmer-local-links
-    make-farmer-catchment-links 
+to setup-farm-boundaries
+  with-local-randomness [
+    ;; both the above will return patches tagged with temp-id which we use to determine farms
+    ;; first, find all the connected sets of patches based on temp-id
+    label-connected-regions (list farm-land) [x -> [temp-id] of x] true
+    ;; after labelling sequential farm id is in region-id patch variable so apply it to farm-id
+    ask farm-land [set farm-id region-id]
+    ;; remove farms of one pixel
+    merge-singletons farm-land [x -> [farm-id] of x] [[x y] -> ask x [set farm-id [farm-id] of y]]
+    
+    ;; now label sub-farm holdings by luc-code - this could be based on something else
+    ;; note that here we send each farm as a separate patch-set 
+    let psets map [id -> farm-land with [farm-id = id]] remove-duplicates [farm-id] of farm-land
+    label-connected-regions psets [p -> [luc-code] of p] false
+    ;; after labelling a sequential holding-id is in the region-id of variables so apply it
+    ask farm-land [set holding-id region-id]
   ]
 end
-
+  
 to setup-farmers-land
   let ids remove-duplicates [farm-id] of farm-land
   let psets map [id -> farm-land with [farm-id = id]] ids
@@ -271,31 +273,28 @@ to setup-farmers-land
 end
   
 to setup-landuse-from-gis-data
-  with-local-randomness [
-    random-seed 0
-    gis:apply-raster landuse-data landuse
-    ask farm-land [
-      ifelse landuse = 1000 
-      [ set landuse "Not-farmed" ]
-      [ set landuse item landuse farm-types ]
-    ]
-    ask farmers [
-      let fts sort remove-duplicates [landuse] of the-land
-      ifelse length fts = 1 
-      [ set farm-type item 0 fts ]
-      [ 
-        let ft-counts map [lu -> count the-land with [landuse = lu]] fts
-        let idx position (max ft-counts) ft-counts
-        set farm-type item idx fts
-      ]
-      ask the-land [ set landuse [farm-type] of myself ]
-    ]
-    ask farmers with [farm-type = "Not-farmed"] [ die ]
-    let not-farmed-colour table:get colour-key "not-farmed"
-    ask patches with [landuse = "Not-farmed"] [ set pcolor not-farmed-colour ]
-    set farm-land farm-land with [landuse != "Not-farmed"]
-    set not-farm-land patches with [not member? self farm-land]
+  gis:apply-raster landuse-data landuse
+  ask farm-land [
+    ifelse landuse = 1000 
+    [ set landuse "Not-farmed" ]
+    [ set landuse item landuse farm-types ]
   ]
+  ask farmers [
+    let fts sort remove-duplicates [landuse] of the-land
+    ifelse length fts = 1 
+    [ set farm-type item 0 fts ]
+    [ 
+      let ft-counts map [lu -> count the-land with [landuse = lu]] fts
+      let idx position (max ft-counts) ft-counts
+      set farm-type item idx fts
+    ]
+    ask the-land [ set landuse [farm-type] of myself ]
+  ]
+  ask farmers with [farm-type = "Not-farmed"] [ die ]
+  let not-farmed-colour table:get colour-key "not-farmed"
+  ask patches with [landuse = "Not-farmed"] [ set pcolor not-farmed-colour ]
+  set farm-land farm-land with [landuse != "Not-farmed"]
+  set not-farm-land patches with [not member? self farm-land]
 end
 
 to setup-random-landuse
@@ -319,6 +318,13 @@ to setup-random-landuse
     ask links [ die ]
   ]
   ask farmers [ ask the-land [ set landuse [farm-type] of myself ] ]
+end
+
+to setup-farmer-networks
+  ask farmers [ 
+    make-farmer-local-links
+    make-farmer-catchment-links 
+  ]
 end
 
 ;; setup farms using the farmer information
@@ -360,10 +366,11 @@ end
 to-report approximate-centroid [poly]
   let centroid nobody
   with-local-randomness [
+    random-seed 0
     let mean-x mean [pxcor] of poly
     let mean-y mean [pycor] of poly
     ;; make sure it's actually a patch in the set
-    set centroid one-of poly with-min [distancexy mean-x mean-y]
+    set centroid min-one-of poly [distancexy mean-x mean-y]
   ]
   report centroid
 end
@@ -429,26 +436,28 @@ end
 ;; var-getter is an anonymous reporter like   [p -> [farm-id] of p]
 ;; var-matcher is an anonymous procedure like [[x y] -> ask x [set farm-id [farm-id] of y]]
 to merge-singletons [pset var-getter var-matcher]
-  let singletons get-singletons pset var-getter
-  while [any? singletons] [
-    ifelse count pset = count singletons [
-      ask singletons [
-        let p one-of singletons
-        let others [ other singletons ] of p
-        foreach sort others [ q ->
-          set-x1-var-to-x2-var p q var-matcher
+  with-local-randomness [
+    let singletons get-singletons pset var-getter
+    while [any? singletons] [
+      ifelse count pset = count singletons [
+        ask singletons [
+          let p one-of singletons
+          let others [ other singletons ] of p
+          foreach sort others [ q ->
+            set-x1-var-to-x2-var p q var-matcher
+          ]
         ]
       ]
-    ]
-    [
-      ask singletons [
-        let non-singleton-neighbours neighbors4 with [member? self pset and not member? self singletons]
-        if any? non-singleton-neighbours [
-          set-x1-var-to-x2-var self one-of non-singleton-neighbours var-matcher
+      [
+        ask singletons [
+          let non-singleton-neighbours neighbors4 with [member? self pset and not member? self singletons]
+          if any? non-singleton-neighbours [
+            set-x1-var-to-x2-var self one-of non-singleton-neighbours var-matcher
+          ]
         ]
       ]
+      set singletons get-singletons pset var-getter
     ]
-    set singletons get-singletons pset var-getter
   ]
 end
 

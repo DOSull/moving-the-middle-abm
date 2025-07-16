@@ -237,7 +237,9 @@ to go
     ]
     ask farms [redraw-farm]
     ask holdings [redraw-holding]
-    update-model-plots
+    if ticks > 0 [
+      update-model-plots
+    ]
     update-model-results
     tick
   ]
@@ -327,6 +329,8 @@ to restore-initial-values
     set my-interventions matrix:copy my-interventions-0
   ]
   redraw-farms-and-holdings
+  update-model-plots
+  update-model-results
   reset-results-tables
   reset-ticks
   tick
@@ -359,8 +363,8 @@ end
 GRAPHICS-WINDOW
 201
 10
-820
-925
+818
+922
 -1
 -1
 3.0

@@ -167,14 +167,14 @@ to setup
   ]
   setup-model-plots           ;; mtm-plots.nls
   setup-results-tables
-  redraw                      ;; mtm-render.nls
   reset-ticks
   if run-rng-seed != 0 [ random-seed run-rng-seed ]
   go ;; this initialises the farms with current net profit and some interventions
-  store-initial-values
-  ;; because set up involves a full go step, we set the seed again to
-  ;; allow repeatability if model is restored to that initial state
-  if run-rng-seed != 0 [ random-seed run-rng-seed ]
+  store-initial-values   ;; store
+  restore-initial-values ;; restore to that resetting is exactly the same
+;  ;; because set up involves a full go step, we set the seed again to
+;  ;; allow repeatability if model is restored to that initial state
+;  if run-rng-seed != 0 [ random-seed run-rng-seed ]
 end
 
 ;; core model loop
@@ -359,8 +359,8 @@ end
 GRAPHICS-WINDOW
 201
 10
-675
-918
+820
+925
 -1
 -1
 3.0
@@ -374,7 +374,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-155
+202
 0
 300
 1
@@ -722,7 +722,7 @@ SWITCH
 43
 geography-from-files?
 geography-from-files?
-0
+1
 1
 -1000
 
@@ -818,7 +818,7 @@ INPUTBOX
 920
 380
 rng-geography
-2.0
+3.0
 1
 0
 Number

@@ -372,7 +372,7 @@ end
 GRAPHICS-WINDOW
 201
 10
-818
+677
 922
 -1
 -1
@@ -387,7 +387,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-202
+155
 0
 300
 1
@@ -752,7 +752,7 @@ SWITCH
 43
 geography-from-files?
 geography-from-files?
-1
+0
 1
 -1000
 
@@ -906,7 +906,7 @@ INPUTBOX
 1010
 590
 run-rng-seed
-54.0
+55.0
 1
 0
 Number
@@ -1568,6 +1568,109 @@ NetLogo 6.4.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
+<experiments>
+  <experiment name="experiment" repetitions="1" sequentialRunOrder="false" runMetricsEveryStep="true">
+    <preExperiment>setup</preExperiment>
+    <go>let rng-seeds range 10
+foreach rng-seeds [ s -&gt;
+  set run-rng-seed s
+  restore-initial-values
+  repeat 10 [ go ]
+  output-results
+]
+stop</go>
+    <enumeratedValueSet variable="apply-severity-of-losses?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="rel-weight-locals">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prioritise-forestry?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-catchment-links?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-landuse?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="rel-weight-catchment">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reinitialise?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-farms">
+      <value value="250"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="correlated-landuse?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="random-landscape-method">
+      <value value="&quot;averaging&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="luc-aggregation-steps">
+      <value value="90"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="sigmoid-slope">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="force?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="apply-suitability?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="experiment-name">
+      <value value="&quot;scratch&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="run-rng-seed">
+      <value value="42"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-local-links?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="farm-type-colours?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-dimension">
+      <value value="301"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="landuse-change-on-succession?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="include-networks?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bad-years-trigger">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="user-run-seed?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="years-to-remember">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-luc-codes?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="geography-from-files?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="user-geography-seed?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="geography-rng-seed">
+      <value value="1553817984"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="landuse-aggregation-steps">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-events?">
+      <value value="false"/>
+    </enumeratedValueSet>
+  </experiment>
+</experiments>
 @#$#@#$#@
 @#$#@#$#@
 default

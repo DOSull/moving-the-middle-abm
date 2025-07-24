@@ -336,7 +336,9 @@ to restore-initial-values
   reset-results-tables
   reset-ticks
   tick
-  random-seed run-seed
+  reset-rng
+;  set run-seed ifelse-value user-run-seed? [run-rng-seed] [new-seed]
+;  random-seed run-seed
 end
 
 to reset-rng
@@ -370,7 +372,7 @@ end
 GRAPHICS-WINDOW
 201
 10
-677
+818
 922
 -1
 -1
@@ -385,7 +387,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-155
+202
 0
 300
 1
@@ -750,7 +752,7 @@ SWITCH
 43
 geography-from-files?
 geography-from-files?
-0
+1
 1
 -1000
 
@@ -795,7 +797,7 @@ INPUTBOX
 1010
 200
 geography-rng-seed
-3.0
+1.553817984E9
 1
 0
 Number
@@ -904,7 +906,7 @@ INPUTBOX
 1010
 590
 run-rng-seed
-42.0
+54.0
 1
 0
 Number
@@ -916,7 +918,7 @@ SWITCH
 628
 user-run-seed?
 user-run-seed?
-0
+1
 1
 -1000
 

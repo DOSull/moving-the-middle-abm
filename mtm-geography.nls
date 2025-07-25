@@ -209,27 +209,24 @@ to setup-random-geography
   setup-random-luc-codes
 end
 
-;; use a either spatial averaging or a voter model to set up LUC codes
+;; setup LUC codes using spatial averaging
 to setup-random-luc-codes
   set farm-land patches
-  ifelse random-landscape-method = "averaging" [
-    ;; averaging method
-    ask patches [ set luc-code random-normal 0 1 ]
-    repeat luc-aggregation-steps [ diffuse4 luc-code (4 / 5) ]
-    let min-x min [luc-code] of patches
-    let max-x max [luc-code] of patches
-    ;; rescale range and bin them from 1 to 8
-    ask patches [
-      set luc-code round rescale luc-code min-x max-x 0.5 8.4999
-    ]
+  ;; averaging method
+  ask patches [ set luc-code random-normal 0 1 ]
+  repeat luc-aggregation-steps [ diffuse4 luc-code (4 / 5) ]
+  let min-x min [luc-code] of patches
+  let max-x max [luc-code] of patches
+  ;; rescale range and bin them from 1 to 8
+  ask patches [
+    set luc-code round rescale luc-code min-x max-x 0.5 8.4999
   ]
-  [ ;; voter model method - this may yield wildly uneven distributions!
-    ;; we iterate more in this method - although this is all very arbitrary
-    ask patches [ set luc-code 1 + random 8 ]
-    repeat luc-aggregation-steps * 3 [
-      ask patches [ set luc-code [luc-code] of one-of neighbors4 ]
-    ]
-  ]
+  ;; voter model method - this may yield wildly uneven distributions!
+  ;; we iterate more in this method - although this is all very arbitrary
+  ;  ask patches [ set luc-code 1 + random 8 ]
+  ;  repeat luc-aggregation-steps * 3 [
+  ;   ask patches [ set luc-code [luc-code] of one-of neighbors4 ]
+  ; ]
   colour-all-patches false
   display
 end

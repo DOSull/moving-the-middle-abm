@@ -32,8 +32,6 @@ globals [
   output-data-folder
   market-data-folder
   spatial-data-folder
-  region
-  scenario
   results
 
   show-labels?            ;; generally don't want to see labels on turtles
@@ -139,11 +137,11 @@ to setup
   if reinitialise? or geography-from-files? [
     carefully [
       if geography-from-files? [
-        set region user-one-of "Set the spatial setting" sort filter [d -> first d != "."] pathdir:list spatial-data-folder
+        ;; set region user-one-of "Set the spatial setting" sort filter [d -> first d != "."] pathdir:list spatial-data-folder
         set spatial-data-folder join-list (list spatial-data-folder region) pathdir:get-separator
       ]
       setup-world-dimensions
-      set scenario user-one-of "Set the market scenario" sort filter [d -> first d != "."] pathdir:list market-data-folder
+      ;; set scenario user-one-of "Set the market scenario" sort filter [d -> first d != "."] pathdir:list market-data-folder
       set market-data-folder join-list (list market-data-folder scenario) pathdir:get-separator
 
       setup-farmer-parameters     ;; mtm-read-files.nls
@@ -493,7 +491,7 @@ SWITCH
 203
 force?
 force?
-0
+1
 1
 -1000
 
@@ -745,11 +743,31 @@ rel-weight-catchment
 NIL
 HORIZONTAL
 
-SWITCH
+CHOOSER
 830
 10
 1010
-43
+55
+scenario
+scenario
+"default" "luc-dependent" "null-market"
+0
+
+CHOOSER
+830
+60
+1010
+105
+region
+region
+"Rangitaiki"
+0
+
+SWITCH
+830
+110
+1010
+143
 geography-from-files?
 geography-from-files?
 0
@@ -758,9 +776,9 @@ geography-from-files?
 
 SLIDER
 830
-50
+150
 1010
-83
+183
 max-dimension
 max-dimension
 100
@@ -773,9 +791,9 @@ HORIZONTAL
 
 TEXTBOX
 830
-85
+185
 1010
-115
+215
 Longer dimension of map will be this many patches
 11
 0.0
@@ -783,9 +801,9 @@ Longer dimension of map will be this many patches
 
 TEXTBOX
 830
-120
+220
 1010
-138
+238
 Random landscape
 12
 0.0
@@ -793,9 +811,9 @@ Random landscape
 
 INPUTBOX
 830
-140
+240
 1010
-200
+300
 geography-rng-seed
 1.553817984E9
 1
@@ -804,9 +822,9 @@ Number
 
 SWITCH
 830
-205
+305
 1010
-238
+338
 user-geography-seed?
 user-geography-seed?
 0
@@ -815,30 +833,20 @@ user-geography-seed?
 
 MONITOR
 830
-245
+345
 1010
-290
+390
 NIL
 geography-seed
 0
 1
 11
 
-CHOOSER
-830
-300
-1010
-345
-random-landscape-method
-random-landscape-method
-"voter-model" "averaging"
-1
-
 SLIDER
 830
-350
+400
 1010
-383
+433
 luc-aggregation-steps
 luc-aggregation-steps
 0
@@ -851,9 +859,9 @@ HORIZONTAL
 
 SLIDER
 830
-390
+440
 1010
-423
+473
 number-of-farms
 number-of-farms
 10
@@ -866,9 +874,9 @@ HORIZONTAL
 
 SWITCH
 830
-430
+480
 1010
-463
+513
 correlated-landuse?
 correlated-landuse?
 0
@@ -877,9 +885,9 @@ correlated-landuse?
 
 SLIDER
 830
-470
+520
 1010
-503
+553
 landuse-aggregation-steps
 landuse-aggregation-steps
 0
@@ -892,9 +900,9 @@ HORIZONTAL
 
 TEXTBOX
 830
-510
+560
 1010
-528
+578
 Model run RNG
 12
 0.0
@@ -902,9 +910,9 @@ Model run RNG
 
 INPUTBOX
 830
-530
+580
 1010
-590
+640
 run-rng-seed
 55.0
 1
@@ -913,9 +921,9 @@ Number
 
 SWITCH
 830
-595
+645
 1010
-628
+678
 user-run-seed?
 user-run-seed?
 1
@@ -924,9 +932,9 @@ user-run-seed?
 
 MONITOR
 830
-635
+685
 1010
-680
+730
 NIL
 run-seed
 0
@@ -935,9 +943,9 @@ run-seed
 
 SLIDER
 830
-690
+740
 1010
-723
+773
 sigmoid-slope
 sigmoid-slope
 0.01
@@ -950,9 +958,9 @@ HORIZONTAL
 
 TEXTBOX
 830
-740
+790
 1010
-758
+808
 Interventions (for information)
 12
 0.0
@@ -960,7 +968,7 @@ Interventions (for information)
 
 OUTPUT
 830
-760
+810
 1010
 920
 11
@@ -1579,6 +1587,12 @@ foreach rng-seeds [ s -&gt;
   output-results
 ]
 stop</go>
+    <enumeratedValueSet variable="region">
+      <value value="&quot;Rangitaiki&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="scenario">
+      <value value="&quot;default&quot;"/>
+    </enumeratedValueSet>
     <enumeratedValueSet variable="apply-severity-of-losses?">
       <value value="false"/>
     </enumeratedValueSet>
@@ -1605,9 +1619,6 @@ stop</go>
     </enumeratedValueSet>
     <enumeratedValueSet variable="correlated-landuse?">
       <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="random-landscape-method">
-      <value value="&quot;averaging&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="luc-aggregation-steps">
       <value value="90"/>
@@ -1667,6 +1678,111 @@ stop</go>
       <value value="5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="show-events?">
+      <value value="false"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="varying-sigmoid-slope" repetitions="1" runMetricsEveryStep="false">
+    <preExperiment>setup</preExperiment>
+    <go>foreach range 30 [ s -&gt;
+  set run-rng-seed s
+  restore-initial-values
+  repeat 10 [go]
+  output-results
+]
+stop</go>
+    <enumeratedValueSet variable="experiment-name">
+      <value value="&quot;scratch&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="reinitialise?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="geography-from-files?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="region">
+      <value value="&quot;Rangitaiki&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="scenario">
+      <value value="&quot;default&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="user-geography-seed?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="geography-rng-seed">
+      <value value="1553817984"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="number-of-farms">
+      <value value="250"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="correlated-landuse?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="luc-aggregation-steps">
+      <value value="90"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="landuse-aggregation-steps">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="user-run-seed?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="run-rng-seed">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="bad-years-trigger">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="years-to-remember">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="force?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-landuse?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-local-links?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-catchment-links?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="farm-type-colours?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-dimension">
+      <value value="301"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-luc-codes?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-events?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="apply-suitability?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="landuse-change-on-succession?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prioritise-forestry?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="include-networks?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="rel-weight-locals">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="rel-weight-catchment">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="sigmoid-slope">
+      <value value="1"/>
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="apply-severity-of-losses?">
+      <value value="true"/>
       <value value="false"/>
     </enumeratedValueSet>
   </experiment>

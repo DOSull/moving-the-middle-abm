@@ -102,7 +102,7 @@ to setup-colours
   table:put colour-key "background" grey - 1
   table:put colour-key "local-link" red
   table:put colour-key "catchment-link" blue
-  table:put colour-key "not-farmed" grey
+  table:put colour-key "not-farmed" grey + 1
 end
 
 

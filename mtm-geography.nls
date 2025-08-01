@@ -140,9 +140,6 @@ to setup-geography-from-files
     
     print (word "Reading farm data from " join-list (list spatial-data-folder "parcels.shp") pathdir:get-separator)
     set parcels-data gis:load-dataset join-list (list spatial-data-folder "parcels.shp") pathdir:get-separator
-
-    ; print (word "Reading farms raster from " join-list (list spatial-data-folder "parcels_r.asc") pathdir:get-separator)
-    ; set parcels-raster gis:load-dataset join-list (list spatial-data-folder "parcels_r.asc") pathdir:get-separator
   ]
   [
     user-message "ERROR: problem reading spatial data"
@@ -171,20 +168,13 @@ to setup-geography-from-files
   let more-not-farm-land farm-land with [not is-string? temp-id]
   ask more-not-farm-land [ set pcolor bgcolor ]
   set not-farm-land (patch-set not-farm-land more-not-farm-land)
+
   ;; could use not-farm-land membership in border drawing but that is slow, so
   ;; make 'the-owner' of not-farm-land patches nobody (which is apt...)
   ask not-farm-land [ set the-owner nobody ]
   set farm-land farm-land with [not member? self more-not-farm-land]
   ;; temp-id is numeric in the random initialisation so make it numeric here to match
   ask farm-land [ set temp-id read-from-string temp-id ]
-
-  ;; Alternative setup from aligned raster (possibly)
-  ; gis:apply-raster parcels-raster temp-id
-  ; let more-not-farm-land farm-land with [is-nan? temp-id]
-  ; ask more-not-farm-land [ set pcolor bgcolor ]
-  ; set not-farm-land (patch-set not-farm-land more-not-farm-land)
-  ; ask not-farm-land [ set the-owner nobody ]
-  ; set farm-land farm-land with [not member? self more-not-farm-land]
 end
 
 ;; random process uses random farm centres from sequential spatial inhibition
@@ -240,7 +230,6 @@ to setup-farm-boundaries
     ask farm-land [set farm-id region-id]
     ;; remove farms of one pixel
     merge-singletons farm-land [x -> [farm-id] of x] [[x y] -> ask x [set farm-id [farm-id] of y]]
-    
     ;; now label sub-farm holdings by luc-code - this could be based on something else
     ;; note that here we send each farm as a separate patch-set 
     let psets map [id -> farm-land with [farm-id = id]] remove-duplicates [farm-id] of farm-land
@@ -433,9 +422,13 @@ end
 ;; var-getter is an anonymous reporter like   [p -> [farm-id] of p]
 ;; var-matcher is an anonymous procedure like [[x y] -> ask x [set farm-id [farm-id] of y]]
 to merge-singletons [pset var-getter var-matcher]
+  let singletons get-singletons pset var-getter
+  let any-change? true
   with-local-randomness [
-    let singletons get-singletons pset var-getter
-    while [any? singletons] [
+    let n count singletons
+    while [any? singletons and any-change?] [
+      ;; every patch is a singleton, so pick one and 
+      ;; assign all of them same values of variable
       ifelse count pset = count singletons [
         ask singletons [
           let p one-of singletons
@@ -454,7 +447,14 @@ to merge-singletons [pset var-getter var-matcher]
         ]
       ]
       set singletons get-singletons pset var-getter
+      set any-change? count singletons != n
+      set n count singletons
     ]
+  ]
+  if any? singletons [
+    set farm-land farm-land with [not member? self singletons]
+    set not-farm-land (patch-set not-farm-land singletons)
+    ask singletons [ set pcolor table:get colour-key "background" ]
   ]
 end
 
@@ -462,7 +462,6 @@ end
 to-report get-singletons [pset var-getter]
   report pset with [not any? neighbors4 with [x1-var-matches-x2-var? self myself var-getter and member? self pset]]
 end
-
 
 ;; The MIT License (MIT)
 ;;

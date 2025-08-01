@@ -46,7 +46,6 @@ globals [
   parcels-data            ;; GIS functionality depends on reading the data into an object
   luc-data                ;; then acccessing it again later, so these do that for parcels, LUC,
   landuse-data            ;; and landuse
-  parcels-raster
 
   farm-land               ;; patches that are on farms
   not-farm-land           ;; and patches that are not - esp. important for GIS data
@@ -370,8 +369,8 @@ end
 GRAPHICS-WINDOW
 201
 10
-677
-922
+596
+946
 -1
 -1
 3.0
@@ -385,9 +384,9 @@ GRAPHICS-WINDOW
 0
 1
 0
-155
+128
 0
-300
+308
 1
 1
 1
@@ -491,7 +490,7 @@ SWITCH
 203
 force?
 force?
-1
+0
 1
 -1000
 
@@ -698,7 +697,7 @@ SWITCH
 763
 show-local-links?
 show-local-links?
-1
+0
 1
 -1000
 
@@ -760,7 +759,7 @@ CHOOSER
 105
 region
 region
-"Rangitaiki"
+"Oreti" "Rangitaiki"
 0
 
 SWITCH
@@ -783,7 +782,7 @@ max-dimension
 max-dimension
 100
 600
-301.0
+309.0
 1
 1
 NIL

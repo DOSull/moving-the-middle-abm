@@ -4,11 +4,12 @@
 .Rhistory
 New_ARLUNZ/
 aag/
-data/spatial/*
-!data/spatial/Rangitaiki
 *_cache/
 /.quarto/
 *.tif
 *.gpkg
+*.zip
 .Rproj.user
+data/spatial/scratch
+data/spatial/*/src
 data/output/scratch/*

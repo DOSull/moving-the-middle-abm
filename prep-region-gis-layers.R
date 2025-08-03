@@ -8,7 +8,7 @@ library(strex)
 library(qgisprocess)
 library(units)
 
-region <- "Oreti"
+region <- "Waihou-Piako"
 
 spatial_folder <- str_glue("/Users/david/Documents/work/mwlr-moving-the-middle/abm/data/spatial")
 region_folder  <- str_glue("{spatial_folder}/{region}")
@@ -45,8 +45,10 @@ lu_src <- st_read(str_glue("{src_folder}/landuse.shp")) |>
   select(NZFARM_LU)
 
 lu_lookup <- data.frame(
-  NZFARM_LU = lu_src$NZFARM_LU |> unique(), 
-  LANDUSE = c(1000, 1000, 0, 1000, 1, 2, 0, 1000, 3, 1000, 0, 1000, 1000))
+  NZFARM_LU = lu_src$NZFARM_LU |> unique() |> sort()
+  # this should work for both? unclear as yet
+  , LANDUSE = c(0, 1, 1000, 2, 0, 1000, 1000, 1000, 1000, 1000, 3, 1000, 0)
+)
 
 lu_src <- lu_src |> 
   left_join(lu_lookup) |>
@@ -55,7 +57,6 @@ lu_src <- lu_src |>
 # make basic geometry of parcels
 # use qgis process here as it is a lot faster than sf's use of dplyr::group_by
 parcels <- parcels_src |>
-  slice(1000) |>
   st_filter(luc_src) |>
   st_join(lu_src, largest = TRUE) |>
   filter(LANDUSE < 1000) |>

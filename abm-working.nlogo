@@ -369,11 +369,11 @@ end
 GRAPHICS-WINDOW
 201
 10
-596
-946
+774
+1027
 -1
 -1
-3.0
+3.0545454545454547
 1
 6
 1
@@ -384,9 +384,9 @@ GRAPHICS-WINDOW
 0
 1
 0
-128
+184
 0
-308
+329
 1
 1
 1
@@ -490,7 +490,7 @@ SWITCH
 203
 force?
 force?
-0
+1
 1
 -1000
 
@@ -697,7 +697,7 @@ SWITCH
 763
 show-local-links?
 show-local-links?
-0
+1
 1
 -1000
 
@@ -759,8 +759,8 @@ CHOOSER
 105
 region
 region
-"Oreti" "Rangitaiki"
-0
+"Oreti" "Waihou-Piako" "Rangitaiki"
+1
 
 SWITCH
 830
@@ -782,7 +782,7 @@ max-dimension
 max-dimension
 100
 600
-309.0
+330.0
 1
 1
 NIL

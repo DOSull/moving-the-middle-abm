@@ -53,20 +53,20 @@ where
 - $p$ is the price obtained per unit, 
 - $q$ is the quantity produced per hectare,
 - $x$ is the cost per hectare to operate,
-- $e$ is the greenhouse gas emissions per hectare, and 
-- $t$ is the tax on each unit of emissions.
+- $e_i$ are various environmental metrics per hectare, most obviously greenhouse gas emissions, and 
+- $t_i$ are any environmental taxes associated with each environmental metric.
 
 Each of these parameters may depend on the [farm type](00-overall-model-structure.qmd#land-use) $F$ and the land use capability (LUC), $L$, such that the full calculation of profit for each hectare of a holding is
 $$
-Z_{FL} = p_Fq_{FL} - x_{FL} - te_{FL}
+Z_{FL} = p_Fq_{FL} - x_{FL} - \sum_i t_ie_{i,FL}
 $$
 and total holding profit is obtaining by summing this quantity across all hectares of the holding. Overall profit of a farm is determined by summation across all its constituent holdings. Note that while currently all cells in a holding have the same LUC this is not a requirement and the calculation will work equally well if LUC were to vary across a holding. 
 
 ### Parameter values
 The parameter values are stored in a number of CSV files which are read in by the model at start up from the `.data/market/<scenario>` folder specified.
 
-#### Prices 
-$p_F$ and the greenhouse gas tax (i.e. carbon price), $t$, are in the `prices.csv` file:
+#### Prices and environmental taxes
+$p_F$ is found in the `prices.csv` file:
 
 ```{r}
 #| label: prices
@@ -77,6 +77,15 @@ prices |>
   kable() |> 
   kable_styling("striped", full_width = F)
 ```
+
+Environmental taxes $t_i$ are found in the `environmental-metrics.csv` file in the `price` column. In the example below the tax associated with greenhouse gas emissions is $10 per unit per ha and no tax is levied on nitrates. Other possible metrics are excluded from consideration by the file shown as they are 'commented out' with the `#` prefix.
+
+```{r}
+#| label: taxes
+print(read.csv(str_glue("{base_dir}environmental-metrics.csv"), header = T, row.names = 1))
+```
+
+In the remainder of this page we assume only greenhouse gases are taxed and use the simplified form $te$ for the environmental tax burden in preference to the more complete  $\sum_i t_ie_{i,FL}$ shown above.
 
 #### Yields 
 Yields by farm type and land use capability, $q_{FL}$, are in the `commodity-yields.csv` file:

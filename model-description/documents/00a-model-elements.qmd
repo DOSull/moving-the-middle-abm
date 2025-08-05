@@ -1,0 +1,98 @@
+---
+title: "Elements of the model"
+subtitle: "MtM ABM description"
+author: "David O'Sullivan"
+date: 19 February 2025
+date-modified: 5 August 2025
+lightbox: true
+filters: 
+  - nutshell
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-title: "Contents"
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+knitr:
+  opts_chunk: 
+    warning: false
+    message: false
+    # echo: false
+    R.options: 
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+Clearly, there is a lot going on here. The easiest way to get a handle on it is through the main model elements and their attributes and behaviours.
+
+### Land use
+Each unit of land in the model, and the aggregations into [holdings](#holdings) or [farms](#farms) has a land use, which is one of `"Crop"`, `"Dairy"`, `"Forest"`, or `"SNB"`. This classification could be made more detailed, although some work would be required on visualization aspects of the model to accommodate the change. **Note:** Applied to grid cells representing the land in the model, land use is the `landuse` attribute. Applied to [farmers](#farmers), [farms](#farms), or [holdings](#holdings) it is `farm-type`.[^1] For holdings the two will always match exactly (all cells in a holding will be the same land use), but for farmers and farms not all associated cells need be in the same land use. 
+
+[^1]: The reason for this difference is an implementation detail in NetLogo. Agents (which farmers, farms, and holdings are) can always directly access attributes of the grid cells they are in. If the land use attribute had the same name both in grid cells and in the various agents, then accessing `landuse` would be ambiguous: does it refer to the agent's attribute or the grid cell's attribute? Naming the attribute differently resolves the ambiguity.
+
+The `farm-type` of a farm affects the [propensity of a farmer to adopt various interventions](05-farmer-decisions-interventions.qmd), [costs](02-calculation-of-holding-income.qmd#costs), [yields](02-calculation-of-holding-income.qmd#yields), and [emissions](02-calculation-of-holding-income.qmd#emissions).
+
+### Management interventions
+A list of potential management interventions, such as e.g., `"Build_Wetland"`, `"Clean_Races"`, `"Farm_Plan"`, `"Join_ETS"`, or `"Riparian_Planting"`. These have associated impacts on costs, yields and emissions as set out in the [`intervention-impacts.csv` file](05-farmer-decisions-interventions.qmd#the-effect-of-interventions).
+
+### The land
+The land is represented by a square grid of cells (in NetLogo terminology 'patches'). Each grid cell represents 16 hectares at present (this may change). Each cell 'knows' its owning [farmer](#farmers) and the [holding](#holdings) and [farm](#farms) of which it is a part, although this information at the grid cell level is mostly used during model initialisation. Each cell also has a `landuse` attribute which is one of the [land uses](#land-use) represented, and a `luc-code`, an integer between 1 and 8 (inclusive). LUC affects what land uses are suited to that land and also impacts, costs, yields, and emissions. 
+
+### Farmers
+Farmers are the only decision-making agents in the model even as other model elements (farms and holdings) are coded as 'agents' (everything in NetLogo is an agent[^2]).
+
+[^2]: Termed 'turtles' in NetLogo due to NetLogo's origins in the Logo programming language which introduced 'turtle graphics'. See Resnick M. 1994. _Turtles, Termites, and Traffic Jams: Explorations in Massively Parallel Microworlds_. Cambridge MA: MIT Press.
+
+Farmers have the following attributes:
+
++ `farm-type`: one of the [land uses](#land-use) in the model, i.e. one of `"Crop"`, `"Dairy"`, `"Forest"`, or `"SNB"`.
++ `my-farm`: this farmer's [farm](#farms).
++ `my-holdings`: this farmer's [holdings](#holdings).
++ `the-land`: a list of grid cells that compose the farm.
++ `age`: age in years. Affects likelihood of farmer leaving and being succeeded by a new farmer. See [Farmer aging and succession](01c-farmer-aging-and-succession.qmd).
++ `succession-stage`: how many 'new farmers' or 'which generation' of farmer this one is on this farm. We don't spawn new farmers on succession, we just change their settings and increment this attribute
++ `disposition`: one of `"for-profit"`, `"pro-social"`, or `"pro-environmental"`. **Not currently used**.
++ `my-local-link-neighbors` and `my-catchment-link-neighbors`: other farmers connected to this one, that might influence their decisions.
+
+Key actions run by farmers include:
+
++ `age-and-succeed-farmer`: each model tick farmers age by one year, and with probability $\frac{1}{91-\mathrm{age}}$ exit the industry and are replaced by a new farmer that may be of different `disposition`, a different `age` (not necessarily younger, but probably), and if any holdings are currently loss-making will consider all of farm land use change. See [Farmer aging and succession](01c-farmer-aging-and-succession.qmd) for details.
++ `consider-farm-type-change` and `consider-holdings-farm-type-change`: as detailed in [Farmer decisions about land use](04-farmer-decisions-land-use-change.qmd) farmers may decide to change the land use of a whole farm, or change the land use of individual holdings.
++ `make-farm-type-changes`: if a decision is taken to change land use on a farm or any of its holdings the farmer coordinates necessary updates to the model state.
++ `consider-management-changes` and `make-management-changes`: consider possible management interventions for adoption and implement them (or not) as detailed in [Farmer decisions about management interventions](05-farmer-decisions-interventions.qmd).
+
+### Farms
+Farms don't do much of anything since [holdings](#holdings) were added to the model. This is reflected in the fact that their only attributes are the self-explanatory `the-land`, `farm-type`, and `my-farmer`. Farms do also keep track of the aggregate profit, income, and costs of all the holdings that compose the farm, but calculation of these amounts happens at the holding level. A potential extension of the model (**part implemented**) records the `losses-record` of a farm and this impacts the willingness of farmer's to consider land use change, so that an all-of-farm change in land use would become more likely as losses persist over time.
+
+### Holdings
+Holdings are subfarm level units at which management interventions and land use changes are implemented. 
+
+Holdings have the following attributes:
+
++ `farm-type`: one of the land uses in the model, i.e. one of `"Crop"`, `"Dairy"`, `"Forest"`, or `"SNB"`.
++ `my-farmer`: the [farmer](#farmers) who owns this holding.
++ `my-farm`: the [farm](#farms) of which this holding is a part.
++ `the-land`: a list of grid cells that compose the holding.
++ `landuse-luc-profile`: a cross tabulation of the number of grid cells (i.e., hectares) of land in the holding by land use and LUC. In the current implementation since holdings are defined by land use and LUC only one entry in the table will be non-zero! However, as detailed in [Calculation of holding income](02-calculation-of-holding-income.qmd) this allows (if desired) for extension to more complex holding structures&mdash;most likely with a range of LUC across a holding. A farmer can sum these matrices to get a picture of the overall composition of their farm.
++ `current-profit`, `current-income`, and `current-costs`: profit, income, and costs of the holding as detailed in [Calculation of holding income](02-calculation-of-holding-income.qmd).
++ `my-interventions`: a list of boolean flags indicating which [management interventions](#management-interventions) have been adopted on this holding.
++ `avail-interventions`: a list of boolean flags indicating which [management interventions](#management-interventions) remain available to this holding for possible adoption.
++ `my-metrics`: the total of each of the environmental metrics (GHG emissions, nitrates, etc.) associated with this holding.
+
+Key actions run by holdings (at the behest of farmers!) are:
+
++ `holding-change-farm-type` and `implement-intervention`: bookkeeping functions to pass changes in [land use](#land-use) down to grid cells and update the lists of adopted and available interventions.
++ `get-intervention-score`: scores interventions under consideration based on impact on costs and income as detailed in [Farmer decisions about management interventions](05-farmer-decisions-interventions.qmd).
++ `get-holding-income` and `get-holding-costs`: calculate holding income and costs as detailed in [Calculation of holding income](02-calculation-of-holding-income.qmd)
++ `get-cost-after-intervention`, `get-yield-after-intervention`, and `get-emissions-after-intervention`: calculates what the income or yield or emissions or environmental metrics of the holding would be if a specified intervention were to be implemented as part of the decision making process around management interventions, as detailed in [Farmer decisions about management interventions](05-farmer-decisions-interventions.qmd).
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date | Changes
+|:-|:------
+| 2025-02-19 | Initial post.                       
+| 2025-08-05 | Split out to a separate model elements page.
+:::
+

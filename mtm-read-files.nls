@@ -281,18 +281,11 @@ to-report get-parameter-from-file [file]
 end
 
 to-report get-prices [file]
-  ;; the CSV for prices and emissions taxes looks like this
-  ;; (spacing addded for clarity). No checking that the rows
-  ;; are in this order
+  ;; the CSV for commodity prices taxes looks like this
+  ;; (spacing addded for clarity).
   ;;
   ;;                ,SNB,Dairy, Forest, Crop
   ;; Price_Commodity,  5,  7.5,   157,   0.5
-  ;; Price_GhG      , 25, 25  ,    25,  25
-  ;; Price_Nleach   ,  0,  0  ,     0,   0
-  ;;  ... other redundant lines ...
-  ;;
-  ;; NOTE: the taxes part of this has been replaced by a slider
-  ;; since carbon taxes are a fixed price across all landuses
   ;;
   let price-data nobody
   carefully [

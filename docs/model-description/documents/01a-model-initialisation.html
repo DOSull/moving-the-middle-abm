@@ -1671,7 +1671,7 @@ async function fuseSearch(query, fuse, fuseOptions) {
 </script>
 <meta name="quarto:offset" content="../../">
 <link href="../../model-description/documents/01b-model-main-loop.html" rel="next">
-<link href="../../model-description/documents/00-overall-model-structure.html" rel="prev">
+<link href="../../model-description/documents/00b-model-files.html" rel="prev">
 <script>const sectionChanged = new CustomEvent("quarto-sectionChanged", {
   detail: {},
   bubbles: true,
@@ -7250,6 +7250,18 @@ z-index: 1000;
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../../model-description/documents/00a-model-elements.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Elements of the model</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../model-description/documents/00b-model-files.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Organisation of folders and files</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../../model-description/documents/01a-model-initialisation.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Model initialisation</span></a>
   </div>
@@ -7333,6 +7345,12 @@ z-index: 1000;
     </div>
   </div>
   
+    <div>
+    <div class="quarto-title-meta-heading">Modified</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date-modified">August 5, 2025</p>
+    </div>
+  </div>
     
   </div>
   
@@ -7341,7 +7359,8 @@ z-index: 1000;
 </header>
 
 
-<p>No further detail seems necessary on the initialisation processes beyond the sequence shown in the flow chart below.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
+<p>The steps in model initialisation are shown in the flow chart below. Although almost all code between these two initialisation pathways is shared, they are executed in separate sequences to ensure that random seed initialisation works correctly in the random geography case.</p>
+<p>An important detail is that initialisation completes with a run of a single cycle of the model. This means in the GIS initialisation case that the starting state of the model will not necessarily match exactly the data contained in the initialisation files, but will reflect one tick of model evolution. Using a random seed, this step is guaranteed to be the same every time so that repeatability is not affected. A single ‘burn-in’ step is needed to generate plausible prior year income and costs which the model requires to run.</p>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
@@ -7351,35 +7370,52 @@ z-index: 1000;
   A((START))
   B[Read land uses and&lt;br&gt;interventions from files]
   C{Geography&lt;br&gt;from GIS&lt;br&gt;files?}
-  D[Setup LUC&lt;br&gt;on land]
-  E[Partition land&lt;br&gt;into farms]
-  F[Read LUC&lt;br&gt;from &lt;span style=&#39;font-family:monospace;&#39;&gt;luc.asc&lt;/span&gt;]
-  G[Read farms&lt;br&gt;from &lt;span style=&#39;font-family:monospace;&#39;&gt;parcels.shp&lt;/span&gt;]
-  H[Initialise farmers&lt;br&gt;one per farm]
-  I[Partition farms by LUC&lt;br&gt;into holdings]
-  J[Initialise market&lt;br&gt;settings from files]
-  K[Run one cycle]
-  L[Store settings&lt;br&gt;for rapid reset]
-  M((END))
+  D[Read LUC&lt;br&gt;from &lt;span style=&#39;font-family:monospace;&#39;&gt;luc.asc&lt;/span&gt;]
+  E[Read farms&lt;br&gt;from &lt;span style=&#39;font-family:monospace;&#39;&gt;parcels.shp&lt;/span&gt;]
+  F[Initialise farmers&lt;br&gt;one per farm]
+  G[Read land use from &lt;span style=&#39;font-family:monospace;&#39;&gt;landuse.asc&lt;/span&gt; and assign to farms]
+  H[Setup farmer networks]
+  I[Partition farms by LUC into holdings]
+  J[Setup LUC&lt;br&gt;on land]
+  K[Partition land&lt;br&gt;into farms]
+  L[Initialise farmers&lt;br&gt;one per farm]
+  M[Partition farms by LUC&lt;br&gt;into holdings]
+  N[Setup farmer networks]
+  O[Partition farms by LUC into holdings]
+  P[Initialise market&lt;br&gt;settings from files]
+  Q[Run one cycle]
+  R[Store settings&lt;br&gt;for rapid reset]
+  S((END))
   A --&gt; B
   B --&gt; C
-  C --&gt;|N| D
+  C --&gt;|Y| D
   D --&gt; E
-  E --&gt; H
-  C --&gt;|Y| F
+  E --&gt; F
   F --&gt; G
   G --&gt; H
   H --&gt; I
-  I --&gt; J
+  I --&gt; P
+  C --&gt;|N| J
   J --&gt; K
   K --&gt; L
   L --&gt; M
+  M --&gt; N
+  N --&gt; O
+  O --&gt; P
+  P --&gt; Q
+  Q --&gt; R
+  R --&gt; S
+  classDef pink fill:#fcc
+  classDef blue fill:#cdf
+  class D,E,G pink
+  class J,K,M blue
 </pre>
 </div>
 <p></p></figure><p></p>
 </div>
 </div>
 </div>
+<p>It is worth noting that there are some tricky sequencing issues in the setup which make the associated code a little ‘fragile’ with some obvious-seeming changes for ‘efficiency’ likely to break the model! (These are noted in code comments.) The steps colour pink and blue below run differently depending on whether initialisation is random or from GIS files.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
@@ -7393,6 +7429,10 @@ Update History
 <div id="callout-1" class="callout-1-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <table class="caption-top table">
+<colgroup>
+<col style="width: 22%">
+<col style="width: 77%">
+</colgroup>
 <thead>
 <tr class="header">
 <th style="text-align: left;">Date</th>
@@ -7404,6 +7444,10 @@ Update History
 <td style="text-align: left;">2025-02-19</td>
 <td style="text-align: left;">Initial post.</td>
 </tr>
+<tr class="even">
+<td style="text-align: left;">2025-08-05</td>
+<td style="text-align: left;">Made differences between random and GIS initialisation clearer.</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -7412,13 +7456,7 @@ Update History
 
 
 
-
-<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
-
-<ol>
-<li id="fn1"><p>It is worth noting that there are some tricky sequencing issues in the setup which make the associated code a little ‘fragile’ with some obvious-seeming changes for ‘efficiency’ likely to break the model! (These are noted in code comments.)<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-</ol>
-</section></div></main> <!-- /main -->
+</main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
@@ -7838,8 +7876,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../model-description/documents/00-overall-model-structure.html" class="pagination-link" aria-label="Overall model structure">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Overall model structure</span>
+      <a href="../../model-description/documents/00b-model-files.html" class="pagination-link" aria-label="Organisation of folders and files">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Organisation of folders and files</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">

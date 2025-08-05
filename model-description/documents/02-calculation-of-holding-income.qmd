@@ -23,6 +23,7 @@ knitr:
 ---
 
 ```{r echo=FALSE,warnings=FALSE,results=FALSE,message=FALSE}
+#| label: libraries
 library(tidyr)
 library(dplyr)
 library(stringr)
@@ -68,6 +69,7 @@ The parameter values are stored in a number of CSV files which are read in by th
 $p_F$ and the greenhouse gas tax (i.e. carbon price), $t$, are in the `prices.csv` file:
 
 ```{r}
+#| label: prices
 prices <- read.csv(str_glue("{base_dir}prices.csv"), 
                    header = T, row.names = 1) |> 
   slice(1:2) # only rows 1 & 2 relevant
@@ -80,7 +82,8 @@ prices |>
 Yields by farm type and land use capability, $q_{FL}$, are in the `commodity-yields.csv` file:
 
 ```{r}
-yields <- read.csv(str_glue("{base_dir}commodity-yields.csv"), 
+#| label: yields
+yields <- read.csv(str_glue("{base_dir}yields.csv"), 
                    header = T, row.names = 1)
 yields |> 
   kable() |> 
@@ -92,7 +95,8 @@ yields |>
 Base costs per ha. by farm type and land use capability, $x_{FL}$, are in the `input-costs.csv` file:
 
 ```{r}
-costs <- read.csv(str_glue("{base_dir}input-costs.csv"), 
+#| label: costs
+costs <- read.csv(str_glue("{base_dir}costs.csv"), 
                    header = T, row.names = 1)
 costs |> 
   kable() |> 
@@ -101,10 +105,11 @@ costs |>
 ```
 
 #### Emissions
-Emissions per ha. by farm type and land use capability, $e_{FL}$, are in the `ghg-emissions.csv` file:
+Emissions per ha. by farm type and land use capability, $e_{FL}$, are in the `ghg_emissions.csv` file:
 
 ```{r}
-emissions <- read.csv(str_glue("{base_dir}ghg-emissions.csv"), 
+#| label: emissions
+emissions <- read.csv(str_glue("{base_dir}ghg_emissions.csv"), 
                       header = T, row.names = 1)
 emissions |> 
   kable() |> 
@@ -118,11 +123,12 @@ Note that all of yields, base costs, and emissions are stored as a mean and a st
 We can use these data to show the profit, gross income, and total costs for each farm type across different land use capability classes. We'll throw away the standard deviations for simplicity and consider only mean outcomes.
 
 ```{r}
+#| label: plot
 prices <- prices |> 
   t() |> 
   as.data.frame() |> 
   tibble::rownames_to_column("farm_type") |>
-  rename(price = Price_Commodity, carbon_tax = Price_GhG) |>
+  mutate(carbon_tax = 10) |>
   slice(rep(row_number(), 8)) |>
   mutate(LUC = rep(1:8, each = 4))
 

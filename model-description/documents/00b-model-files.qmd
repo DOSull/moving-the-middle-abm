@@ -1,0 +1,102 @@
+---
+title: "Organisation of folders and files"
+subtitle: "MtM ABM description"
+author: "David O'Sullivan"
+date: 19 February 2025
+date-modified: 5 August 2025
+lightbox: true
+filters: 
+  - nutshell
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-title: "Contents"
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+knitr:
+  opts_chunk: 
+    warning: false
+    message: false
+    # echo: false
+    R.options: 
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+## Code
+To make managing model source code a little easier it is broken into a main `.nlogo` file and a number of NetLogo source `.nls` files. Unfortunately the built in IDE for NetLogo is rather primitive, so this breakdown is not perfect, but it at least keeps the size of each source file manageable (a few hundred lines at most), where a monolithic flat file would be an unwieldy 2000+ lines. The files are as follows:
+
+Filename             | Purpose
+:-                   |:-----
+`abm-working.nlogo`  | Definition of globals, setup and main model loop, model reset code
+`mtm-geography.nls`  | Setup of model geography, whether from GIS files or random
+`mtm-read-files.nls` | Reading of market setting files into tables and matrices
+`mtm-farm.nls`       | Initialisation and maintenance of farm agents
+`mtm-farmer.nls`     | Initialisation and maintenance of farmer agents, primarily procedures for choosing among options for land use change / management interventions
+`mtm-holding.nls`    | Initialisation and maintence of holding agents, primarily calculation of income and costs
+`mtm-plots.nls`      | Plotting of some model statistics for interactive exploration
+`mtm-results.nls`    | Recording and writing to files of model run results
+`mtm-profile.nls`    | Profiling of model performance (not much used)
+`mtm-render.nls`     | Visual rendering of model state
+
+In addition the files `list-utils.nls`, `distribution-utils.nls` (both from my [**netlogo-utils** project](https://github.com/DOSull/netlogo-utils)), and `mtm-utils.nls` collect together a large number of utility functions of general use to all the other model components.
+
+## Data
+A key idea underpinning model development was to avoid hard coding dozens, or even hundreds of settings into the model code. To that end a `data` folder in the same directory as the model source code has subfolders `market` and `spatial` themselves with subfolders containing model input files that can specify scenarios whether catchment-based (the `spatial` folder) or market-based (the `market` folder).
+
+### Market
+Each `./data/market/<scenario-name>` subfolder contains a collection of files that configure aspects of the market, which together form a scenario.
+
+Filename                            | Purpose
+:-                                  | :-----
+`conversion-probabilities.csv`      | Relative probability of conversion between the different land uses.
+`environmental-metrics.csv`.        | A list of environmental metrics which the modeller wishes to explore in this scenario. Each metric should have a name, and a limit and price associated (where either may be NA), which are regulatory limits and taxes associated with that metric. **This is now where the carbon price in the model is set.** Files called `<factor>.csv` and `<factor>-intervention-impacts.csv` must also be present in the folder for all listed metrics. Metrics can be 'commented out' by preceding them with a `#` in this file, when they will then have no impact on a model run (this is for ease of making variant scenarios).
+`<factor>.csv`                      | Where `<factor>` may be `costs`, `yields`, or any of the active _environmental-metrics_ listed in the `environmental-metrics.csv` file. Mean and st dev. of `<factor>` per ha. by land use and land use capability.
+`<factor>-intervention-impacts.csv` | Where `<factor>` may be `costs`, `yields`, or any of the active _environmental-metrics_ listed in the `environmental-metrics.csv` file. Impacts on yields, costs, and environmental metrics per ha. by management intervention and land use. 
+`farmer-threshold-matrix.csv`       | Baseline probabilities of adoption by farmers of available management interventions by land use.
+`suitabilities.csv`                 | Lists of land use that are allowed on each land use capability class.
+`prices.csv`                        | Market price of commodities (per unit of output) by land use.
+
+The first of these files (`farmer-threshold-matrix.csv`) effectively defines the available land use types and interventions and additional rows or columns could be added to it to further detail the model's representation. **Note:** Extending the model in this way to add interventions is trivial; adding additional land uses will require additional code to deal with visualisation aspects.
+
+The first 4 files effectively define the decision space of farmers in the model. The latter 4 define the market constraints (costs, yields, prices, emissions).
+
+### Geographical setting
+The geographical setting of the model can be initialised randomly or from GIS files (controlled by a switch in the model GUI). 
+
+#### Real world setting from GIS data
+Initialisation from GIS files uses a `parcels.shp` shapefile, and `luc.asc` and `landuse.asc` raster files to specify respectively the farms, LUC landscape, and land use in the model. Farms are again subdivided into holdings based on LUC. Different catchments can be applied by providing these files in a folder `./data/spatial/<region-name>`. Localisation of the model to a particular settings is relatively straightforward given appropriate files for a particular catchment. These files have attributes as follows:
+
++ `parcels.shp` should have a unique `STR_ID` attribute per farm.
++ `luc.asc` should contain integer values from 1 to 8 inclusive and -9999 values outside the study area.
++ `landuse.asc` should contain integer values encoded as follows:
+
+Value | Landuse
+-:|:----
+0 | Horticulture (referred to in model code as `Crop`)
+1 | Dairy
+2 | Forestry
+3 | Beef and lamb (referred to in the model code as `SNB`; includes also deer)
+1000 | Not farmed, but inside the catchment (scrub, indigenous forest, conservation land)
+-9999 | Outside the catchment
+
+The important thing here is not the specific encoding chosen, but that any changes made here match an alphabetical ordering of the corresponding landuses in the `farmer-threshold-matrix.csv` file. At present these are `Crop`, `Dairy`, `Forest`, and `SNB` corresponding to 0, 1, 2, 3 above. If a more detailed landuse classification is desired then the new landuses would need to be added in all initialisation files.
+
+#### Random geography
+Random initialisation first sets up a land use capability (LUC) landscape using iterative smoothing[^3], then randomly distributes farmers across the landscape assigning them a farm based on Voronoi polygons[^4] and breaking the farm into sub-farm level holdings based on contiguouse areas of the same LUC.
+
+[^3]: See pages 60-63 in O’Sullivan D and GLW Perry. 2013. _Spatial Simulation: Exploring Pattern and Process_. Chichester, UK: Wiley.
+[^4]: Okabe A, B Boots, K Sugihara, and SN Chiu. 2000. _Spatial Tessellations: Concepts and Applications of Voronoi Diagrams_. 2nd edn. Chichester, UK: Wiley.
+
+
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date | Changes
+|:-|:------
+| 2025-02-19 | Initial post.                       
+| 2025-08-05 | Split out to a separate model file config page.
+:::
+

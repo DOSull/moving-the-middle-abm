@@ -198,7 +198,9 @@ to go
       let ft-now farm-type
       let farm-conversion-options []
       let loss-making-holdings get-loss-making-holdings
-      ( ;; first we check if there are any holdings losing money
+      ( ;;
+        ;; first we check if there are any holdings losing money
+        ;;
         ifelse any? loss-making-holdings [
           if [current-profit] of my-farm < 0 [ ;; losing lots of money so consider complete change
             let down-weight ifelse-value apply-severity-of-losses?
@@ -213,13 +215,13 @@ to go
         ;;
         ;; further consider landuse changes if any holdings breach environmental regs
         ;;
-        any-true? map [k -> [in-breach? k] of my-farm] table:keys env-metrics [
-          let breached-metrics get-breached-metrics
-          let holdings-in-breach get-holdings-in-breach breached-metrics
-          let holding-change-options consider-holdings-farm-type-change holdings-in-breach
-                prioritise-forestry? "Some holdings in breach of regulations: " false
-          make-farm-type-changes (sentence farm-conversion-options holding-change-options)
-        ]
+;        any-true? map [k -> [in-breach? k] of my-farm] table:keys env-metrics [
+;          let breached-metrics get-breached-metrics
+;          let holdings-in-breach get-holdings-in-breach breached-metrics
+;          let holding-change-options consider-holdings-farm-type-change holdings-in-breach
+;                prioritise-forestry? "Some holdings in breach of regulations: " false
+;          make-farm-type-changes (sentence farm-conversion-options holding-change-options)
+;        ]
         ;;
         ;; we're doing OK so think about management interventions instead
         ;;
@@ -369,11 +371,11 @@ end
 GRAPHICS-WINDOW
 201
 10
-774
-1027
+878
+1009
 -1
 -1
-3.0545454545454547
+3.0
 1
 6
 1
@@ -384,7 +386,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-184
+222
 0
 329
 1
@@ -760,7 +762,7 @@ CHOOSER
 region
 region
 "Oreti" "Waihou-Piako" "Rangitaiki"
-1
+0
 
 SWITCH
 830
@@ -769,7 +771,7 @@ SWITCH
 143
 geography-from-files?
 geography-from-files?
-0
+1
 1
 -1000
 
@@ -913,7 +915,7 @@ INPUTBOX
 1010
 640
 run-rng-seed
-55.0
+1.0
 1
 0
 Number
@@ -925,7 +927,7 @@ SWITCH
 678
 user-run-seed?
 user-run-seed?
-1
+0
 1
 -1000
 
@@ -978,7 +980,7 @@ INPUTBOX
 1240
 70
 experiment-name
-scratch
+scratch2
 1
 0
 String
@@ -1096,7 +1098,7 @@ SWITCH
 723
 prioritise-forestry?
 prioritise-forestry?
-0
+1
 1
 -1000
 

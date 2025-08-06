@@ -21,7 +21,7 @@ parcels_src <- st_read(str_glue("{src_folder}/parcels.shp")) |>
   st_as_sf() |>
   st_set_geometry("geometry") |>
   mutate(area = st_area(geometry)) |>
-  filter(area >= as_units(1e4, "m^2")) |>
+  filter(area >= as_units(50e4, "m^2")) |>
   select(-area)
 
 parcels_bb <- parcels_src |>

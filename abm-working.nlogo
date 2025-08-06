@@ -371,7 +371,7 @@ end
 GRAPHICS-WINDOW
 201
 10
-623
+764
 1009
 -1
 -1
@@ -386,7 +386,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-137
+184
 0
 329
 1
@@ -762,7 +762,7 @@ CHOOSER
 region
 region
 "Oreti" "Waihou-Piako" "Rangitaiki"
-0
+1
 
 SWITCH
 830

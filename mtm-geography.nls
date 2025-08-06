@@ -270,6 +270,7 @@ to setup-landuse-from-gis-data
     ifelse length fts = 1 
     [ set farm-type item 0 fts ]
     [ 
+      set fts filter [ft -> ft != "Not-farmed"] fts
       let ft-counts map [lu -> count the-land with [landuse = lu]] fts
       let idx position (max ft-counts) ft-counts
       set farm-type item idx fts

@@ -371,7 +371,7 @@ end
 GRAPHICS-WINDOW
 201
 10
-878
+623
 1009
 -1
 -1
@@ -386,7 +386,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-222
+137
 0
 329
 1
@@ -771,7 +771,7 @@ SWITCH
 143
 geography-from-files?
 geography-from-files?
-1
+0
 1
 -1000
 

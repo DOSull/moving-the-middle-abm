@@ -79,7 +79,7 @@ to-report get-landuse-luc-profile [poly]
   let ncol length farm-types
   let farm-profile matrix:make-constant nrow ncol 0
   (foreach luc-i lu-j [ [i j] ->
-    matrix:set farm-profile i j matrix:get farm-profile i j + 1
+    matrix:set farm-profile i j (matrix:get farm-profile i j) + 1
   ])
   report farm-profile
 end

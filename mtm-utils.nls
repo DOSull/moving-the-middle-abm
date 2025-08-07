@@ -260,6 +260,23 @@ to-report str-replace [s a b]
   report join-string (split-string s a) b
 end
 
+;; ------------------------------------------------------------------------------
+;; set convenience stuff
+;; ------------------------------------------------------------------------------
+to-report set-difference [p q]
+  report p with [not member? self q]
+end
+
+to-report set-intersect [p q]
+  report p with [member? self q]
+end
+
+to-report set-union [p q]
+  ifelse is-turtle-set? p 
+  [ report (turtle-set p q) ]
+  [ report (patch-set p q) ]
+end
+
 
 ;; ------------------------------------------------------------------------------
 ;; drawing utilities (see netlogo-utils repo)

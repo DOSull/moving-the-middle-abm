@@ -93,15 +93,15 @@ to setup-colours
   table:put colour-key "farm-type-palettes" (
     table:from-list (map list ["SNB" "Dairy" "Forest" "Crop"] ["YlOrBr" "Blues" "Greens" "RdPu"]))
   table:put colour-key "owner-link" [0 0 0 180]
-  table:put colour-key "farm-boundary" grey - 3
+  table:put colour-key "farm-boundary" black
   table:put colour-key "holding-boundary" grey
   table:put colour-key "LUC-palette" "Greens"
-  table:put colour-key "profit" grey - 3
+  table:put colour-key "profit" [0 0 0 180]
   table:put colour-key "loss" [255 0 0 180]
   table:put colour-key "label" violet - 2
   table:put colour-key "background" grey - 1
-  table:put colour-key "local-link" red
-  table:put colour-key "catchment-link" blue
+  table:put colour-key "local-link" [255 51 51 64]
+  table:put colour-key "catchment-link" [51 153 255 64]
   table:put colour-key "not-farmed" grey + 1
 end
 

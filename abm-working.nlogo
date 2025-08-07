@@ -157,15 +157,16 @@ to setup
   setup-colours ;; must come AFTER reading farmer parameters since it depends on farm types
   ask patches [ set pcolor table:get colour-key "background" ]
   set show-local-links? include-networks?
+  set show-catchment-links? include-networks?
 
-  carefully [
+;  carefully [
     setup-geography                  ;; mtm-geography.nls
     setup-economic-parameters        ;; mtm-read-files.nls
     make-matrix-copies-of-some-data  ;; mtm-read-files.nls
-  ]
-  [
-    user-message "Have you initialised the model correctly? Set the initialised? switch On and try setup again ensuring you pick a folder with a complete set of initialisation .csv files."
-  ]
+;  ]
+;  [
+;    user-message "Have you initialised the model correctly? Set the initialised? switch On and try setup again ensuring you pick a folder with a complete set of initialisation .csv files."
+;  ]
   setup-results-tables        ;; mtm-results.nls
   reset-ticks
   random-seed 0 ;; make the burn-in tick identical regardless of seed settings
@@ -371,8 +372,8 @@ end
 GRAPHICS-WINDOW
 201
 10
-764
-1009
+763
+1008
 -1
 -1
 3.0

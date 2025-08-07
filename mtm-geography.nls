@@ -76,6 +76,10 @@ to setup-geography
   read-farm-type-suitabilities-from-file join-string (list market-data-folder "suitabilities.csv") pathdir:get-separator
   ;; this repetition of code-blocks seems necessary to control random elements
   ;; that affect how random seed controls initialisation from GIS data
+  ;; note that parcels / allocation of land to farms has to be carried out
+  ;; before assignment of land use: in the GIS-case parcels are needed so 
+  ;; farm-type can be assigned based on modal landuse; and in the random
+  ;; case parcels control the land use correlation effect
   ifelse geography-from-files? [ 
     random-seed 0
     setup-geography-from-files 
@@ -86,7 +90,7 @@ to setup-geography
     setup-farms
     setup-holdings
   ]
-  [ 
+  [ ;; note there is no 'not-farm-land' in the random case
     random-seed geography-seed
     setup-random-geography 
     setup-farm-boundaries
@@ -145,17 +149,9 @@ to setup-geography-from-files
     user-message "ERROR: problem reading spatial data"
   ]
   gis:apply-raster luc-data luc-code
-  ;; there's a gis extension issue related to NANs
-  ;; see https://github.com/NetLogo/GIS-Extension/issues/5
-  ;;     https://github.com/NetLogo/NetLogo/issues/894   
-  set farm-land patches with [not is-nan? luc-code and luc-code > 0]
-  colour-all-patches false
-  display ;; for reassurance that things are working
-  let bgcolor table:get colour-key "background"
-  set not-farm-land patches with [pcolor = bgcolor]
 
   ;; setup farms based on distinct parcels identified by ID in the parcels data
-  ;; This relies on a STR_ID variable which is unique string for each farm parcel.
+  ;; This relies on a STR_ID variable which is unique for each farm parcel.
   ;;
   ;; **** IT IS IMPORTANT THAT THIS BE A NUMBER STORED AS A STRING!!! ****
   ;;
@@ -164,17 +160,22 @@ to setup-geography-from-files
   ;; Strings are 'interpolated' by a plurality rule thus avoiding meaningless 
   ;; averaging of numerical IDs.
   gis:apply-coverage parcels-data "STR_ID" temp-id
-  ;; might get some new NaN values, so clean up farm-land and not-farm-land patch-sets
-  let more-not-farm-land farm-land with [not is-string? temp-id]
-  ask more-not-farm-land [ set pcolor bgcolor ]
-  set not-farm-land (patch-set not-farm-land more-not-farm-land)
 
-  ;; could use not-farm-land membership in border drawing but that is slow, so
-  ;; make 'the-owner' of not-farm-land patches nobody (which is apt...)
-  ask not-farm-land [ set the-owner nobody ]
-  set farm-land farm-land with [not member? self more-not-farm-land]
+  ;; We may have NaN values in the luc-codes, or luc-codes set to 0
+  ;; if rescaling of map area results in one column too many, or non-string values in the IDs
+  ;; These are part of the not farm-land patch-set
+  ;; see https://github.com/NetLogo/GIS-Extension/issues/5
+  ;;     https://github.com/NetLogo/NetLogo/issues/894
+  set not-farm-land patches with [is-nan? luc-code or luc-code = 0 or not is-string? temp-id]
+  ask not-farm-land [
+    set pcolor table:get colour-key "background"
+    set the-owner nobody 
+  ]
   ;; temp-id is numeric in the random initialisation so make it numeric here to match
+  set farm-land patches with [not member? self not-farm-land]
   ask farm-land [ set temp-id read-from-string temp-id ]
+  colour-all-patches false
+  display
 end
 
 ;; random process uses random farm centres from sequential spatial inhibition
@@ -207,12 +208,11 @@ to setup-random-luc-codes
   repeat luc-aggregation-steps [ diffuse4 luc-code (4 / 5) ]
   let min-x min [luc-code] of patches
   let max-x max [luc-code] of patches
-  ;; rescale range and bin them from 1 to 8
+  ;; rescale range and bin from 1 to 8
   ask patches [
     set luc-code round rescale luc-code min-x max-x 0.5 8.4999
   ]
   ;; voter model method - this may yield wildly uneven distributions!
-  ;; we iterate more in this method - although this is all very arbitrary
   ;  ask patches [ set luc-code 1 + random 8 ]
   ;  repeat luc-aggregation-steps * 3 [
   ;   ask patches [ set luc-code [luc-code] of one-of neighbors4 ]
@@ -221,14 +221,16 @@ to setup-random-luc-codes
   display
 end
 
+;; segregate farm-land patches by the temp-id attribute into individual farms
+;; further segregate sets of farm patches into holdings based on luc-code
 to setup-farm-boundaries
   with-local-randomness [
-    ;; both the above will return patches tagged with temp-id which we use to determine farms
-    ;; first, find all the connected sets of patches based on temp-id
+    ;; both GIS and random initialisations return patches tagged with temp-id which we 
+    ;; use to identify farms; first, label all connected sets of patches based on temp-id
     label-connected-regions (list farm-land) [x -> [temp-id] of x] true
-    ;; after labelling sequential farm id is in region-id patch variable so apply it to farm-id
+    ;; after labelling the farm id is in the region-id patch variable so apply it to farm-id
     ask farm-land [set farm-id region-id]
-    ;; remove farms of one pixel
+    ;; remove any one pixel farms
     merge-singletons farm-land [x -> [farm-id] of x] [[x y] -> ask x [set farm-id [farm-id] of y]]
     ;; now label sub-farm holdings by luc-code - this could be based on something else
     ;; note that here we send each farm as a separate patch-set 
@@ -238,11 +240,12 @@ to setup-farm-boundaries
     ask farm-land [set holding-id region-id]
   ]
 end
-  
+
+;; sprout farmers, one per set of farm-land patches with each farm-id attribute
 to setup-farmers-land
-  let ids remove-duplicates [farm-id] of farm-land
-  let psets map [id -> farm-land with [farm-id = id]] ids
-  (foreach psets ids [ [pset id] ->
+  let farm-ids remove-duplicates [farm-id] of farm-land
+  let psets map [id -> farm-land with [farm-id = id]] farm-ids
+  foreach psets [ pset ->
     let this-farmer nobody
     ask approximate-centroid pset [
       sprout-farmers 1 [
@@ -251,37 +254,51 @@ to setup-farmers-land
         initialise-farmer
         set age get-new-farmer-age true
       ]
+      ;; assign this farmer as the-owner of all these patches
       ask pset [
         set the-owner this-farmer
       ]
     ]
-  ])
-end
-  
-to setup-landuse-from-gis-data
-  gis:apply-raster landuse-data landuse
-  ask farm-land [
-    ifelse landuse = 1000 
-    [ set landuse "Not-farmed" ]
-    [ set landuse item landuse farm-types ]
   ]
+end
+
+;; read landuse raster data and apply to patches
+to setup-landuse-from-gis-data
+  let not-farmed-colour table:get colour-key "not-farmed"
+  gis:apply-raster landuse-data landuse
+  ;; landuse code 1000 is not-farmed for one reason or another (indigenous
+  ;; forest, residential, whatever; else 0, 1, 2, 3 -> corresponding element in farm-types
+  ask farm-land with [is-nan? landuse or landuse = 1000] [
+    set landuse "Not-farmed"
+  ]
+  ask farm-land with [member? landuse range length farm-types] [ 
+    set landuse item landuse farm-types 
+  ]
+  ;; determine farm-type from dominant landuse of each farm
   ask farmers [
     let fts sort remove-duplicates [landuse] of the-land
-    ifelse length fts = 1 
-    [ set farm-type item 0 fts ]
-    [ 
-      set fts filter [ft -> ft != "Not-farmed"] fts
-      let ft-counts map [lu -> count the-land with [landuse = lu]] fts
-      let idx position (max ft-counts) ft-counts
-      set farm-type item idx fts
+    ifelse length fts = 1 [
+      ;; only one landuse type so use it
+      set farm-type item 0 fts
     ]
-    ask the-land [ set landuse [farm-type] of myself ]
+    [ ;; if more than one, remove Not-farmed and assign modal type
+      set fts filter [ft -> ft != "Not-farmed"] fts
+      set farm-type one-of modes fts
+    ]
+    ask the-land [ set landuse [farm-type] of myself ] 
   ]
-  ask farmers with [farm-type = "Not-farmed"] [ die ]
-  let not-farmed-colour table:get colour-key "not-farmed"
-  ask patches with [landuse = "Not-farmed"] [ set pcolor not-farmed-colour ]
+  ;; Remove farms that are 'not-farmed'
+  ask farmers with [farm-type = "Not-farmed"] [
+    ask the-land [
+      set the-owner nobody
+      set pcolor not-farmed-colour
+    ]
+    die
+  ]
+  set not-farm-land (patch-set not-farm-land farm-land with [landuse = "Not-farmed"])
   set farm-land farm-land with [landuse != "Not-farmed"]
-  set not-farm-land patches with [not member? self farm-land]
+  ask patches with [landuse = 1000] [ set pcolor not-farmed-colour ]
+  display
 end
 
 to setup-random-landuse
@@ -335,7 +352,7 @@ to setup-holdings
     let these-holdings (turtle-set nobody)
     let ids remove-duplicates [holding-id] of the-land
     let psets map [id -> the-land with [holding-id = id]] ids 
-    (foreach psets ids [ [pset id] ->
+    foreach psets [ pset ->
       hatch-holdings 1 [
         initialise-holding
         set the-land pset
@@ -344,7 +361,7 @@ to setup-holdings
         set this-holding self
       ]
       set these-holdings (turtle-set these-holdings this-holding)
-    ])
+    ]
     set my-holdings these-holdings 
   ]
 end

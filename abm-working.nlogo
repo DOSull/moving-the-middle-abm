@@ -61,6 +61,7 @@ globals [
 
   ;; these tables are only used in setup - the data are passed into matrix copies for use in calculations
   mgmt-interventions      ;; table of tables of management intervention impacts
+  init-interventions      ;; table of lists of proportion of holdings where interventions have been adopted
   base-thresholds         ;; table of default farmer decision thresholds for various interventions
 
   ;; data stored as matrices for use in calculations
@@ -159,14 +160,14 @@ to setup
   set show-local-links? include-networks?
   set show-catchment-links? include-networks?
 
-;  carefully [
+  carefully [
     setup-geography                  ;; mtm-geography.nls
     setup-economic-parameters        ;; mtm-read-files.nls
     make-matrix-copies-of-some-data  ;; mtm-read-files.nls
-;  ]
-;  [
-;    user-message "Have you initialised the model correctly? Set the initialised? switch On and try setup again ensuring you pick a folder with a complete set of initialisation .csv files."
-;  ]
+  ]
+  [
+    user-message "Have you initialised the model correctly? Set the initialised? switch On and try setup again ensuring you pick a folder with a complete set of initialisation .csv files."
+  ]
   setup-results-tables        ;; mtm-results.nls
   reset-ticks
   random-seed 0 ;; make the burn-in tick identical regardless of seed settings
@@ -372,8 +373,8 @@ end
 GRAPHICS-WINDOW
 201
 10
-763
-1008
+764
+1009
 -1
 -1
 3.0

@@ -22,13 +22,6 @@ to initialise-farmer
   set color table:get colour-key "farmer"
   set shape "person"
   set hidden? true
-  ;; it's better if this is dependent on the LUC values of the-land
-  ;; but note that it means there may be very little 'Crop' land
-;  ifelse apply-suitability? [
-;    let worst-land round mean [luc-code] of the-land
-;    set farm-type one-of table:get farm-type-suitabilities worst-land
-;  ]
-;  [ set farm-type one-of farm-types ]
   set disposition one-of dispositions
   set succession-stage 0 
   set my-interventions matrix:make-constant (length farm-types) (length mgmt-intervention-types) 0

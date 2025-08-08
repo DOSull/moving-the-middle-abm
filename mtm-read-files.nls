@@ -27,12 +27,13 @@ to setup-farmer-parameters
   ;; Farm_Plan        , 0.7, 0.85,  0.4,    0.6
   ;; Join_ETS         , 0.2, 0.2,   0.9,    0.4
   ;;
-  read-metrics-from-file                 join-string (list market-data-folder "environmental-metrics.csv")    pathdir:get-separator
-  read-farm-types-from-file              join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator
-  read-interventions-from-file           join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator
-  read-farmer-thresholds-from-file       join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator
+  read-metrics-from-file                 join-string (list market-data-folder "environmental-metrics.csv")      pathdir:get-separator
+  read-farm-types-from-file              join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator
+  read-interventions-from-file           join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator
+  read-init-intervention-props-from-file join-string (list market-data-folder "intervention-initial-props.csv") pathdir:get-separator
+  read-farmer-thresholds-from-file       join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator
   read-intervention-impacts-from-files  
-  read-farm-type-change-probs-from-file  join-string (list market-data-folder "conversion-probabilities.csv") pathdir:get-separator
+  read-farm-type-change-probs-from-file  join-string (list market-data-folder "conversion-probabilities.csv")   pathdir:get-separator
 end
 
 ;;
@@ -86,6 +87,40 @@ to read-interventions-from-file [file]
   ]
   [
     user-message word "ERROR: problem reading intervention types from thresholds data file " file
+    file-close
+  ]
+end
+
+to read-init-intervention-props-from-file [file]
+  ;; CSV file looks like this (spacing added for clarity)
+  ;;
+  ;;       , Build_Wetland, Riparian_Planting, Clean_Races, Farm_Plan, Join_ETS
+  ;; SNB   ,           0.1,               0.1,        0.04,       0.1,     0.05
+  ;; Dairy ,           0.1,               0.1,         0.1,       0.1,     0.05
+  ;; Forest,           0.3,              0.02,           0,      0.04,      0.5
+  ;; Crop  ,           0.5,              0.04,           0,      0.06,     0.25  
+  ;;
+  ;; resulting table is read by
+  ;;   table:get (table:get init-interventions FARM-TYPE) INTERVENTION-TYPE
+  set init-interventions table:make
+  carefully [
+    print word "Reading initial intervention adoption proportions from file " file
+    file-open file
+    let the-interventions but-first csv:from-row file-read-line
+    let order get-order the-interventions mgmt-intervention-types
+    let the-farm-types []
+    let the-values []
+    while [not file-at-end?] [
+      let data csv:from-row file-read-line
+      set the-farm-types lput item 0 data the-farm-types
+      set the-values lput reorder but-first data order the-values
+    ]
+    set order get-order the-farm-types farm-types
+    set init-interventions table:from-list reorder (map list the-farm-types the-values) order
+    file-close
+  ]
+  [
+    user-message word "ERROR: problem reading the initial intervention proportions file " file
     file-close
   ]
 end

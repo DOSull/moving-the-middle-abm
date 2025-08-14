@@ -1,0 +1,178 @@
+;; additional probability distributions for NetLogo
+
+to-report random-lognormal [mn sd]
+  let lvar ln (1 + (sd ^ 2) / (mn ^ 2))
+  let lmn ln mn - (lvar / 2)
+  let lsd sqrt lvar
+  report exp (lmn + lsd * random-normal 0 1)
+end
+
+
+; This binomial algorithm from
+; Devroye. L. 1960. Generating the maximum of independent identically
+; distributed random variables. Computers and Mathematics with
+; Applications 6, 305-315.
+; Based on code from
+; https://stackoverflow.com/questions/23561551/a-efficient-binomial-random-number-generator-code-in-java#23574723
+to-report random-binomial [n p]
+  if p > 1 [ user-message (word "WARNING: random-binomial p > 1 in random-binomial " n " " p ". Reporting " n ".") ]
+  if p < 0 [ user-message (word "WARNING: random-binomial p < 0 in random-binomial " n " " p ". Reporting 0.") ]
+  ;; ... forgive it!
+  if p >= 1 [ report n ]
+  if p <= 0 [ report 0 ]
+  let ln-q ln (1 - p)
+  let x 0
+  let s 0
+  ; also need to avoid x = n
+  while [x < n] [
+    set s s + ln (random-float 1) / (n - x)
+    if s < ln-q [
+      report x
+    ]
+    set x x + 1
+  ]
+  report x
+end
+
+
+;; negative binomial implemented as a Poisson draw parameterised
+;; with a Gamma distributed variate per
+;; https://en.wikipedia.org/wiki/Negative_binomial_distribution#Gamma%E2%80%93Poisson_mixture
+to-report random-negative-binomial [r p]
+  report random-poisson random-gamma r (p / (1 - p))
+end
+
+;; wrapper to get a negative binomial variate with mean m and variance mean ratio vmr
+;; the standard nbin parameters are r and p
+to-report random-negative-binomial-with-mean-vmr [m vmr]
+  ;; if vmr = 1 then report poisson random variate
+  if vmr < 1 [ 
+    show "ERROR: vmr must be > 1" 
+    report -999
+  ]
+  if vmr = 1 [ report random-poisson m ]
+  let r m / (vmr - 1)
+  let p 1 / vmr
+  report random-negative-binomial r p
+end
+
+
+to-report random-multinomial-int [n frequencies]
+  report reduce [ [a p] ->
+    lput (ifelse-value (p > 0) [random-binomial (n - sum a) p] [0]) a
+  ] fput [] conditional-probabilities frequencies
+end
+
+;; for a provided list of relative frequencies [f_i]
+;; returns the conditional probabilities [f_i / sum_i..n f_i]
+to-report conditional-probabilities [frequencies]
+  report (map [ [f s] -> ifelse-value (s > 0) [f / s] [0] ]
+                frequencies
+                cumulative-remainder frequencies)
+end
+
+to-report random-multinomial [n frequencies simple-frequencies?]
+  let conditional-probs frequencies
+  if simple-frequencies? [
+    set conditional-probs conditional-probabilities-with-forcing frequencies
+  ]
+  report reduce [ [a p] ->
+    lput (ifelse-value (p > 0) [random-binomial (n - sum a) p] [0]) a
+  ] fput [] conditional-probs
+end
+
+;; for a provided list of relative frequencies [f_i]
+;; returns the conditional probabilities [f_i / sum_i..n f_i]
+to-report conditional-probabilities-with-forcing [frequencies]
+  let c-p (map [ [f s] -> ifelse-value (s > 0) [f / s] [0] ]
+                frequencies
+                cumulative-remainder frequencies)
+  report replace-item (last-positive c-p) c-p 1
+end
+
+to-report last-positive [L]
+  let positives map [x -> x > 0] L
+  report length positives - position true reverse positives - 1
+end
+
+;; for a list [x_i] returns [sum_i..n x_i]
+;; e.g. 1 2 3 4 5 6 --> 21 20 18 15 11 6
+;; same result as reverse cumulative-sum reverse L
+;; using the cumulative-sum reporter from list-utils.nls
+to-report cumulative-remainder [L]
+  report but-last reduce [ [a b] -> lput (last a - b) a ] fput (list sum L) L
+end
+
+
+to-report random-cauchy [locn scl]
+  report locn + scl * (tan (-90 + random-float 180))
+end
+
+
+;; https://stackoverflow.com/questions/33611708/random-number-generator-with-generalized-pareto-distribution-and-weilbull-distri
+to-report random-weibull [shp scl lower-limit upper-limit]
+  let result upper-limit
+  while [result >= upper-limit or result < lower-limit] [
+    set result scl * (-1 * ln (random-float 1)) ^ (1 / shp)
+  ]
+  report result
+end
+
+
+to-report random-gamma-with-mean-sd [mn sd]
+  let g-scale mn / sd / sd
+  let g-shape mn * g-scale
+  report random-gamma g-shape g-scale
+end
+
+
+to-report population-standard-deviation [x]
+  report sqrt population-variance x
+end
+
+to-report population-variance [x]
+  let m mean x
+  report mean map [xi -> (xi - m) ^ 2] x
+end
+
+
+;; x is list of values and p the corresponding cumulative
+;; probabilities - which should begin at 0 and end on 1 and
+;; be strictly increasing. x should be strictly increasing
+;; also. Reporter will fail if either list has consecutive 
+;; values that are equal.
+to-report random-from-cdf [x p]
+  let prob random-float 1 
+  let i length filter [_x -> _x < prob] p
+  report rescale prob item (i - 1) p item i p item (i - 1) x item i x
+end
+
+;; linearly rescales x in the range xmin to xmax to the 
+;; range ymin to ymax. Will fail (division by 0) if xmin = xmax
+to-report rescale [x xmin xmax ymin ymax]
+  report ymin + (ymax - ymin) * (x - xmin) / (xmax - xmin)
+end
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2021 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.

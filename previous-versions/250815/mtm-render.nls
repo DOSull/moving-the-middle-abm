@@ -1,0 +1,130 @@
+;; ----------------------------------------------------------------------------
+;; model rendering
+;; ----------------------------------------------------------------------------
+
+to redraw
+  colour-all-patches show-landuse?
+  clear-drawing
+  redraw-farms-and-holdings
+  display
+end
+
+;; colour in the map by landuse and LUC
+to colour-all-patches [colour-by-type?]
+  colour-patches farm-land colour-by-type?
+end
+
+to colour-patches [pset colour-by-type?]
+  with-local-randomness [
+    ifelse colour-by-type? and show-landuse? [
+      ifelse show-luc-codes? [
+        foreach table:to-list table:get colour-key "farm-type-palettes" [ farm-type-palette ->
+          let [ft pal-name] farm-type-palette
+          ask pset with [landuse = ft] [
+            set pcolor palette:scale-scheme "Sequential" pal-name 9 luc-code 9 0
+          ]
+        ]
+      ]
+      [
+        foreach table:to-list table:get colour-key "farm-type" [ farm-type-colours ->
+          let [ft col] farm-type-colours
+          ask pset with [landuse = ft] [
+            set pcolor col
+          ]
+        ]
+      ]
+    ]
+    [
+      let pal table:get colour-key "LUC-palette"
+      ifelse show-luc-codes?
+      [ ask pset [ set pcolor palette:scale-scheme "Sequential" pal 9 luc-code 9 0 ] ]
+      [ ask pset [ set pcolor green + 2 ] ]
+    ]
+  ]
+end
+
+to redraw-farm
+  set size (abs current-profit / 250) ^ 0.333 ;; scaling size of net profit circle
+  ifelse current-profit > 0 [
+    ifelse farm-type-colours?
+    [ set color table:get table:get colour-key "farm-type" farm-type
+      set color color palette:with-alpha 160
+    ]
+    [ set color table:get colour-key "profit" ]
+  ]
+  [ set color table:get colour-key "loss" ]
+  ask local-links [ set hidden? not show-local-links? ]
+  ask catchment-links [ set hidden? not show-catchment-links? ]
+  colour-patches the-land show-landuse?
+end
+
+to redraw-holding
+  set size (abs current-profit / 1000) ^ 0.333 ;; scaling size of net profit circle
+  ifelse current-profit > 0 [
+    ifelse farm-type-colours?
+    [ set color table:get table:get colour-key "farm-type" farm-type
+      set color color palette:with-alpha 160
+    ]
+    [ set color table:get colour-key "profit" ]
+  ]
+  [ set color table:get colour-key "loss" ]
+  set label (word
+    farm-type ": "
+    (length my-interventions-as-list) "/"
+    (length my-interventions-as-list + length available-interventions-as-list))
+  colour-patches the-land show-landuse?
+end
+
+to redraw-farms-and-holdings
+  with-local-randomness [
+    ask holdings [ redraw-holding ]
+    draw-borders [the-land] of farms table:get colour-key "holding-boundary" [x -> [holding-id] of x]
+    ask farms [ redraw-farm ]
+    draw-borders farm-land table:get colour-key "farm-boundary" [x -> [farm-id] of x]
+  ]
+end
+
+to setup-colours
+  set colour-key table:make
+  table:put colour-key "farmer" black
+  table:put colour-key "farmer-label" black
+  table:put colour-key "farm-type"
+    table:from-list (map list ["SNB" "Dairy" "Forest" "Crop"] (list (orange) (blue) (green) (list 204 51 153)))
+  table:put colour-key "farm-type-palettes" (
+    table:from-list (map list ["SNB" "Dairy" "Forest" "Crop"] ["YlOrBr" "Blues" "Greens" "RdPu"]))
+  table:put colour-key "owner-link" [0 0 0 180]
+  table:put colour-key "farm-boundary" black
+  table:put colour-key "holding-boundary" grey
+  table:put colour-key "LUC-palette" "Greens"
+  table:put colour-key "profit" [0 0 0 180]
+  table:put colour-key "loss" [255 0 0 180]
+  table:put colour-key "label" violet - 2
+  table:put colour-key "background" grey - 1
+  table:put colour-key "local-link" [255 51 51 64]
+  table:put colour-key "catchment-link" [51 153 255 64]
+  table:put colour-key "not-farmed" grey + 1
+end
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-25 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.

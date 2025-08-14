@@ -373,7 +373,7 @@ end
 GRAPHICS-WINDOW
 201
 10
-764
+878
 1009
 -1
 -1
@@ -388,7 +388,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-184
+222
 0
 329
 1
@@ -721,6 +721,36 @@ SLIDER
 810
 190
 843
+n-local-links
+n-local-links
+2
+25
+6.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+10
+850
+190
+883
+n-catchment-links
+n-catchment-links
+2
+50
+6.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+10
+890
+190
+923
 rel-weight-locals
 rel-weight-locals
 0
@@ -733,9 +763,9 @@ HORIZONTAL
 
 SLIDER
 10
-850
+930
 190
-883
+963
 rel-weight-catchment
 rel-weight-catchment
 0
@@ -773,7 +803,7 @@ SWITCH
 143
 geography-from-files?
 geography-from-files?
-0
+1
 1
 -1000
 

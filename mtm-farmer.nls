@@ -37,26 +37,27 @@ to-report get-new-farmer-age [model-initialisation?]
   [ report 20 + random-beta-binomial 45 4 2 ]
 end
 
-;; not currently used
 ;; make links between farmers based on proximity
-to make-farmer-local-links 
+to make-farmer-local-links
+  let n-options n-local-links * 2  
   let locals other (turtle-set [the-owner] of patch-set flatten-list [neighbors4] of the-land)
-  if count locals < 10 [
-    set locals other (turtle-set locals farmers in-radius 30)
+  let r 30
+  if count locals < n-options [
+    while [count locals < n-options] [
+      set locals other (turtle-set locals farmers in-radius r)
+      set r r + 5
+    ]
   ]
-  if count locals > 6 [
-    set locals n-of 6 locals
-  ]
+  set locals n-of n-local-links locals
   create-local-links-with locals [ 
     set color table:get colour-key "local-link" 
     set hidden? not show-local-links? 
   ]
 end
 
-;; not currently used
 ;; make links between farmers based on landuse/industry
 to make-farmer-catchment-links
-  let colleagues n-of 6 (other farmers with [ not member? self [local-link-neighbors] of myself ])
+  let colleagues n-of n-catchment-links (other farmers with [ not member? self [local-link-neighbors] of myself ])
   create-catchment-links-with colleagues [ 
     set color table:get colour-key "catchment-link"
     set hidden? not show-catchment-links?

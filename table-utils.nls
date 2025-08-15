@@ -1,0 +1,221 @@
+;; 
+;; Procedures and reporters to make reading tables from files easier
+;;
+
+;; reports a table initialised from a single header row like 
+;; this (spacing is for clarity):
+;;
+;; <IGNORED>, SNB, Dairy, Forest, Crop
+;; price    ,   5,   7.5,    157, 0.5
+;; 
+;; into a table with keys as in header row and values in the data row
+;; the name of the row of data is ignored
+;;
+to-report read-one-row-table [fname as-list?]
+  let tbl nobody
+  carefully [
+    print word "Reading parameters from " fname
+    file-open fname
+    let raw-headers but-first csv:from-row file-read-line
+    let headers sort raw-headers
+    let order get-order headers raw-headers
+    let values reorder but-first csv:from-row file-read-line order
+    ifelse as-list?
+    [ set tbl map [x -> replace-na x] values ]
+    [ set tbl table:from-list (map list headers map [x -> replace-na x] values) ]
+    file-close
+  ]
+  [
+    user-message word "ERROR: problem reading " fname
+    file-close
+  ]
+  report tbl 
+end
+
+
+;; reports a table of tables initialised from a multirow csv like
+;; this (spacing for clarity):
+;;
+;; <IGNORED>        , SNB, Dairy, Forest, Crop
+;; Build_Wetland    ,	0.7,  0.75,    0.3,  0.5
+;; Riparian_Planting,	0.7,  0.75,    0.2,  0.4
+;; Clean_Races      ,	0.2,   0.7,      0,    0
+;; Farm_Plan        ,	0.7,  0.85,    0.4,  0.6
+;; Join_ETS         ,	0.1,   0.1,	   0.9,  0.5
+;;
+;; table consists of row-tables indexed by row-name, then col-name:
+;; 
+;; table:get (table:get tbl ROWNAME) COLNAME
+;;
+to-report read-multi-row-table [fname as-lists?]
+  let tbl nobody
+  carefully [
+    set tbl table:make
+    print word "Reading parameters from " fname
+    file-open fname
+    let raw-headers but-first csv:from-row file-read-line
+    let headers sort raw-headers
+    let order get-order headers raw-headers
+    while [not file-at-end?] [
+      let data csv:from-row file-read-line
+      let varname first data
+      if first varname != "#" [
+        let values reorder but-first data order
+        ifelse as-lists?
+        [ table:put tbl varname map [x -> replace-na x] values ]
+        [ table:put tbl varname table:from-list (map list headers map [x -> replace-na x] values) ]
+      ]
+    ]
+    file-close
+  ]
+  [
+    user-message word "ERROR: problem reading " fname
+    file-close
+  ]
+  report tbl 
+end
+
+
+;; reports a table of tables initialised from a multirow csv like
+;; this (spacing for clarity):
+;;
+;; <IGNORED>        , SNB, Dairy, Forest, Crop
+;; Build_Wetland    ,	0.7,  0.75,    0.3,  0.5
+;; Riparian_Planting,	0.7,  0.75,    0.2,  0.4
+;; Clean_Races      ,	0.2,   0.7,      0,    0
+;; Farm_Plan        ,	0.7,  0.85,    0.4,  0.6
+;; Join_ETS         ,	0.1,   0.1,	   0.9,  0.5
+;;
+;; table consists of row-tables indexed by col-name, then row-name:
+;; 
+;; table:get (table:get tbl COLNAME) ROWNAME
+;;
+to-report read-multi-col-table [fname as-lists?]
+  report get-table-transpose read-multi-row-table fname as-lists? 
+end
+
+
+;; reports transpose of a two-level nested table of tables
+to-report get-table-transpose [tbl]
+  let tbl-t table:make
+  let rows table:keys tbl
+  let cols table:keys table:get tbl item 0 rows
+  foreach cols [ col ->
+    let values map [row -> table:get table:get tbl row col] rows
+    table:put tbl-t col table:from-list (map list rows values)
+  ]
+  report tbl-t
+end
+
+
+to-report read-transition-table [fname]
+  let xtab nobody
+  carefully [
+    set xtab table:make
+    let rows sort get-rows fname
+    let raw-cols get-columns fname 1
+    if rows != sort raw-cols [ stop ]
+    let order get-order raw-cols rows
+    print word "Reading parameters from " fname
+    let data reorder but-first csv:from-file fname order
+    foreach data [ row ->
+      let key item 0 row
+      let values but-first row
+      table:put xtab key table:from-list reorder (map list raw-cols values) order 
+    ]
+  ]
+  [
+    user-message (word "ERROR: problem reading " fname ". Check row and column headings match.")
+    file-close
+  ]
+  report xtab
+end
+
+
+;; reports a multi-level table initialised from a CSV like
+;;
+;; <IGNORED> , <IGNORED>,  SNB, Dairy, Forest, Crop
+;; Mean      ,         1, 3500,  9500,   4000, 3000
+;; SD        ,         1,  700,  1900,    800,  600
+;; Mean      ,         2, 2650,  8050,   4000, 2850
+;; SD        ,         2,  530,  1610,    800,  570
+;;
+;;                ~~~ and so on ~~~
+;; 
+;; The result will be a nested table:
+;;
+;; { "Mean": { 1: { "SNB": ..., "Dairy": ..., "Forest": ..., "Crop": ... }, 
+;;             2: { "SNB": ..., "Dairy": ..., "Forest": ..., "Crop": ... } }
+;; { "SD"  : { 1: { "SNB": ..., "Dairy": ..., "Forest": ..., "Crop": ... }, 
+;;             2: { "SNB": ..., "Dairy": ..., "Forest": ..., "Crop": ... } }
+;; 
+;; and so on. Columns 1 and 2 can contain arbitrary numbers of categories and
+;; be in any order. Both category labels must appear in every row (missing
+;; values will not be filled assuming a prior value).
+;; 
+;; The result is a table of two-way tables, accessed as e.g.:
+;;
+;; table:get table:get table:get "SNB" 1 "Mean"
+;;
+to-report read-three-way-table [fname]
+  let tbl-top nobody
+  carefully [
+    set tbl-top table:make
+    print word "Reading parameters from " fname
+    let data but-first csv:from-file fname
+    let levels-1 remove-duplicates map [row -> item 0 row] data
+    let levels-2 remove-duplicates map [row -> item 1 row] data
+    file-open fname
+    let raw-cols but-first-n csv:from-row file-read-line 2
+    let cols sort raw-cols
+    let order get-order raw-cols cols
+    file-close
+    foreach levels-1 [ level-1 ->
+      let tbl-level-1 table:make
+      foreach levels-2 [ level-2 ->
+        let values reorder but-first-n item 0 filter [x -> item 0 x = level-1 and item 1 x = level-2] data 2 order
+        table:put tbl-level-1 level-2 table:from-list (map list cols map [x -> replace-na x] values)
+      ]
+      table:put tbl-top level-1 tbl-level-1 
+    ]
+  ]
+  [
+    user-message word "ERROR: problem reading " fname
+    file-close
+  ]
+  report tbl-top
+end
+
+
+to-report get-columns [fname skip]
+  let cols nobody
+  carefully [
+    file-open fname
+    set cols but-first-n csv:from-row file-read-line skip 
+    file-close
+  ]
+  [
+    user-message word "ERROR: problem reading " fname
+    file-close
+  ]
+  report cols
+end
+
+
+to-report get-rows [fname]
+  let rows nobody
+  carefully [
+    let data but-first csv:from-file fname
+    set rows map [row -> first row] data
+    file-close
+  ]
+  [
+    user-message word "ERROR: problem reading " fname
+    file-close
+  ]
+  report rows
+end
+
+to-report but-first-n [lst n]
+  report sublist lst n length lst
+end

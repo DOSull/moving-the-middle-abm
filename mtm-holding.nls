@@ -39,7 +39,7 @@ to initialise-holding
   ;; interventions are a 1 row matrix of 0s to start
   set my-interventions matrix:make-constant 1 (length mgmt-intervention-types) 0
   set avail-interventions possible-interventions
-  let starter-props map [x -> ifelse-value random-float 1 < x [1] [0]] table:get init-interventions farm-type
+  let starter-props map [i -> table:get table:get init-interventions farm-type i] mgmt-intervention-types
   (foreach mgmt-intervention-types starter-props [ [m p] ->
     if random-float 1 < p [ implement-intervention m ]
   ]) 

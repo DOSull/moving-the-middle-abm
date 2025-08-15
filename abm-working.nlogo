@@ -10,6 +10,7 @@ __includes [
   "mtm-results.nls"
   "distribution-utils.nls" ;; generic statistical function
   "list-utils.nls"         ;; generic list utilities
+  "table-utils.nls"
   "mtm-profile.nls"        ;; profiling stuff goes here
 ]
 
@@ -725,7 +726,7 @@ n-local-links
 n-local-links
 2
 25
-6.0
+25.0
 1
 1
 NIL

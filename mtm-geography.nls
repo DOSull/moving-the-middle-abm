@@ -103,36 +103,6 @@ to setup-geography
   colour-all-patches true
 end
 
-to read-farm-type-suitabilities-from-file [file]
-  ;; CSV file looks like this (spacing added for clarity)
-  ;; 1, SNB, Dairy, Forest, Crop
-  ;; 2, SNB, Dairy, Forest, Crop
-  ;; 3, SNB, Dairy, Forest, Crop
-  ;; 4, SNB, Dairy, Forest
-  ;; 5, SNB, Dairy, Forest
-  ;; 6, SNB, Forest
-  ;; 7, SNB, Forest
-  ;; 8, SNB, Forest
-  ;; Each row shows the min and max (inclusive) LUCs suitable for that landuse
-  set farm-type-suitabilities table:make
-  carefully [
-    print word "Reading farm type suitabilities from file " file
-    file-open file
-    set farm-type-suitabilities table:make
-    while [not file-at-end?] [
-      let data csv:from-row file-read-line
-      let luc first data
-      let suitable-landuses but-first data
-      table:put farm-type-suitabilities luc suitable-landuses
-    ]
-    file-close
-  ]
-  [
-    user-message word "ERROR: problem reading farm type suitabilities file " file
-    file-close
-  ]
-end
-
 ;; set things up from supplied LUC and parcels geospatial datasets
 to setup-geography-from-files
   carefully [

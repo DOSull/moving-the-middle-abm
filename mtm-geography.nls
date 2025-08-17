@@ -73,7 +73,7 @@ end
 ;; invoked at setup, delegates the initialisation of the landscape to either a random process
 ;; or reading in from geospatial data files; other steps are the same for either method
 to setup-geography
-  read-farm-type-suitabilities-from-file join-string (list market-data-folder "suitabilities.csv") pathdir:get-separator
+  set farm-type-suitabilities read-multi-row-table join-string (list market-data-folder "suitabilities.csv") pathdir:get-separator false
   ;; this repetition of code-blocks seems necessary to control random elements
   ;; that affect how random seed controls initialisation from GIS data
   ;; note that parcels / allocation of land to farms has to be carried out

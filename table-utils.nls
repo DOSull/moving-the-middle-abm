@@ -59,7 +59,7 @@ to-report read-multi-row-table [fname as-lists?]
     while [not file-at-end?] [
       let data csv:from-row file-read-line
       let varname first data
-      if first varname != "#" [
+      if not is-string? varname or first varname != "#" [
         let values reorder but-first data order
         ifelse as-lists?
         [ table:put tbl varname map [x -> replace-na x] values ]

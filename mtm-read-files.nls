@@ -54,7 +54,6 @@ end
 to setup-economic-parameters
   read-production-function-parameters
   set prices col-matrix read-one-row-table join-string (list market-data-folder "prices.csv") pathdir:get-separator true
-;  set prices get-prices join-string (list market-data-folder "prices.csv") pathdir:get-separator
 end
 
 to read-production-function-parameters
@@ -76,29 +75,6 @@ to read-production-function-parameters
 end
 
 
-;to-report get-prices [file]
-;  ;; the CSV for commodity prices taxes looks like this
-;  ;; (spacing addded for clarity).
-;  ;;
-;  ;;                ,SNB,Dairy, Forest, Crop
-;  ;; Price_Commodity,  5,  7.5,   157,   0.5
-;  ;;
-;  let price-data nobody
-;  carefully [
-;    print word "Reading prices from " file
-;    file-open file
-;    let the-farm-types but-first csv:from-row file-read-line
-;    let order get-order the-farm-types farm-types
-;    set price-data col-matrix reorder but-first csv:from-row file-read-line order
-;    file-close
-;  ]
-;  [
-;    user-message word "ERROR: problem reading prices file " file
-;    file-close
-;  ]
-;  report price-data
-;end
-;
 ;; There is potential in matrix approaches for speeding up the calculations, perhaps even making them more 
 ;; 'sophisticated'. However some of this may come at the cost of (i) less readable code, and (ii) less 
 ;; variance. On (ii) specifically there is now no base patch level variance, i.e. the mean yield, emissions

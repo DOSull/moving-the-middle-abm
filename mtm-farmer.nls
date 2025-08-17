@@ -140,9 +140,7 @@ to-report consider-farm-type-change [down-weight prefix show-messages?]
   if apply-suitability? [
     ;; only landuses suitable for the typical land on the farm are considered
     let luc-constraint round mean [luc-code] of (the-land with [landuse = ft])
-    ;; set options filter [new-ft -> table:get table:get farm-type-suitabilities luc-constraint new-ft = 1] options
-    set options table:get farm-type-suitabilities luc-constraint
-;    set options filter-farm-types-by-luc options luc-constraint
+    set options filter-farm-types-by-luc options luc-constraint
   ]
   let affected-holdings my-holdings with [farm-type = ft]
   set options map [new-ft -> 
@@ -164,8 +162,7 @@ to-report consider-holdings-farm-type-change [holdings-under-consideration fores
       let new-possible-farm-types filter [nft -> nft != farm-type] farm-types
       if apply-suitability? [
         let luc-constraint round mean [luc-code] of (the-land with [landuse = ft]) 
-        set new-possible-farm-types table:get farm-type-suitabilities luc-constraint
-;        set new-possible-farm-types filter-farm-types-by-luc new-possible-farm-types luc-constraint
+        set new-possible-farm-types filter-farm-types-by-luc new-possible-farm-types luc-constraint
       ]
       foreach new-possible-farm-types [ nft ->
         set options lput (list (list (turtle-set self) "one-holding" farm-type nft) 
@@ -176,9 +173,9 @@ to-report consider-holdings-farm-type-change [holdings-under-consideration fores
   report options
 end
 
-;to-report filter-farm-types-by-luc [fts limiting-luc]
-;  report filter [nft -> table:get table:get farm-type-suitabilities limiting-luc nft = 1] fts
-;end
+to-report filter-farm-types-by-luc [fts limiting-luc]
+  report filter [nft -> table:get table:get farm-type-suitabilities limiting-luc nft = 1] fts
+end
 
 ;; given a list of options per the consider-farm-type-change or consider-forestry reporters
 ;; picks one and potentially applies it

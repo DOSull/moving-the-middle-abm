@@ -39,7 +39,7 @@ to initialise-holding
   ;; interventions are a 1 row matrix of 0s to start
   set my-interventions matrix:make-constant 1 (length mgmt-intervention-types) 0
   set avail-interventions possible-interventions
-  let starter-props map [i -> table:get table:get init-interventions farm-type i] mgmt-intervention-types
+  let starter-props map [i -> table:get table:get table:get init-interventions "init_proportion" farm-type i] mgmt-intervention-types
   (foreach mgmt-intervention-types starter-props [ [m p] ->
     if random-float 1 < p [ implement-intervention m ]
   ]) 
@@ -52,9 +52,9 @@ to holding-change-farm-type [ft]
   set farm-type ft
   ask the-land [set landuse ft]
   set landuse-luc-profile get-landuse-luc-profile the-land
-  set my-interventions  ( matrix:map * possible-interventions my-interventions )
+  set my-interventions (matrix:map * possible-interventions my-interventions)
   set avail-interventions matrix:map [x -> ifelse-value x < 1 [0] [1]] 
-                                          (possible-interventions matrix:- my-interventions) 
+                          (possible-interventions matrix:- my-interventions) 
 end
 
 ;; reports a column matrix from the column sums of current landuse-luc-profile matrix
@@ -90,7 +90,8 @@ end
 
 ;; for this farm's type returns 0/1 row matrix indicating which are possible on this type of farm
 to-report possible-interventions
-  report row-matrix map [i -> ifelse-value is-applicable-to-landuse? i [1] [0]] mgmt-intervention-types
+  report row-matrix map [i -> ifelse-value (is-applicable-to-landuse? i and
+                                            is-possible-on-this-holding? i) [1] [0]] mgmt-intervention-types
 end
 
 ;; update my-interventions and available-interventions matrices
@@ -115,6 +116,10 @@ end
 ;; not a holding reporter but most often run by a holding turtle
 to-report is-applicable-to-landuse? [i-type]
   report get-impact farm-type "costs" i-type != na-value
+end
+
+to-report is-possible-on-this-holding? [i-type]
+  report random-float 1 < table:get table:get table:get init-interventions "max_proportion" farm-type i-type
 end
 
 ;; we might need some more of these...

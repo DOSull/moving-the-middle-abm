@@ -120,7 +120,7 @@ end
 ;; this or a wrapper for this could include farmer demography 'shifts'
 ;; or social/geographic network shifts
 to-report get-adoption-probability [i-type]
-  report table:get table:get base-thresholds i-type farm-type
+  report table:get table:get table:get base-thresholds disposition i-type farm-type
 end
 
 ;; reports list of possible changes in landuse by holding and an associated probability
@@ -226,7 +226,7 @@ to-report consider-management-changes [prefix show-messages?]
     let to-consider-idxs map [x -> position x mgmt-intervention-types] to-consider
     let nwk-nudges map [i -> item i matrix:get-row network-nudges position ft farm-types] to-consider-idxs
     ;; get the base probabilities for this farmer (which might be changeable over time)
-    let base-probs map [poss -> get-adoption-probability poss] to-consider
+    let base-probs map [poss -> [ get-adoption-probability poss ] of myself] to-consider
     ;; adjust probabilities using the sigmoid function
     let new-probs (map [[prob nudge nwk-nudge] -> nudged-probability prob (nudge + nwk-nudge)] base-probs nudges nwk-nudges)
     if show-messages? [

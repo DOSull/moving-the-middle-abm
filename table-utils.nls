@@ -112,8 +112,8 @@ to-report read-transition-table [fname]
   let xtab nobody
   carefully [
     set xtab table:make
-    let rows sort get-rows fname
-    let raw-cols get-columns fname 1
+    let rows sort get-row-names fname 0
+    let raw-cols get-column-names fname 1
     if rows != sort raw-cols [ stop ]
     let order get-order raw-cols rows
     print word "Reading parameters from " fname
@@ -187,33 +187,33 @@ to-report read-three-way-table [fname]
 end
 
 
-to-report get-columns [fname skip]
+to-report get-column-names [fname skip-columns]
   let cols nobody
   carefully [
     file-open fname
-    set cols but-first-n csv:from-row file-read-line skip 
+    set cols but-first-n csv:from-row file-read-line skip-columns 
     file-close
   ]
   [
     user-message word "ERROR: problem reading " fname
     file-close
   ]
-  report cols
+  report remove-duplicates cols
 end
 
 
-to-report get-rows [fname]
+to-report get-row-names [fname index]
   let rows nobody
   carefully [
     let data but-first csv:from-file fname
-    set rows map [row -> first row] data
+    set rows map [row -> item index row] data
     file-close
   ]
   [
     user-message word "ERROR: problem reading " fname
     file-close
   ]
-  report rows
+  report remove-duplicates rows
 end
 
 to-report but-first-n [lst n]

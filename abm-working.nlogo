@@ -147,8 +147,6 @@ to setup
 
       setup-farmer-parameters     ;; mtm-read-files.nls
       ;; if we figure out a use for dispositions (Kaine et al. argue against them!) then these
-      ;; will likely be read in from files too, but for now:
-      set dispositions [ "for-profit" "pro-social" "pro-environmental" ]
       set reinitialise? false
     ]
     [

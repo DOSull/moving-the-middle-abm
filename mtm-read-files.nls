@@ -16,12 +16,13 @@ end
 ;; ----------------------------------------------------------------------------
 
 to setup-farmer-parameters
-  set env-metrics             read-multi-row-table join-string (list market-data-folder "environmental-metrics.csv")      pathdir:get-separator false
-  set farm-types                  sort get-columns join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator 1
-  set mgmt-intervention-types     sort get-columns join-string (list market-data-folder "intervention-initial-props.csv") pathdir:get-separator 1
-  set init-interventions      read-multi-row-table join-string (list market-data-folder "intervention-initial-props.csv") pathdir:get-separator false
-  set base-thresholds         read-multi-row-table join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator false
-  set farm-type-change-probs read-transition-table join-string (list market-data-folder "conversion-probabilities.csv")   pathdir:get-separator
+  set env-metrics              read-multi-row-table join-string (list market-data-folder "environmental-metrics.csv")      pathdir:get-separator false
+  set farm-types              sort get-column-names join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator 2
+  set dispositions               sort get-row-names join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator 0
+  set mgmt-intervention-types sort get-column-names join-string (list market-data-folder "intervention-initial-props.csv") pathdir:get-separator 1
+  set init-interventions       read-multi-row-table join-string (list market-data-folder "intervention-initial-props.csv") pathdir:get-separator false
+  set base-thresholds          read-three-way-table join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator
+  set farm-type-change-probs  read-transition-table join-string (list market-data-folder "conversion-probabilities.csv")   pathdir:get-separator
   read-intervention-impacts-from-files
   foreach mgmt-intervention-types [ i -> output-print i ]
 end

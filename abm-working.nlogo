@@ -1187,10 +1187,21 @@ On: LUC suitability applied to farm change
 0.0
 1
 
-SLIDER
+SWITCH
 1020
 820
 1220
+853
+include-debt?
+include-debt?
+1
+1
+-1000
+
+SLIDER
+1230
+820
+1420
 853
 interest-rate
 interest-rate

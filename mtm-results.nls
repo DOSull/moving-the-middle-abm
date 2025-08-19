@@ -139,5 +139,6 @@ to-report results-header
     (list "prioritise_forestry"          prioritise-forestry?)
     (list "apply_severity_of_losses"     apply-severity-of-losses?)
     (list "apply_suitability"            apply-suitability?)
+    (list "include_debt"                 include-debt?)
   )
 end

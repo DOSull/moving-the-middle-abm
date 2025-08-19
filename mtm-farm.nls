@@ -11,13 +11,15 @@ farms-own [
   current-profit          ;; most recent profit of farm summed across patches
   current-income          ;; most recent income of farm summed across patches
   current-costs           ;; most recent costs of farm summed across patches
-  losses-record           ;; a list recording loss (coded 1) or profit (coded 0) in recent years
+  debt
+;  losses-record           ;; a list recording loss (coded 1) or profit (coded 0) in recent years
   my-metrics
 
   current-profit-0        ;; variables at model initialisation for quick reset
   current-income-0
   current-costs-0
-  losses-record-0
+  debt-0
+;  losses-record-0
   my-metrics-0
 ]
 
@@ -29,7 +31,8 @@ to initialise-farm
   set hidden? false
   set label farm-type
   set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
-  set losses-record n-values years-to-remember [i -> 0]
+  set debt 0
+;  set losses-record n-values years-to-remember [i -> 0]
   set my-metrics table:make
 end
 
@@ -48,8 +51,16 @@ end
 to update-profit-of-farm
   set current-income sum [current-income] of [my-holdings] of my-farmer
   set current-costs sum [current-costs] of [my-holdings] of my-farmer
-  set current-profit sum [current-profit] of [my-holdings] of my-farmer
-  set losses-record lput (ifelse-value current-profit < 0 [1] [0]) (but-first losses-record)
+  let latest-profit sum [current-profit] of [my-holdings] of my-farmer - debt * interest-rate / 100 
+  ifelse latest-profit > debt [
+    set debt 0
+    set current-profit latest-profit - debt
+  ]
+  [
+    set debt (debt - latest-profit) * ((100 + interest-rate) / 100) ^ 5
+    set current-profit 0
+  ]
+;  set losses-record lput (ifelse-value current-profit < 0 [1] [0]) (but-first losses-record)
 end
 
 ;; The MIT License (MIT)

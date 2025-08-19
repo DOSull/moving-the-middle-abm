@@ -290,7 +290,8 @@ to store-initial-values
     set current-profit-0 current-profit
     set current-income-0 current-income
     set current-costs-0 current-costs
-    set losses-record-0 losses-record
+    set debt-0 debt
+;    set losses-record-0 losses-record
     set my-metrics-0 table:from-json table:to-json my-metrics
   ]
   ask farmers [
@@ -320,7 +321,8 @@ to restore-initial-values
     set current-profit current-profit-0
     set current-income current-income-0
     set current-costs current-costs-0
-    set losses-record losses-record-0
+    set debt debt-0
+;    set losses-record losses-record-0
     set my-metrics table:from-json table:to-json my-metrics-0
   ]
   ask farmers [
@@ -577,7 +579,7 @@ TEXTBOX
 10
 355
 190
-395
+420
 Colour key (applies to both landuse and farm symbols)\n  Crop: Purple       Dairy: Blue\n  Forestry: Green  SNB: Brown
 11
 0.0
@@ -932,9 +934,9 @@ HORIZONTAL
 
 TEXTBOX
 830
-560
+565
 1010
-578
+583
 Model run RNG
 12
 0.0
@@ -942,9 +944,9 @@ Model run RNG
 
 INPUTBOX
 830
-580
+585
 1010
-640
+645
 run-rng-seed
 1.0
 1
@@ -953,9 +955,9 @@ Number
 
 SWITCH
 830
-645
+650
 1010
-678
+683
 user-run-seed?
 user-run-seed?
 0
@@ -964,9 +966,9 @@ user-run-seed?
 
 MONITOR
 830
-685
+690
 1010
-730
+735
 NIL
 run-seed
 0
@@ -975,9 +977,9 @@ run-seed
 
 SLIDER
 830
-740
+750
 1010
-773
+783
 sigmoid-slope
 sigmoid-slope
 0.01
@@ -990,9 +992,9 @@ HORIZONTAL
 
 TEXTBOX
 830
-790
+800
 1010
-808
+818
 Interventions (for information)
 12
 0.0
@@ -1000,26 +1002,26 @@ Interventions (for information)
 
 OUTPUT
 830
-810
+820
 1010
-920
+930
 11
 
 INPUTBOX
 1020
 10
-1240
+1220
 70
 experiment-name
-scratch2
+scratch
 1
 0
 String
 
 BUTTON
-1250
+1230
 10
-1420
+1410
 43
 output-results
 output-results
@@ -1034,18 +1036,18 @@ NIL
 1
 
 TEXTBOX
-1250
+1230
 45
 1430
-88
-experiment-name should be an existing subfolder of the output folder
+78
+experiment-name should be subfolder of the output folder
 11
 0.0
 1
 
 PLOT
 1020
-90
+80
 1420
 220
 Income-costs
@@ -1062,9 +1064,9 @@ PENS
 
 PLOT
 1020
-230
+225
 1420
-360
+365
 Interventions
 Time
 # Cells
@@ -1081,7 +1083,7 @@ PLOT
 1020
 370
 1420
-500
+505
 Landuse composition
 Time
 # Cells
@@ -1098,7 +1100,7 @@ PLOT
 1020
 510
 1420
-640
+645
 Environmental metrics
 Time
 NIL
@@ -1113,9 +1115,9 @@ PENS
 
 SWITCH
 1020
-650
+660
 1320
-683
+693
 landuse-change-on-succession?
 landuse-change-on-succession?
 0
@@ -1124,9 +1126,9 @@ landuse-change-on-succession?
 
 SWITCH
 1020
-690
+700
 1220
-723
+733
 prioritise-forestry?
 prioritise-forestry?
 1
@@ -1135,9 +1137,9 @@ prioritise-forestry?
 
 TEXTBOX
 1225
-694
+704
 1370
-719
+729
 Off: Consider all landuses for loss-making holdings
 10
 0.0
@@ -1145,9 +1147,9 @@ Off: Consider all landuses for loss-making holdings
 
 SWITCH
 1020
-730
+740
 1220
-763
+773
 apply-severity-of-losses?
 apply-severity-of-losses?
 1
@@ -1156,9 +1158,9 @@ apply-severity-of-losses?
 
 TEXTBOX
 1225
-734
+744
 1370
-759
+769
 On: Severe losses make farm conversion more likely
 10
 0.0
@@ -1166,9 +1168,9 @@ On: Severe losses make farm conversion more likely
 
 SWITCH
 1020
-770
+780
 1220
-803
+813
 apply-suitability?
 apply-suitability?
 0
@@ -1177,73 +1179,28 @@ apply-suitability?
 
 TEXTBOX
 1225
-774
+784
 1370
-799
+809
 On: LUC suitability applied to farm change
 10
 0.0
 1
 
-TEXTBOX
+SLIDER
 1020
 820
 1220
-838
---------- NOT YET IN USE ---------
-11
-15.0
-1
-
-SLIDER
-1020
-840
-1220
-873
-bad-years-trigger
-bad-years-trigger
+853
+interest-rate
+interest-rate
 0
-1
-1.0
-0.001
+15
+0.0
+0.1
 1
 NIL
 HORIZONTAL
-
-TEXTBOX
-1225
-844
-1370
-869
-Proportion of recent years of losses to trigger conversion 
-10
-0.0
-1
-
-SLIDER
-1020
-880
-1220
-913
-years-to-remember
-years-to-remember
-0
-25
-10.0
-1
-1
-NIL
-HORIZONTAL
-
-TEXTBOX
-1225
-884
-1370
-909
-Length of memory of losses
-10
-0.0
-1
 
 @#$#@#$#@
 ## WHAT IS IT?

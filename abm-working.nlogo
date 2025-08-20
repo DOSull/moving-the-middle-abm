@@ -44,6 +44,8 @@ globals [
   geography-seed
   run-seed
 
+  ticks-since-reset
+
   parcels-data            ;; GIS functionality depends on reading the data into an object
   luc-data                ;; then acccessing it again later, so these do that for parcels, LUC,
   landuse-data            ;; and landuse
@@ -74,9 +76,22 @@ globals [
   cost-sds
   yield-means
   yield-sds
+  prices                  ;; column matrix of product prices (per ha) ordered by farm-types list
+
+  cost-means-time-series
+  cost-sds-time-series
+  yield-means-time-series
+  yield-sds-time-series
+  prices-time-series
+
+  cost-means-0
+  cost-sds-0
+  yield-means-0
+  yield-sds-0
+  prices-0                  ;; column matrix of product prices (per ha) ordered by farm-types list
+
   env-metric-means        ;; table of matrices of means of environmental metrics by LUC (row) and farm-type (col)
   env-metric-sds          ;; table of matrices of sd of environmental metrics by LUC (row) and farm-type (col)
-  prices                  ;; column matrix of product prices (per ha) ordered by farm-types list
 
   ;; matrices with rows-cols entries for intervention-type - farm-type respectively
   ;; ordered by intervention-types and farm-types lists
@@ -241,8 +256,10 @@ to go
     ask holdings [redraw-holding]
     if ticks > 0 [
       update-model-plots true
+      update-costs-yields-prices-matrices
     ]
     update-model-results
+    set ticks-since-reset ticks-since-reset + 1
     tick
   ]
 end
@@ -257,6 +274,29 @@ to-report stop-model?
     report true
   ]
 end
+
+to update-costs-yields-prices-matrices
+  ifelse length cost-means-time-series > ticks-since-reset
+  [ set cost-means matrix:times cost-means-0 item ticks-since-reset cost-means-time-series]
+  [ set cost-means matrix:times cost-means-0 last cost-means-time-series ]
+
+  ifelse length cost-sds-time-series > ticks-since-reset
+  [ set cost-sds matrix:times cost-sds-0 item ticks-since-reset cost-sds-time-series]
+  [ set cost-sds matrix:times cost-sds-0 last cost-sds-time-series ]
+
+  ifelse length yield-means-time-series > ticks-since-reset
+  [ set yield-means matrix:times yield-means-0 item ticks-since-reset yield-means-time-series]
+  [ set yield-means matrix:times yield-means-0 last yield-means-time-series ]
+
+  ifelse length yield-sds-time-series > ticks-since-reset
+  [ set yield-sds matrix:times yield-sds-0 item ticks-since-reset yield-sds-time-series]
+  [ set yield-sds matrix:times yield-sds-0 last yield-sds-time-series ]
+
+  ifelse length prices-time-series > ticks-since-reset
+  [ set prices matrix:times-element-wise prices-0 item ticks-since-reset prices-time-series]
+  [ set prices matrix:times-element-wise prices-0 last prices-time-series ]
+end
+
 
 ;; put any model clean up at end here
 to cleanup
@@ -273,6 +313,11 @@ end
 ;; ----------------------------------------------------------------------------
 
 to store-initial-values
+  set cost-means-0 matrix:copy cost-means
+  set cost-sds-0 matrix:copy cost-sds
+  set yield-means-0 matrix:copy yield-means
+  set yield-sds-0 matrix:copy yield-sds
+  set prices-0 matrix:copy prices
   ask farm-land [ set landuse-0 landuse ]
   ask holdings [
     set farm-type-0 farm-type
@@ -304,6 +349,11 @@ to store-initial-values
 end
 
 to restore-initial-values
+  set cost-means matrix:copy cost-means-0
+  set cost-sds matrix:copy cost-sds-0
+  set yield-means matrix:copy yield-means-0
+  set yield-sds matrix:copy yield-sds-0
+  set prices matrix:copy prices-0
   ask farm-land [ set landuse landuse-0 ]
   ask holdings [
     set farm-type farm-type-0
@@ -337,6 +387,7 @@ to restore-initial-values
   update-model-results
   reset-results-tables
   reset-ticks
+  set ticks-since-reset 0
   tick
   reset-rng
 ;  set run-seed ifelse-value user-run-seed? [run-rng-seed] [new-seed]

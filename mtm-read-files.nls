@@ -20,8 +20,8 @@ to setup-farmer-parameters
   set farm-types              sort get-column-names join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator 2
   set dispositions               sort get-row-names join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator 0
   set mgmt-intervention-types sort get-column-names join-string (list market-data-folder "intervention-initial-props.csv") pathdir:get-separator 2
-  set init-interventions       read-three-way-table join-string (list market-data-folder "intervention-initial-props.csv") pathdir:get-separator
-  set base-thresholds          read-three-way-table join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator
+  set init-interventions       read-three-way-table join-string (list market-data-folder "intervention-initial-props.csv") pathdir:get-separator false
+  set base-thresholds          read-three-way-table join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator false
   set farm-type-change-probs  read-transition-table join-string (list market-data-folder "conversion-probabilities.csv")   pathdir:get-separator
   read-intervention-impacts-from-files
   foreach mgmt-intervention-types [ i -> output-print i ]
@@ -53,26 +53,52 @@ end
 ;; economic setup procedures
 ;; ----------------------------------------------------------------------------
 to setup-economic-parameters
-  read-production-function-parameters
-  set prices col-matrix read-one-row-table join-string (list market-data-folder "prices.csv") pathdir:get-separator true
+  set yield-means matrix:from-row-list map [t -> table:values t] table:values table:get get-yields "Mean"
+  set yield-sds   matrix:from-row-list map [t -> table:values t] table:values table:get get-yields "SD"
+  set cost-means  matrix:from-row-list map [t -> table:values t] table:values table:get get-costs  "Mean"
+  set cost-sds    matrix:from-row-list map [t -> table:values t] table:values table:get get-costs  "SD"
+  setup-costs-yields-time-series
+  set prices      col-matrix get-prices
+  set prices-time-series get-prices-time-series
+  setup-environmental-metrics
 end
 
-to read-production-function-parameters
-  let yields read-three-way-table join-string (list market-data-folder "yields.csv") pathdir:get-separator
-  set yield-means         matrix:from-row-list map [t -> table:values t] table:values table:get yields "Mean"
-  set yield-sds           matrix:from-row-list map [t -> table:values t] table:values table:get yields "SD"
-          
-  let costs read-three-way-table join-string (list market-data-folder "costs.csv")   pathdir:get-separator
-  set cost-means          matrix:from-row-list map [t -> table:values t] table:values table:get costs "Mean"
-  set cost-sds            matrix:from-row-list map [t -> table:values t] table:values table:get costs "SD"
-  
+to-report get-yields
+  report read-three-way-table join-string (list market-data-folder "yields.csv") pathdir:get-separator false
+end
+
+to-report get-costs
+  report read-three-way-table join-string (list market-data-folder "costs.csv") pathdir:get-separator false
+end
+
+to setup-costs-yields-time-series
+  let tbl read-three-way-table join-string (list market-data-folder "costs-yields-time-series.csv") pathdir:get-separator true
+  set cost-means-time-series  table:get table:get tbl "Mean" "costs"
+  set cost-sds-time-series    table:get table:get tbl "SD"   "costs"
+  set yield-means-time-series table:get table:get tbl "Mean" "yields"
+  set yield-sds-time-series   table:get table:get tbl "SD"   "yields"
+end
+
+to setup-environmental-metrics
   set env-metric-means table:make
   set env-metric-sds table:make
   foreach sort table:keys env-metrics [ metric ->
-    let metric-vals read-three-way-table join-string (list market-data-folder (word metric ".csv")) pathdir:get-separator
+    let metric-vals read-three-way-table join-string (list market-data-folder (word metric ".csv")) pathdir:get-separator false
     table:put env-metric-means metric matrix:from-row-list map [t -> table:values t] table:values table:get metric-vals "Mean"
     table:put env-metric-sds   metric matrix:from-row-list map [t -> table:values t] table:values table:get metric-vals "SD"
   ]
+end
+
+to-report get-prices
+  report read-one-row-table join-string (list market-data-folder "prices.csv") pathdir:get-separator true
+end
+
+to-report get-prices-time-series
+  let prices-ts get-table-transpose read-multi-row-table join-string (list market-data-folder "prices-time-series.csv") pathdir:get-separator false
+  report map [x -> col-matrix x] 
+         table:values 
+         table:from-list (map list table:keys prices-ts
+                                   map [tbl -> table:values tbl] table:values prices-ts)
 end
 
 

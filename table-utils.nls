@@ -157,7 +157,7 @@ end
 ;;
 ;; table:get table:get table:get "SNB" 1 "Mean"
 ;;
-to-report read-three-way-table [fname]
+to-report read-three-way-table [fname as-lists?]
   let tbl-top nobody
   carefully [
     set tbl-top table:make
@@ -174,7 +174,9 @@ to-report read-three-way-table [fname]
       let tbl-level-1 table:make
       foreach levels-2 [ level-2 ->
         let values reorder but-first-n item 0 filter [x -> item 0 x = level-1 and item 1 x = level-2] data 2 order
-        table:put tbl-level-1 level-2 table:from-list (map list cols map [x -> replace-na x] values)
+        ifelse as-lists?
+        [ table:put tbl-level-1 level-2 map [x -> replace-na x] values ] 
+        [ table:put tbl-level-1 level-2 table:from-list (map list cols map [x -> replace-na x] values) ]
       ]
       table:put tbl-top level-1 tbl-level-1 
     ]

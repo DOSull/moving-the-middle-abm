@@ -6,11 +6,11 @@
 ;; primitive introspection stuff
 ;; ----------------------------------------------------------------------------
 
-;; these are sufficiently opaque to make utility functions to access them
+;; these are sufficiently opaque to make utility functions to access them useful
 ;; note that using run and runresult on anonymous procedures is allegedly quicker 
 ;; than on strings, although it is unclear to me if that is actually the case in 
 ;; this application. In any case these are used infrequently, mainly in setup and 
-;; I'm not going to optimise too soon...
+;; I'm not going to optimise too soon... (cf Knuth)
 
 ;; report result of running anonymous reporter getter on x
 to-report get-var [x getter]
@@ -63,6 +63,52 @@ end
 ;;     https://github.com/NetLogo/NetLogo/issues/894
 to-report is-nan? [x]
   report not (x <= 0 or x >= 0)
+end
+
+;; linearly rescales x in the range xmin to xmax to the 
+;; range ymin to ymax. Will fail (division by 0) if xmin = xmax
+to-report rescale [x xmin xmax ymin ymax]
+  report ymin + (ymax - ymin) * (x - xmin) / (xmax - xmin)
+end
+
+;; see https://en.wikipedia.org/wiki/Beta_distribution#Random_variate_generation
+to-report random-beta [alpha beta]
+  let X random-gamma alpha 1
+  let Y random-gamma beta 1
+  report X / (X + Y)
+end
+
+;; we use this distribution to getnerate plausible farmer ages
+;; both at initialisation and of incoming new farmers
+;; see https://en.wikipedia.org/wiki/Beta-binomial_distribution#Generating_random_variates
+to-report random-beta-binomial [n alpha beta]
+  report random-binomial n random-beta alpha beta
+end
+
+;; This binomial algorithm from
+;; Devroye. L. 1960. Generating the maximum of independent identically
+;; distributed random variables. Computers and Mathematics with
+;; Applications 6, 305-315.
+;; Based on code from
+;; https://stackoverflow.com/questions/23561551/a-efficient-binomial-random-number-generator-code-in-java#23574723
+to-report random-binomial [n p]
+  if p > 1 [ user-message (word "WARNING: random-binomial p > 1 in random-binomial " n " " p ". Reporting " n ".") ]
+  if p < 0 [ user-message (word "WARNING: random-binomial p < 0 in random-binomial " n " " p ". Reporting 0.") ]
+  ;; ... forgive it!
+  if p >= 1 [ report n ]
+  if p <= 0 [ report 0 ]
+  let ln-q ln (1 - p)
+  let x 0
+  let s 0
+  ; also need to avoid x = n
+  while [x < n] [
+    set s s + ln (random-float 1) / (n - x)
+    if s < ln-q [
+      report x
+    ]
+    set x x + 1
+  ]
+  report x
 end
 
 
@@ -141,8 +187,41 @@ end
 ;; list stuff
 ;; ----------------------------------------------------------------------------
 
+;; joins a list of strings by the supplied separator string
+to-report join-list [lst sep]
+  report reduce [ [a b] -> (word a sep b) ] lst
+end
+
+to-report range-from-to-by [start finish stepsize]
+  let n ceiling ((finish - start) / stepsize)
+  if (stepsize * (finish - start)) < 0 [
+    print "***WARNING: step size in sequence reporter is wrong sign. Returning empty list***"
+    report []
+  ]
+  ifelse finish > start
+  [ report n-values n [i -> start + stepsize * i] ]
+  [ report n-values n [i -> start + stepsize * i] ]
+end
+
+;; reports a range of values from start (incl.) to finish (excl.)
+;; in steps of either +1 or -1
+to-report range-from-to [start finish]
+  ifelse finish > start
+  [ report range-from-to-by start finish 1 ]
+  [ report range-from-to-by start finish -1 ]
+end
+
+;; converts a list of lists to a transposed list of lists, i.e.
+;; [[a b c] [d e f] [g h i] [j k l]] ->
+;; [[a d g j] [b e h k] [c f i l]]
+to-report transpose [lists]
+  let indexes n-values length first lists [i -> i]
+  report map [i -> map [lst -> item i lst] lists] indexes
+end
+
 ;; gets a rough order of lst with respect to sorted-lst
 ;; all elements in lst should appear somewhere in sorted-lst
+;; e.g. get-raw-order [4 7 3 2] [2 3 4 7] -> [3 2 0 1]
 to-report get-raw-order [lst sorted-lst]
   report map [a -> position a lst] sorted-lst
 end
@@ -199,6 +278,11 @@ to-report product [numbers]
   [ report reduce * numbers ]
 end
 
+;; reports entries in lst indexed by values in slice-indexes
+to-report slice [lst slice-indexes]
+  report map [i -> item i lst] slice-indexes
+end
+
 ;; reports a filtered copy of lst with only items at positions where the
 ;; correspinding item in ones equals 1
 ;; e.g. slice-by-ones [1 2 3 4] [1 0 0 1] --> [1 4]
@@ -210,16 +294,20 @@ to-report first-n [lst n]
   report sublist lst 0 n
 end
 
+to-report but-first-n [lst n]
+  report sublist lst n length lst
+end
+
 to-report last-n [lst n]
   report sublist lst (length lst - 2) length lst
 end
 
 to-report any-true? [lst]
-  report length filter [x -> x = true] lst > 0
+  report reduce [[a b] -> a or b] fput false lst
 end
 
 to-report all-true? [lst]
-  report length filter [x -> x = true] lst = length lst
+  report reduce [[a b] -> a and b] fput true lst
 end
 
 ;; ------------------------------------------------------------------------------

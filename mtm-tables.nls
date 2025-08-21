@@ -107,7 +107,24 @@ to-report get-table-transpose [tbl]
   report tbl-t
 end
 
-
+;; reads a table like
+;;
+;;       , SNB, Dairy, Forest, Crop
+;; SNB   ,   1,   0.1,    0.2,  0.1
+;; Dairy , 0.1,     1,    0.2,  0.1
+;; Forest, 0.1,   0.1,      1,  0.1
+;; Crop  , 0.1,   0.1,    0.2,    1
+;;
+;; into a table like
+;; 
+;; {{table: [
+;;    ["Crop"  {{table: [["Crop" 1] ["Dairy" 0.1] ["Forest" 0.2] ["SNB" 0.1]]}}] 
+;;    ["Dairy" {{table: [["Crop" 0.1] ["Dairy" 1] ["Forest" 0.2] ["SNB" 0.1]]}}]
+;;                          etc.
+;;
+;; implementation will force the same order on rows and columns so if converted
+;; to a matrix the lead diagonal will likely consist of all 1s (or perhaps 0s)
+;; depending on the application. If row and column names are not matched will fail.
 to-report read-transition-table [fname]
   let xtab nobody
   carefully [
@@ -189,6 +206,8 @@ to-report read-three-way-table [fname as-lists?]
 end
 
 
+;; reports column names of a CSV file, skipping specified number of
+;; row-name columns
 to-report get-column-names [fname skip-columns]
   let cols nobody
   carefully [
@@ -204,6 +223,7 @@ to-report get-column-names [fname skip-columns]
 end
 
 
+;; reports row-names of a CSV file from column at 0-indexed position
 to-report get-row-names [fname index]
   let rows nobody
   carefully [
@@ -217,7 +237,40 @@ to-report get-row-names [fname index]
   ]
   report remove-duplicates rows
 end
+  
 
-to-report but-first-n [lst n]
-  report sublist lst n length lst
+;; replaces text "NA" with the (global) na-value
+to-report replace-na [x]
+  report ifelse-value x = "NA" [na-value] [x]
 end
+
+
+;; if x = y reports z, otherwise reports x unchanged
+to-report replace [x y z]
+  report ifelse-value x = y [z] [x]
+end 
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-25 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.
+

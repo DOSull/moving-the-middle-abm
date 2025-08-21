@@ -8,9 +8,7 @@ __includes [
   "mtm-holding.nls"        ;; code for holding turtles
   "mtm-plots.nls"          ;; plotting code allowing for varying numbers of pens
   "mtm-results.nls"
-  "distribution-utils.nls" ;; generic statistical function
-  "list-utils.nls"         ;; generic list utilities
-  "table-utils.nls"
+  "mtm-tables.nls"
   "mtm-profile.nls"        ;; profiling stuff goes here
 ]
 
@@ -23,9 +21,7 @@ extensions [
   nw       ;; networks for cluster/connectivity detection
   rnd      ;; weighted random draws
   profiler ;; in case we need to figure out why things are slow
-  pathdir
-  ;; sr
-  ;; xw
+  pathdir  ;; path separator character so things run OK on any OS
 ]
 
 globals [
@@ -33,74 +29,74 @@ globals [
   output-data-folder
   market-data-folder
   spatial-data-folder
-  results
+  results                    ;; table of results for output when running experiments
 
-  show-labels?            ;; generally don't want to see labels on turtles
+  show-labels?               ;; generally don't want to see labels on turtles
 
-  epsilon                 ;; for convenience - constant for 'smallest number'
-  na-value                ;; matrices can only store numbers, unlike tables, so we need a sentinel
-                          ;; NA value. In time-honoured GIS tradition it will be set to -999
+  epsilon                    ;; for convenience - constant for 'smallest number'
+  na-value                   ;; matrices can only store numbers, unlike tables, so we need a sentinel
+                             ;; NA value. In time-honoured GIS tradition it will be set to -999
 
   geography-seed
   run-seed
 
-  ticks-since-reset
+  ticks-since-reset          ;; allows time-series stuff to work after a reset
 
-  parcels-data            ;; GIS functionality depends on reading the data into an object
-  luc-data                ;; then acccessing it again later, so these do that for parcels, LUC,
-  landuse-data            ;; and landuse
+  parcels-data               ;; GIS functionality depends on reading the data into an object
+  luc-data                   ;; then acccessing it again later, so these do that for parcels, LUC,
+  landuse-data               ;; and landuse
 
-  farm-land               ;; patches that are on farms
-  not-farm-land           ;; and patches that are not - esp. important for GIS data
+  farm-land                  ;; patches that are on farms
+  not-farm-land              ;; and patches that are not - esp. important for GIS data
 
-  farm-types              ;; list of named farm types - likely fixed at 4: Crop Dairy Forestry SNB
-  mgmt-intervention-types ;; list of named management interventions - more likely to change over time
-  dispositions            ;; list of farmer dispositions
+  farm-types                 ;; list of named farm types - likely fixed at 4: Crop Dairy Forestry SNB
+  mgmt-intervention-types    ;; list of named management interventions - more likely to change over time
+  dispositions               ;; list of farmer dispositions
 
   ;; some model parameters are read into tables for relative ease of retrieval
-  farm-type-suitabilities ;; table of LUC levels suitable for each farm-type
-  farm-type-change-probs  ;; table of probability of conversion between farm types
-  env-metrics             ;; table of environmental metrics with policy limits on per ha. emissions
+  farm-type-suitabilities    ;; table of LUC levels suitable for each farm-type
+  farm-type-change-probs     ;; table of probability of conversion between farm types
+  env-metrics                ;; table of environmental metrics with policy limits on per ha. emissions
 
   ;; these tables are only used in setup - the data are passed into matrix copies for use in calculations
-  mgmt-interventions      ;; table of tables of management intervention impacts
-  init-interventions      ;; table of lists of proportion of holdings where interventions have been adopted
-  base-thresholds         ;; table of default farmer decision thresholds for various interventions
+  mgmt-interventions         ;; table of tables of management intervention impacts
+  intervention-adoption      ;; table of lists of proportion of holdings where interventions have been adopted
+                             ;; at model initialisation, and maximum rate of adoption possible by landuse
+  base-thresholds            ;; farmer adoption probabilities for interventions by landuse and disposition
 
-  ;; data stored as matrices for use in calculations
-  ;; First 6 matrices have rows - cols entries for LUC - farm-type respectively
+  ;; data stored as matrices for use in calculations; rows - cols entries for LUC - farm-type respectively
   ;; rows order LUC1 to LUC8, cols ordered alphabetically by farm-type
-  ;; Note that the table env-metrics-means and env-metrics-sds contain similar
-  ;; matrices in a table indexed by the metric name
-  cost-means
+  cost-means                 ;; costs per cell (16 ha approx)
   cost-sds
-  yield-means
+  yield-means                ;; yields in units in which commodities are priced per cell
   yield-sds
-  prices                  ;; column matrix of product prices (per ha) ordered by farm-types list
 
-  cost-means-time-series
+  cost-means-time-series     ;; multipliers of starting cost/yield means/SDs as lists indexed by tick
   cost-sds-time-series
   yield-means-time-series
   yield-sds-time-series
-  prices-time-series
 
   cost-means-0
   cost-sds-0
   yield-means-0
   yield-sds-0
-  prices-0                  ;; column matrix of product prices (per ha) ordered by farm-types list
 
-  env-metric-means        ;; table of matrices of means of environmental metrics by LUC (row) and farm-type (col)
-  env-metric-sds          ;; table of matrices of sd of environmental metrics by LUC (row) and farm-type (col)
+  prices                     ;; column matrix of product prices (per cell) ordered by farm-types list
+  prices-time-series         ;; multipliers for initial prices listed by tick
+  prices-0
+
+  ;; Similar matrices to costs/yields in a table indexed by metric name
+  env-metric-means           ;; table of matrices of means of environmental metrics by LUC (row) and farm-type (col)
+  env-metric-sds             ;; table of matrices of sd of environmental metrics by LUC (row) and farm-type (col)
 
   ;; matrices with rows-cols entries for intervention-type - farm-type respectively
   ;; ordered by intervention-types and farm-types lists
   intervention-cost-impacts
   intervention-yield-impacts
-  intervention-env-impacts ;; table of intervention impact matrices indexed by 'ghg-emissions', 'nitrates' etc.
+  intervention-env-impacts   ;; table of intervention impact matrices indexed by 'ghg-emissions', 'nitrates' etc.
 
   ;; colour settings - these can be changed in one place, see mtm-render::setup-key-colours procedure
-  colour-key              ;; table of colour settings
+  colour-key                 ;; table of colour settings
 ]
 
 undirected-link-breed [catchment-links catchment-link]
@@ -122,6 +118,8 @@ patches-own [
   luc-code                ;; LUC code where 1 = LUC1, 2 = LUC2, etc. (1 is best, 8 is worst)
   landuse                 ;; one of global farm-types - initially will match farm but may change over time
   landuse-0               ;; for reset to initial state
+  degradation
+  degradation-0
 ]
 
 
@@ -153,19 +151,18 @@ to setup
   if reinitialise? or geography-from-files? [
     carefully [
       if geography-from-files? [
-        ;; set region user-one-of "Set the spatial setting" sort filter [d -> first d != "."] pathdir:list spatial-data-folder
         set spatial-data-folder join-list (list spatial-data-folder region) pathdir:get-separator
       ]
       setup-world-dimensions
-      ;; set scenario user-one-of "Set the market scenario" sort filter [d -> first d != "."] pathdir:list market-data-folder
       set market-data-folder join-list (list market-data-folder scenario) pathdir:get-separator
 
-      setup-farmer-parameters     ;; mtm-read-files.nls
-      ;; if we figure out a use for dispositions (Kaine et al. argue against them!) then these
+      setup-farmer-parameters ;; see mtm-read-files.nls
       set reinitialise? false
     ]
     [
-      user-message "An initialisation error occurred. Check that you picked geography and scenario folders that contain all necessary files."
+      user-message (word "An initialisation error occurred.\n"
+                         "Check that you picked geography and scenario\n"
+                         "folders that contain all necessary files.")
       stop
     ]
   ]
@@ -175,22 +172,41 @@ to setup
   set show-catchment-links? include-networks?
 
   carefully [
-    setup-geography                  ;; mtm-geography.nls
-    setup-economic-parameters        ;; mtm-read-files.nls
-    make-matrix-copies-of-some-data  ;; mtm-read-files.nls
+    setup-geography                  ;; see mtm-geography.nls
+    setup-economic-parameters        ;;     mtm-read-files.nls
+    make-matrix-copies-of-some-data  ;;     mtm-read-files.nls
   ]
   [
-    user-message "Have you initialised the model correctly? Set the initialised? switch On and try setup again ensuring you pick a folder with a complete set of initialisation .csv files."
+    user-message (word "Have you initialised the model correctly?\n"
+                       "Set the initialised? switch On and try setup again making sure to\n"
+                       "pick a folder with a complete set of initialisation .csv files.")
   ]
-  setup-results-tables        ;; mtm-results.nls
+  setup-results-tables   ;; see mtm-results.nls
+  burn-in-step
+end
+
+
+to burn-in-step
   reset-ticks
-  random-seed 0 ;; make the burn-in tick identical regardless of seed settings
-  go ;; this initialises the farms with current net profit and some interventions
+  random-seed 0          ;; make the burn-in tick identical regardless of seed settings
+  ask holdings [
+    update-environmental-metrics-of-holding
+    update-profit-of-holding
+  ]
+  ask farms [
+    update-environmental-metrics-of-farm
+    update-profit-of-farm
+  ]
+  ask farms [redraw-farm]
+  ask holdings [redraw-holding]
+  update-model-results
+  set ticks-since-reset ticks-since-reset + 1
+  tick
   store-initial-values   ;; store
   setup-model-plots      ;; mtm-plots.nls
-  restore-initial-values ;; restore to that resetting is exactly the same
-;  restore-initial-values ;; restore to that resetting is exactly the same
+  restore-initial-values ;; restore so that resetting is exactly the same
 end
+
 
 ;; core model loop
 to go
@@ -201,7 +217,12 @@ to go
   [
     print (word "------------------------------ tick " ticks " ------------------------------")
     ;; update farm status - note that succession may also lead to change of farm type
-    ask farmers [ age-and-succeed-farmer ]
+;    ask farm-land [
+;      set degradation degradation + position landuse farm-types
+;    ]
+    ask farmers [
+      age-and-succeed-farmer
+    ]
     ask holdings [
       update-environmental-metrics-of-holding
       update-profit-of-holding
@@ -221,11 +242,10 @@ to go
           if [current-profit] of my-farm < 0 [ ;; losing lots of money so consider complete change
             let down-weight ifelse-value apply-severity-of-losses?
               [ 1 - (sum [count the-land] of loss-making-holdings) / count the-land ] [ 1 ]
-            set farm-conversion-options consider-farm-type-change down-weight "Losing money: " false
+            set farm-conversion-options consider-farm-type-change down-weight "Losing money: "
           ]
           ;; only some holdings are losing money so consider forestry on those
-          let holding-change-options consider-holdings-farm-type-change loss-making-holdings
-                prioritise-forestry? "Some holdings losing money: " false
+          let holding-change-options consider-holdings-farm-type-change loss-making-holdings prioritise-forestry?
           make-farm-type-changes (sentence farm-conversion-options holding-change-options)
         ]
         ;;
@@ -244,7 +264,7 @@ to go
         [
           if any? my-holdings with [any-interventions-to-do?] [
             ;; this reports a [holding [intervention-type probability]] list
-            let potential-changes consider-management-changes "Management change: " false
+            let potential-changes consider-management-changes "Management change: "
             ;; which we pass to make-management-changes
             if length potential-changes > 0 [ make-management-changes potential-changes ]
           ]
@@ -318,7 +338,10 @@ to store-initial-values
   set yield-means-0 matrix:copy yield-means
   set yield-sds-0 matrix:copy yield-sds
   set prices-0 matrix:copy prices
-  ask farm-land [ set landuse-0 landuse ]
+  ask farm-land [
+    set landuse-0 landuse
+    set degradation-0 degradation
+  ]
   ask holdings [
     set farm-type-0 farm-type
     set current-profit-0 current-profit
@@ -354,7 +377,10 @@ to restore-initial-values
   set yield-means matrix:copy yield-means-0
   set yield-sds matrix:copy yield-sds-0
   set prices matrix:copy prices-0
-  ask farm-land [ set landuse landuse-0 ]
+  ask farm-land [
+    set landuse landuse-0
+    set degradation degradation-0
+  ]
   ask holdings [
     set farm-type farm-type-0
     set current-profit current-profit-0
@@ -777,7 +803,7 @@ n-local-links
 n-local-links
 2
 25
-25.0
+4.0
 1
 1
 NIL
@@ -846,7 +872,7 @@ CHOOSER
 region
 region
 "Oreti" "Waihou-Piako" "Rangitaiki"
-1
+0
 
 SWITCH
 830

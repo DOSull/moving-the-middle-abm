@@ -70,6 +70,7 @@ to setup-world-dimensions
   set-patch-size cell-size * max-dimension / max (list world-width world-height)
 end
 
+
 ;; invoked at setup, delegates the initialisation of the landscape to either a random process
 ;; or reading in from geospatial data files; other steps are the same for either method
 to setup-geography
@@ -102,6 +103,7 @@ to setup-geography
   ]
   colour-all-patches true
 end
+
 
 ;; set things up from supplied LUC and parcels geospatial datasets
 to setup-geography-from-files
@@ -148,6 +150,7 @@ to setup-geography-from-files
   display
 end
 
+
 ;; random process uses random farm centres from sequential spatial inhibition
 ;; and either averaging or a voter model for LUC codes
 to setup-random-geography
@@ -170,6 +173,7 @@ to setup-random-geography
   setup-random-luc-codes
 end
 
+
 ;; setup LUC codes using spatial averaging
 to setup-random-luc-codes
   set farm-land patches
@@ -182,14 +186,10 @@ to setup-random-luc-codes
   ask patches [
     set luc-code round rescale luc-code min-x max-x 0.5 8.4999
   ]
-  ;; voter model method - this may yield wildly uneven distributions!
-  ;  ask patches [ set luc-code 1 + random 8 ]
-  ;  repeat luc-aggregation-steps * 3 [
-  ;   ask patches [ set luc-code [luc-code] of one-of neighbors4 ]
-  ; ]
   colour-all-patches false
   display
 end
+
 
 ;; segregate farm-land patches by the temp-id attribute into individual farms
 ;; further segregate sets of farm patches into holdings based on luc-code
@@ -232,6 +232,7 @@ to setup-farmers-land
   ]
 end
 
+
 ;; read landuse raster data and apply to patches
 to setup-landuse-from-gis-data
   let not-farmed-colour table:get colour-key "not-farmed"
@@ -271,6 +272,8 @@ to setup-landuse-from-gis-data
   display
 end
 
+
+;; random landuse but with correlation induced by a voter process
 to setup-random-landuse
   ask farm-land [ set landuse one-of farm-types ]
   ask farmers [ set farm-type [landuse] of one-of the-land ]
@@ -294,12 +297,15 @@ to setup-random-landuse
   ask farmers [ ask the-land [ set landuse [farm-type] of myself ] ]
 end
 
+
+;; make actual networks for use in the model
 to setup-farmer-networks
   ask farmers [ 
     make-farmer-local-links
     make-farmer-catchment-links 
   ]
 end
+
 
 ;; setup farms using the farmer information
 ;; also initialises the farmer's my-farm variable
@@ -313,6 +319,7 @@ to setup-farms
     set my-farm this-farm
   ]
 end
+
 
 ;; setup holdings using farmer information and holding-id of patches
 ;; also initialises the farmer's my-holdings variable
@@ -336,15 +343,16 @@ to setup-holdings
   ]
 end
 
+
 ;; returns approximate centroid of a patch-set
-to-report approximate-centroid [poly]
+to-report approximate-centroid [polygon]
   let centroid nobody
   with-local-randomness [
     random-seed 0
-    let mean-x mean [pxcor] of poly
-    let mean-y mean [pycor] of poly
+    let mean-x mean [pxcor] of polygon
+    let mean-y mean [pycor] of polygon
     ;; make sure it's actually a patch in the set
-    set centroid min-one-of poly [distancexy mean-x mean-y]
+    set centroid min-one-of polygon [distancexy mean-x mean-y]
   ]
   report centroid
 end
@@ -362,7 +370,8 @@ end
 ;; Labels a list of patchsets based on the supplied region-id-reporter, which is
 ;; an anonymous function such as 
 ;; 
-;;    [x -> [some-var] of x]. 
+;;    [x -> [some-var] of x]
+;;
 ;; This allows an arbitrary patch variable to be used for determining regions.
 ;; 
 ;; Labels are NOT values of that reporter, but sequential integers starting from 0
@@ -396,19 +405,20 @@ to-report label-connected-region [pset region-id-reporter id0 n4?]
     ]
   ]
   nw:set-context nodes links
-  foreach nw:weak-component-clusters [ c ->
-    ask c [ set region-id id0 ]
+  foreach nw:weak-component-clusters [ v ->
+    ask v [ set region-id id0 ]
     set id0 id0 + 1
   ]
   ask nodes [die]
   report id0
 end
 
+
 ;; merges isolated singletons - NOT CONFIDENT OF THIS IMPLEMENTATION
 ;; TODO: would also like to extend this to filter out connected regions smaller than
 ;; some threshold value
-;; var-getter is an anonymous reporter like   [p -> [farm-id] of p]
-;; var-matcher is an anonymous procedure like [[x y] -> ask x [set farm-id [farm-id] of y]]
+;; var-getter  is an anonymous reporter like  [   p   -> [farm-id] of p ]
+;; var-matcher is an anonymous procedure like [ [x y] -> ask x [set farm-id [farm-id] of y] ]
 to merge-singletons [pset var-getter var-matcher]
   let singletons get-singletons pset var-getter
   let any-change? true
@@ -439,6 +449,7 @@ to merge-singletons [pset var-getter var-matcher]
       set n count singletons
     ]
   ]
+  ;; if any singletons remain remove them from the farm-land
   if any? singletons [
     set farm-land farm-land with [not member? self singletons]
     set not-farm-land (patch-set not-farm-land singletons)
@@ -446,10 +457,12 @@ to merge-singletons [pset var-getter var-matcher]
   ]
 end
 
-;; this only detects singleton members of pset with neighbors4 with matching values of var-getter
+
+;; this detects singleton members of pset with neighbors4 with matching values of var-getter
 to-report get-singletons [pset var-getter]
   report pset with [not any? neighbors4 with [x1-var-matches-x2-var? self myself var-getter and member? self pset]]
 end
+
 
 ;; The MIT License (MIT)
 ;;

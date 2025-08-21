@@ -1,5 +1,7 @@
 ;; ----------------------------------------------------------------------------
 ;; many scenario and spatial setup parameters are in files not the UI
+;;
+;; most of the 'action' here now happens in table-utils
 ;; ----------------------------------------------------------------------------
 
 ;; initialise various folders - here for convenient modification in one place
@@ -14,13 +16,12 @@ end
 ;; ----------------------------------------------------------------------------
 ;; farmer (behavioural) parameter setup
 ;; ----------------------------------------------------------------------------
-
 to setup-farmer-parameters
   set env-metrics              read-multi-row-table join-string (list market-data-folder "environmental-metrics.csv")      pathdir:get-separator false
   set farm-types              sort get-column-names join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator 2
   set dispositions               sort get-row-names join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator 0
   set mgmt-intervention-types sort get-column-names join-string (list market-data-folder "intervention-initial-props.csv") pathdir:get-separator 2
-  set init-interventions       read-three-way-table join-string (list market-data-folder "intervention-initial-props.csv") pathdir:get-separator false
+  set intervention-adoption    read-three-way-table join-string (list market-data-folder "intervention-initial-props.csv") pathdir:get-separator false
   set base-thresholds          read-three-way-table join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator false
   set farm-type-change-probs  read-transition-table join-string (list market-data-folder "conversion-probabilities.csv")   pathdir:get-separator
   read-intervention-impacts-from-files
@@ -37,16 +38,6 @@ to read-intervention-impacts-from-files
     table:put mgmt-interventions impact impacts
   ] 
 end
-  
-
-to-report replace-na [x]
-  report ifelse-value x = "NA" [na-value] [x]
-end
-
-
-to-report replace [x y z]
-  report ifelse-value x = y [z] [x]
-end 
 
 
 ;; ----------------------------------------------------------------------------
@@ -63,6 +54,9 @@ to setup-economic-parameters
   setup-environmental-metrics
 end
 
+;;
+;; Note that these are all setup as reporters to make it easier to test them from the console
+;;
 to-report get-yields
   report read-three-way-table join-string (list market-data-folder "yields.csv") pathdir:get-separator false
 end
@@ -79,6 +73,7 @@ to setup-costs-yields-time-series
   set yield-sds-time-series   table:get table:get tbl "SD"   "yields"
 end
 
+
 to setup-environmental-metrics
   set env-metric-means table:make
   set env-metric-sds table:make
@@ -88,6 +83,7 @@ to setup-environmental-metrics
     table:put env-metric-sds   metric matrix:from-row-list map [t -> table:values t] table:values table:get metric-vals "SD"
   ]
 end
+
 
 to-report get-prices
   report read-one-row-table join-string (list market-data-folder "prices.csv") pathdir:get-separator true
@@ -103,19 +99,19 @@ end
 
 
 ;; There is potential in matrix approaches for speeding up the calculations, perhaps even making them more 
-;; 'sophisticated'. However some of this may come at the cost of (i) less readable code, and (ii) less 
-;; variance. On (ii) specifically there is now no base patch level variance, i.e. the mean yield, emissions
+;; 'sophisticated'. However some of this may come at the cost of 
+;;
+;;   (i) less readable code, and 
+;;  (ii) less variance in outcomes
+;; 
+;; On (ii) specifically there is now no base patch level variance, i.e. the mean yield, emissions
 ;; and input costs of every patch of given landuse and LUC combination is effectively identical - not 
 ;; initialised with the supplied SD. The SD is applied to patches each round BUT AT HOLDING LEVEL. That is,
 ;; every patch on a given holding with given LU/LUC experiences same deviation from mean outcomes in a 
 ;; particular year. But a neighbouring holding might experience quite different deviations.
 to make-matrix-copies-of-some-data
-  ;; a column matrix with one element per landuse/farm-type
-;  set m-prices col-matrix table:values prices
-
-  set intervention-cost-impacts intervention-farm-type-tbl-to-mtx mgmt-interventions "costs" false
+  set intervention-cost-impacts  intervention-farm-type-tbl-to-mtx mgmt-interventions "costs" false
   set intervention-yield-impacts intervention-farm-type-tbl-to-mtx mgmt-interventions "yields" true
-
   set intervention-env-impacts table:make
   foreach sort table:keys env-metrics [ metric ->
     table:put intervention-env-impacts metric intervention-farm-type-tbl-to-mtx mgmt-interventions metric true

@@ -26,6 +26,7 @@ holdings-own [
   my-metrics-0
 ]
 
+
 ;; farm 'constructor'
 to initialise-holding
   ;; will be called by the farmer which is 'myself' in this context
@@ -39,13 +40,14 @@ to initialise-holding
   ;; interventions are a 1 row matrix of 0s to start
   set my-interventions matrix:make-constant 1 (length mgmt-intervention-types) 0
   set avail-interventions possible-interventions
-  let starter-props map [i -> table:get table:get table:get init-interventions "init_proportion" farm-type i] mgmt-intervention-types
+  let starter-props map [i -> table:get table:get table:get intervention-adoption "init_proportion" farm-type i] mgmt-intervention-types
   (foreach mgmt-intervention-types starter-props [ [m p] ->
     if random-float 1 < p [ implement-intervention m ]
   ]) 
   set metrics-details table:make
   set my-metrics table:make
 end
+
 
 ;; does the book keeping if the farm-type is changed
 to holding-change-farm-type [ft]
@@ -57,17 +59,20 @@ to holding-change-farm-type [ft]
                           (possible-interventions matrix:- my-interventions) 
 end
 
+
 ;; reports a column matrix from the column sums of current landuse-luc-profile matrix
 ;; holding reporter
 to-report get-landuse-profile
   report matrix:from-column-list (list matrix-column-sums landuse-luc-profile)
 end
 
+
 ;; reports a column matrix from the row sums of current landuse-luc-profile matrix
 ;; holding reporter
 to-report get-luc-profile
   report matrix:from-column-list (list matrix-row-sums landuse-luc-profile)
 end
+
 
 ;; reports a 8 row 4 col matrix of the count of patches with each combination of
 ;; LUC code and landuse/farm-type in the patch-set poly. Usually this is called 
@@ -88,11 +93,13 @@ to-report get-landuse-luc-profile [poly]
   report farm-profile
 end
 
+
 ;; for this farm's type returns 0/1 row matrix indicating which are possible on this type of farm
 to-report possible-interventions
   report row-matrix map [i -> ifelse-value (is-applicable-to-landuse? i and
                                             is-possible-on-this-holding? i) [1] [0]] mgmt-intervention-types
 end
+
 
 ;; update my-interventions and available-interventions matrices
 ;; to reflect implementation of intervention i-type
@@ -107,10 +114,15 @@ to implement-intervention [i-type]
   ]
 end
 
+
 ;; returns true if there are any remaining available interventions
+;;
+;; TODO: check if this is still correct given max_proportion input to model
+;;
 to-report any-interventions-to-do?
   report matrix-sum-elements avail-interventions > 0
 end
+
 
 ;; tests if intervention is applicable by checking if the result is in interventions table
 ;; not a holding reporter but most often run by a holding turtle
@@ -118,37 +130,41 @@ to-report is-applicable-to-landuse? [i-type]
   report get-impact farm-type "costs" i-type != na-value
 end
 
+
 to-report is-possible-on-this-holding? [i-type]
-  report random-float 1 < table:get table:get table:get init-interventions "max_proportion" farm-type i-type
+  report random-float 1 < table:get table:get table:get intervention-adoption "max_proportion" farm-type i-type
 end
 
-;; we might need some more of these...
+
 ;; returns impact by farm-type, effect-type, and intervention-type
 ;; not a holding reporter but most often run by a holding turtle
 to-report get-impact [f-type e-type i-type]
   report table:get (table:get (table:get mgmt-interventions e-type) i-type) f-type
 end
 
+
 ;; reports my-interventions as a list of intervention-type names for convenience
-;; farm reporter
+;; holding reporter
 to-report my-interventions-as-list
   ;; slice by ones returns items in the first list that match 1s in the second
   ;; so e.g. ["A" "B" "C" "D"] [0 1 1 0] -> ["B" "C"]
   report slice-by-ones mgmt-intervention-types (matrix:get-row my-interventions 0)
 end
 
+
 ;; reports available-interventions as a list of intervention-type names for convenience
-;; farm reporter
+;; holding reporter
 to-report available-interventions-as-list
   report slice-by-ones mgmt-intervention-types (matrix:get-row avail-interventions 0)
 end
+
 
 ;; scores a potential intervention by comparing expected income and costs
 ;; were it to be implemented relative to current income and costs
 ;; TODO: consider if this actually makes sense... in a good year when current income was high
 ;; and current costs low the score might be lower which is slightly counter-intuitive.
 ;; holding reporter because the cost and income reporters invoked are holding reporters
-to-report get-intervention-score [i-type show-messages?]
+to-report get-intervention-score [i-type]
   let col (position i-type mgmt-intervention-types)
   matrix:set my-interventions 0 col 1
   ;; get long-term expect costs and incomes, i.e. without variance
@@ -156,7 +172,7 @@ to-report get-intervention-score [i-type show-messages?]
   let new-income   get-holding-income false
   let delta-costs  relative-change current-costs new-costs
   let delta-income relative-change current-income new-income
-  if show-messages? [
+  if show-events? [
     show i-type
     show (word "Current costs: " current-costs " Current income: " current-income)
     show (word "New costs    : " new-costs     " New income    : " new-income)
@@ -167,12 +183,14 @@ to-report get-intervention-score [i-type show-messages?]
   report delta-income - delta-costs
 end
 
+
 ;; wrapper to invoke the various profit and loss reporters
 to update-profit-of-holding
   set current-income get-holding-income true
   set current-costs  get-holding-costs true
   set current-profit current-income - current-costs
 end
+
 
 to update-environmental-metrics-of-holding
   foreach sort table:keys env-metrics [ metric ->
@@ -183,6 +201,7 @@ to update-environmental-metrics-of-holding
     set-metric metric
   ]
 end
+
 
 to set-metric [metric]
   table:put my-metrics metric precision 
@@ -217,9 +236,7 @@ to-report get-holding-income [include-variance?]
   ]
 end
 
-;; note that currently this is hard-coded for carbon taxes only
-;; addition of a model parameter could readily change that so that
-;; taxes were applicable to other environmental metrics
+
 ;; holding reporter due to landuse-luc-profile
 to-report get-holding-costs [include-variance?]
   ;; calculation here is
@@ -243,8 +260,7 @@ to-report get-holding-costs [include-variance?]
   ]
 end
 
-;; we provide a boolean argument here for the (usual?) case where 
-;; there is only a carbon-tax
+
 to-report get-net-environmental-taxes
   let metrics filter [k -> table:get table:get env-metrics k "price" != na-value] table:keys env-metrics
   let tax-levels map [m -> table:get m "price"] map [k -> table:get env-metrics k] metrics
@@ -266,11 +282,12 @@ end
 ;; so the overall deviation will be larger, but appropriately 'suppressed'
 ;; for the larger holding. This also allows us to avoid div 0 errors...
 to-report reduced-normal-deviate [mn sd n]
-  (ifelse
+  ( ifelse
     n = 0 [ report 0 ] ;; n = 0 is meaningless
     n = 1 [ report random-normal mn sd ]
-    [ report random-normal mn (sd / sqrt(n)) ])
+    [ report random-normal mn (sd / sqrt(n)) ] )
 end
+
 
 ;; reports a matrix of yield deviates suppressed by the number of patches
 ;; holding reporter due to landuse-luc-profile
@@ -278,11 +295,13 @@ to-report get-holding-yield-variance
   report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] yield-sds landuse-luc-profile)
 end
 
+
 ;; reports a matrix of cost deviates suppressed by the number of patches
 ;; holding reporter due to landuse-luc-profile
 to-report get-holding-cost-variance
   report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] cost-sds landuse-luc-profile)
 end
+
 
 ;; reports a matrix of emissions deviates suppressed by the number of patches
 ;; in accordance with the central limit theorem...
@@ -291,6 +310,7 @@ to-report get-holding-environmental-metric-variance [metric]
   report (matrix:map [[s n] -> reduced-normal-deviate 0 s n] table:get env-metric-sds metric 
                                                              landuse-luc-profile)
 end
+
 
 ;; holding reporter due to get-farm-landuse-profile
 to-report get-cost-after-interventions
@@ -304,6 +324,7 @@ to-report get-cost-after-interventions
            intervention-cost-impacts matrix:*
            get-landuse-profile )
 end
+
 
 ;; reports a matrix for use in multiplication of yields dependent on on-farm 
 ;; interventions. This is a non-standard matrix operation where desired result 
@@ -322,6 +343,7 @@ to-report get-yield-after-interventions
              )
            ) 8 ;; duplicated for each LUC
 end
+
 
 ;; as above but for emissions
 ;;

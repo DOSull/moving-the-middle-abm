@@ -9,29 +9,43 @@ to redraw
   display
 end
 
+
 ;; colour in the map by landuse and LUC
 to colour-all-patches [colour-by-type?]
   colour-patches farm-land colour-by-type?
 end
 
+
 to colour-patches [pset colour-by-type?]
   with-local-randomness [
     ifelse colour-by-type? and show-landuse? [
       ifelse show-luc-codes? [
-        foreach table:to-list table:get colour-key "farm-type-palettes" [ farm-type-palette ->
-          let [ft pal-name] farm-type-palette
+        foreach table:to-list table:get colour-key "farm-type-hues" [ farm-type-hue ->
+          let [ft hue] farm-type-hue
           ask pset with [landuse = ft] [
-            set pcolor palette:scale-scheme "Sequential" pal-name 9 luc-code 9 0
+            set pcolor approximate-hsb hue (30 + 10 * (8 - luc-code)) (100 - degradation)
           ]
         ]
+;        foreach table:to-list table:get colour-key "farm-type-palettes" [ farm-type-palette ->
+;          let [ft pal-name] farm-type-palette
+;          ask pset with [landuse = ft] [
+;            set pcolor palette:scale-scheme "Sequential" pal-name 9 luc-code 9 0
+;          ]
+;        ]
       ]
       [
-        foreach table:to-list table:get colour-key "farm-type" [ farm-type-colours ->
-          let [ft col] farm-type-colours
+        foreach table:to-list table:get colour-key "farm-type-hues" [ farm-type-hue ->
+          let [ft hue] farm-type-hue
           ask pset with [landuse = ft] [
-            set pcolor col
+            set pcolor approximate-hsb hue 100 (100 - degradation)
           ]
         ]
+;        foreach table:to-list table:get colour-key "farm-type" [ farm-type-colours ->
+;          let [ft col] farm-type-colours
+;          ask pset with [landuse = ft] [
+;            set pcolor col
+;          ]
+;        ]
       ]
     ]
     [
@@ -42,6 +56,7 @@ to colour-patches [pset colour-by-type?]
     ]
   ]
 end
+
 
 to redraw-farm
   set size (abs current-profit / 250) ^ 0.333 ;; scaling size of net profit circle
@@ -57,6 +72,7 @@ to redraw-farm
   ask catchment-links [ set hidden? not show-catchment-links? ]
   colour-patches the-land show-landuse?
 end
+
 
 to redraw-holding
   set size (abs current-profit / 1000) ^ 0.333 ;; scaling size of net profit circle
@@ -75,6 +91,7 @@ to redraw-holding
   colour-patches the-land show-landuse?
 end
 
+
 to redraw-farms-and-holdings
   with-local-randomness [
     ask holdings [ redraw-holding ]
@@ -84,16 +101,20 @@ to redraw-farms-and-holdings
   ]
 end
 
+
 to setup-colours
+  let landuse-colours (list (orange) (blue) (green) (list 204 51 153))
   set colour-key table:make
   table:put colour-key "farmer" black
   table:put colour-key "farmer-label" black
   table:put colour-key "farm-type"
-    table:from-list (map list ["SNB" "Dairy" "Forest" "Crop"] (list (orange) (blue) (green) (list 204 51 153)))
+    table:from-list (map list ["SNB" "Dairy" "Forest" "Crop"] landuse-colours)
+  table:put colour-key "farm-type-hues"
+    table:from-list (map list ["SNB" "Dairy" "Forest" "Crop"] map [c -> item 0 extract-hsb c] landuse-colours)
   table:put colour-key "farm-type-palettes" (
     table:from-list (map list ["SNB" "Dairy" "Forest" "Crop"] ["YlOrBr" "Blues" "Greens" "RdPu"]))
   table:put colour-key "owner-link" [0 0 0 180]
-  table:put colour-key "farm-boundary" black
+  table:put colour-key "farm-boundary" grey - 2
   table:put colour-key "holding-boundary" grey
   table:put colour-key "LUC-palette" "Greens"
   table:put colour-key "profit" [0 0 0 180]

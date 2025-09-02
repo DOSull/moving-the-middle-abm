@@ -1,6 +1,6 @@
 ,limit,price
 ghg_emissions,10,10
 nitrates,11,0
-#sediment,10,0
-#phosphates,1,0
-#e_coli,4,0
+sediment,10,0
+phosphates,1,0
+e_coli,4,0

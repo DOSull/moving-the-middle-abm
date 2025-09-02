@@ -60,7 +60,7 @@ to make-farmer-local-links
   set locals n-of n-local-links locals
   create-local-links-with locals [ 
     set color table:get colour-key "local-link" 
-    set hidden? not show-local-links? 
+    set hidden? true
   ]
 end
 
@@ -70,7 +70,7 @@ to make-farmer-catchment-links
   let colleagues n-of n-catchment-links (other farmers with [ not member? self [local-link-neighbors] of myself ])
   create-catchment-links-with colleagues [ 
     set color table:get colour-key "catchment-link"
-    set hidden? not show-catchment-links?
+    set hidden? true
   ]
 end
 

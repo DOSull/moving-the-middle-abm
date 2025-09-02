@@ -68,8 +68,6 @@ to redraw-farm
     [ set color table:get colour-key "profit" ]
   ]
   [ set color table:get colour-key "loss" ]
-  ask local-links [ set hidden? not show-local-links? ]
-  ask catchment-links [ set hidden? not show-catchment-links? ]
   colour-patches the-land show-landuse?
 end
 

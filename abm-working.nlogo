@@ -168,8 +168,6 @@ to setup
   ]
   setup-colours ;; must come AFTER reading farmer parameters since it depends on farm types
   ask patches [ set pcolor table:get colour-key "background" ]
-  set show-local-links? include-networks?
-  set show-catchment-links? include-networks?
 
   carefully [
     setup-geography                  ;; see mtm-geography.nls
@@ -239,7 +237,7 @@ to go
         ;; first we check if there are any holdings losing money
         ;;
         ifelse any? loss-making-holdings [
-          if [current-profit] of my-farm < 0 [ ;; losing lots of money so consider complete change
+          if [current-profit] of my-farm <= 0 [ ;; losing lots of money so consider complete change
             let down-weight ifelse-value apply-severity-of-losses?
               [ 1 - (sum [count the-land] of loss-making-holdings) / count the-land ] [ 1 ]
             set farm-conversion-options consider-farm-type-change down-weight "Losing money: "
@@ -451,7 +449,7 @@ end
 GRAPHICS-WINDOW
 201
 10
-878
+623
 1009
 -1
 -1
@@ -466,7 +464,7 @@ GRAPHICS-WINDOW
 0
 1
 0
-222
+137
 0
 329
 1
@@ -772,33 +770,45 @@ NIL
 NIL
 1
 
-SWITCH
+BUTTON
 10
-730
+720
 190
-763
-show-local-links?
-show-local-links?
+753
+toggle-local-links
+ask local-links [ set hidden? not hidden? ]
+NIL
 1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
 1
--1000
 
-SWITCH
+BUTTON
 10
-770
+760
 190
-803
-show-catchment-links?
-show-catchment-links?
+793
+toggle-catchment-links
+ask catchment-links [ set hidden? not hidden? ]
+NIL
 1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
 1
--1000
 
 SLIDER
 10
-810
+830
 190
-843
+863
 n-local-links
 n-local-links
 2
@@ -811,9 +821,9 @@ HORIZONTAL
 
 SLIDER
 10
-850
+870
 190
-883
+903
 n-catchment-links
 n-catchment-links
 2
@@ -826,9 +836,9 @@ HORIZONTAL
 
 SLIDER
 10
-890
+910
 190
-923
+943
 rel-weight-locals
 rel-weight-locals
 0
@@ -841,9 +851,9 @@ HORIZONTAL
 
 SLIDER
 10
-930
+950
 190
-963
+983
 rel-weight-catchment
 rel-weight-catchment
 0
@@ -881,7 +891,7 @@ SWITCH
 143
 geography-from-files?
 geography-from-files?
-1
+0
 1
 -1000
 
@@ -1271,7 +1281,7 @@ SWITCH
 853
 include-debt?
 include-debt?
-1
+0
 1
 -1000
 
@@ -1284,7 +1294,7 @@ interest-rate
 interest-rate
 0
 15
-0.0
+5.0
 0.1
 1
 NIL

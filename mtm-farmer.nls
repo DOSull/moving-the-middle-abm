@@ -80,7 +80,7 @@ end
 to age-and-succeed-farmer
   ;; don't create a new farmer, just change age and
   ;; consider some other changes
-  set age age + 1
+  set age ifelse-value age + 5 > 90 [90] [age + 5] 
   if age > 91 or random-float 1 < (1 / (91 - age)) [
     set age get-new-farmer-age false
     set succession-stage succession-stage + 1

@@ -1094,6 +1094,17 @@ OUTPUT
 930
 11
 
+MONITOR
+875
+950
+1010
+995
+mean-farmer-age
+mean [age] of farmers
+1
+1
+11
+
 INPUTBOX
 1020
 10
@@ -1281,7 +1292,7 @@ SWITCH
 853
 include-debt?
 include-debt?
-0
+1
 1
 -1000
 
@@ -1294,11 +1305,29 @@ interest-rate
 interest-rate
 0
 15
-5.0
+0.0
 0.1
 1
 NIL
 HORIZONTAL
+
+PLOT
+1020
+860
+1420
+995
+farmer ages
+Age
+Count
+20.0
+90.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -16777216 true "" "set-plot-x-range 20 90\nset-histogram-num-bars 14\nhistogram [age] of farmers"
 
 @#$#@#$#@
 ## WHAT IS IT?

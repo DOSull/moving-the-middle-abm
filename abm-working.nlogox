@@ -503,7 +503,9 @@ end
     <switch x="890" y="486" height="33" on="true" variable="correlated-landuse?" display="correlated-landuse?" width="180" sizeVersion="0"></switch>
     <slider x="890" step="5" y="446" max="1000" display="number-of-farms" height="33" min="10" direction="Horizontal" default="250.0" variable="number-of-farms" width="180" sizeVersion="0"></slider>
     <slider x="890" step="5" y="406" max="250" display="luc-aggregation-steps" height="33" min="0" direction="Horizontal" default="90.0" variable="luc-aggregation-steps" width="180" sizeVersion="0"></slider>
-    <monitor x="890" precision="0" y="352" height="45" fontSize="11" width="180" sizeVersion="0">geography-seed</monitor>
+    <monitor x="890" precision="0" y="352" height="45" fontSize="11" display="geography-seed" width="180" sizeVersion="0">word geography-seed
+;; this is a workaround per
+;; https://github.com/NetLogo/NetLogo/issues/2562#issuecomment-3353992160</monitor>
     <switch x="890" y="312" height="33" on="true" variable="user-geography-seed?" display="user-geography-seed?" width="180" sizeVersion="0"></switch>
     <input x="890" multiline="false" y="246" height="60" variable="geography-rng-seed" type="number" width="180" sizeVersion="0">1.553817984E9</input>
     <slider x="890" step="1" y="150" max="600" display="max-dimension" height="33" min="100" direction="Horizontal" default="330.0" variable="max-dimension" width="180" sizeVersion="0"></slider>

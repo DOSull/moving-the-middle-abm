@@ -24,7 +24,7 @@ to initialise-farmer
   set color table:get colour-key "farmer"
   set shape "person"
   set hidden? true
-  set disposition one-of dispositions
+  set disposition get-disposition
   set succession-stage 0
   set my-interventions matrix:make-constant (length farm-types) (length mgmt-intervention-types) 0
 end
@@ -38,6 +38,11 @@ to-report get-new-farmer-age [model-initialisation?]
   ;; age distribution of initial population skews older than that of new entrants
   [ report 21 + random-beta-binomial 70 5 4 ]
   [ report 21 + random-beta-binomial 45 4 2 ]
+end
+
+
+to-report get-disposition
+  report first rnd:weighted-one-of-list dispositions [ [p] -> last p ]
 end
 
 
@@ -86,7 +91,7 @@ to age-and-succeed-farmer
   if age > 90 or random-float 1 < (5 / (91 - age)) [
     set age get-new-farmer-age false
     set succession-stage succession-stage + 1
-    set disposition one-of dispositions
+    set disposition get-disposition
     let ft-now farm-type
     ;; new farmer considers changing the farm type if any holdings are loss-making
     ;; without regard to how long losses have been happening, and with no 'down-weight'

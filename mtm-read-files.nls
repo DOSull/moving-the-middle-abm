@@ -19,7 +19,7 @@ end
 to setup-farmer-parameters
   set env-metrics              read-multi-row-table join-string (list market-data-folder "environmental-metrics.csv")      pathdir:get-separator false
   set farm-types              sort get-column-names join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator 2
-  set dispositions               sort get-row-names join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator 0
+  set dispositions table:to-list read-one-row-table join-string (list market-data-folder "farmer-dispositions.csv")        pathdir:get-separator false
   set mgmt-intervention-types sort get-column-names join-string (list market-data-folder "intervention-initial-props.csv") pathdir:get-separator 2
   set intervention-adoption    read-three-way-table join-string (list market-data-folder "intervention-initial-props.csv") pathdir:get-separator false
   set base-thresholds          read-three-way-table join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator false

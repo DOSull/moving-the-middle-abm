@@ -119,7 +119,7 @@ to setup-colours
   table:put colour-key "loss" [255 0 0 180]
   table:put colour-key "label" violet - 2
   table:put colour-key "background" grey - 1
-  table:put colour-key "local-link" [255 51 51 128]
+  table:put colour-key "local-link" [255 51 51 192]
   table:put colour-key "catchment-link" [51 153 255 128]
   table:put colour-key "not-farmed" grey + 1
 end

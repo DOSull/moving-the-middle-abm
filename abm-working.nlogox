@@ -548,17 +548,17 @@ of **output-results** folder</note>
     </plot>
     <switch x="1080" y="675" height="33" on="true" variable="landuse-change-on-succession?" display="landuse-change-on-succession?" width="225" sizeVersion="0"></switch>
     <switch x="1080" y="713" height="33" on="false" variable="prioritise-forestry?" display="prioritise-forestry?" width="225" sizeVersion="0"></switch>
-    <note x="1305" y="715" backgroundDark="0" fontSize="10" width="145" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Off**: Consider all landuses for
+    <note x="1305" y="715" backgroundDark="0" fontSize="10" width="225" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Off**: Consider all landuses for
 loss-making holdings</note>
     <switch x="1080" y="751" height="33" on="false" variable="apply-severity-of-losses?" display="apply-severity-of-losses?" width="225" sizeVersion="0"></switch>
-    <note x="1305" y="753" backgroundDark="0" fontSize="10" width="145" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**On**: Severe losses make farm
+    <note x="1305" y="753" backgroundDark="0" fontSize="10" width="225" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**On**: Severe losses make farm
 conversion more likely</note>
     <switch x="1080" y="789" height="33" on="true" variable="apply-suitability?" display="apply-suitability?" width="225" sizeVersion="0"></switch>
-    <note x="1305" y="791" backgroundDark="0" fontSize="10" width="145" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**On**: LUC suitability applied to
+    <note x="1305" y="791" backgroundDark="0" fontSize="10" width="225" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**On**: LUC suitability applied to
 farm change</note>
     <switch x="1080" y="827" height="33" on="true" variable="include-debt?" display="include-debt?" width="225" sizeVersion="0"></switch>
     <slider x="1315" step="0.1" y="827" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="2.5" variable="interest-rate" width="225" sizeVersion="0"></slider>
-    <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="865" xMin="20.0" height="150" legend="false" xMax="90.0" yMin="0.0" xAxis="Age" display="farmer ages" width="460" sizeVersion="0">
+    <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="865" xMin="20.0" height="150" legend="false" xMax="90.0" yMin="0.0" xAxis="Age" display="farmer ages" width="225" sizeVersion="0">
       <setup></setup>
       <update></update>
       <pen interval="1.0" mode="1" display="default" color="-16777216" legend="true">
@@ -566,6 +566,16 @@ farm change</note>
         <update>set-plot-x-range 20 90
 set-histogram-num-bars 14
 histogram [age] of farmers</update>
+      </pen>
+    </plot>
+    <plot x="1315" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="865" xMin="0.0" height="150" legend="false" xMax="1.0" yMin="0.0" xAxis="Debt service ratio" display="debt" width="225" sizeVersion="0">
+      <setup></setup>
+      <update></update>
+      <pen interval="1.0" mode="1" display="default" color="-16777216" legend="true">
+        <setup></setup>
+        <update>set-plot-x-range 0 1
+set-histogram-num-bars 10
+histogram [debt / current-income] of farms</update>
       </pen>
     </plot>
   </widgets>

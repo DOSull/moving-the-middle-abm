@@ -28,9 +28,6 @@ extensions [
 
 globals [
   ;; convenient to set these and forget them
-  years-per-tick
-  hectares-per-patch
-  
   output-data-folder
   market-data-folder
   spatial-data-folder
@@ -68,8 +65,7 @@ globals [
   intervention-adoption      ;; table of lists of proportion of holdings where interventions have been adopted
                              ;; at model initialisation, and maximum rate of adoption possible by landuse
   base-thresholds            ;; farmer adoption probabilities for interventions by landuse and disposition
-  initial-debt-service-ratios;; table of DSRs by landuse
-  
+
   ;; data stored as matrices for use in calculations; rows - cols entries for LUC - farm-type respectively
   ;; rows order LUC1 to LUC8, cols ordered alphabetically by farm-type
   cost-means                 ;; costs per cell (16 ha approx)
@@ -107,7 +103,6 @@ globals [
 
 undirected-link-breed [catchment-links catchment-link]
 undirected-link-breed [local-links local-link]
-undirected-link-breed [disposition-links disposition-link]
 
 breed [holdings holding]  ;; where the action happens (profit calculated, landuse changed, interventions applied)
                           ;; a farm consists of one or more holdings
@@ -148,8 +143,6 @@ to setup
     clear-ticks
     setup-world-dimensions
   ]
-  set years-per-tick 5
-  set hectares-per-patch 16
   set epsilon 1e-16
   set na-value -999
   set show-labels? false
@@ -202,8 +195,7 @@ to burn-in-step
   ]
   ask farms [
     update-environmental-metrics-of-farm
-    update-profit-of-farm true
-    set-initial-debt-of-farm
+    update-profit-of-farm
   ]
   ask farms [redraw-farm]
   ask holdings [redraw-holding]
@@ -237,46 +229,48 @@ to go
     ]
     ask farms [
       update-environmental-metrics-of-farm
-      update-profit-of-farm false
+      update-profit-of-farm
     ]
     ask farmers [
-;      let ft-now farm-type
-;      let farm-conversion-options []
-;      let loss-making-holdings get-loss-making-holdings
-;      ( 
-;        ifelse any? loss-making-holdings [
-;          if [current-profit] of my-farm <= 0 [ ;; losing lots of money so consider complete change
-;            set farm-conversion-options consider-farm-type-change "Losing money: "
-;          ]
-;          ;; only some holdings are losing money so consider forestry on those
-;          let holding-change-options consider-holdings-farm-type-change loss-making-holdings prioritise-forestry?
+      let ft-now farm-type
+      let farm-conversion-options []
+      let loss-making-holdings get-loss-making-holdings
+      ( ;;
+        ;; first we check if there are any holdings losing money
+        ;;
+        ifelse any? loss-making-holdings [
+          if [current-profit] of my-farm <= 0 [ ;; losing lots of money so consider complete change
+            let down-weight ifelse-value apply-severity-of-losses?
+              [ 1 - (sum [count the-land] of loss-making-holdings) / count the-land ] [ 1 ]
+            set farm-conversion-options consider-farm-type-change down-weight "Losing money: "
+          ]
+          ;; only some holdings are losing money so consider forestry on those
+          let holding-change-options consider-holdings-farm-type-change loss-making-holdings prioritise-forestry?
+          make-farm-type-changes (sentence farm-conversion-options holding-change-options)
+        ]
+        ;;
+        ;; further consider landuse changes if any holdings breach environmental regs
+        ;;
+;        any-true? map [k -> [in-breach? k] of my-farm] table:keys env-metrics [
+;          let breached-metrics get-breached-metrics
+;          let holdings-in-breach get-holdings-in-breach breached-metrics
+;          let holding-change-options consider-holdings-farm-type-change holdings-in-breach
+;                prioritise-forestry? "Some holdings in breach of regulations: " false
 ;          make-farm-type-changes (sentence farm-conversion-options holding-change-options)
 ;        ]
-;        [ ;; we're doing OK so think about management interventions instead
-;          if any? my-holdings with [any-interventions-to-do?] [
-;            ;; this reports a [holding [intervention-type probability]] list
-;            let potential-changes consider-management-changes "Management change: "
-;            ;; which we pass to make-management-changes
-;            if length potential-changes > 0 [ make-management-changes potential-changes ]
-;          ]
-;        ]
-;      )
-      let dsr [debt-payments / current-income] of my-farm
-      (
-        ifelse 
-        dsr >= 1 [ ;; severely distressed - exit?
-          succeed-farmer
-        ]
-        dsr >= 0.5 [ ;; survival mode
-          do-survival 
-        ]
-        dsr >= 0.25 [ ;; limited options
-          do-constrained-change
-        ]
-        [ ;; reasonable freedom of action
-          do-optimisation
+        ;;
+        ;; we're doing OK so think about management interventions instead
+        ;;
+        [
+          if any? my-holdings with [any-interventions-to-do?] [
+            ;; this reports a [holding [intervention-type probability]] list
+            let potential-changes consider-management-changes "Management change: "
+            ;; which we pass to make-management-changes
+            if length potential-changes > 0 [ make-management-changes potential-changes ]
+          ]
         ]
       )
+      set color ifelse-value farm-type = ft-now [ black ] [ red ]
     ]
     ask farms [redraw-farm]
     ask holdings [redraw-holding]
@@ -364,9 +358,8 @@ to store-initial-values
     set current-profit-0 current-profit
     set current-income-0 current-income
     set current-costs-0 current-costs
-    set loans-0 loans
-    set debt-payments-0 debt-payments
-    set debt-maturity-0 debt-maturity
+    set debt-0 debt
+;    set losses-record-0 losses-record
     set my-metrics-0 table:from-json table:to-json my-metrics
   ]
   ask farmers [
@@ -404,9 +397,8 @@ to restore-initial-values
     set current-profit current-profit-0
     set current-income current-income-0
     set current-costs current-costs-0
-    set loans loans-0
-    set debt-payments debt-payments-0
-    set debt-maturity debt-maturity-0
+    set debt debt-0
+;    set losses-record losses-record-0
     set my-metrics table:from-json table:to-json my-metrics-0
   ]
   ask farmers [
@@ -456,109 +448,89 @@ end
 ;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ;; DEALINGS IN THE SOFTWARE.]]></code>
   <widgets>
-    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1003" showTickCounter="true" patchSize="3.0" fontSize="6" wrappingAllowedY="false" width="422" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="137" minPxcor="0"></view>
+    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1003" showTickCounter="true" patchSize="3.0" fontSize="6" wrappingAllowedY="false" width="679" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="222" minPxcor="0"></view>
     <switch x="10" y="10" height="33" on="false" variable="include-networks?" display="include-networks?" width="180" sizeVersion="0"></switch>
-    <switch x="10" y="48" height="33" on="false" variable="reinitialise?" display="reinitialise?" width="180" sizeVersion="0"></switch>
-    <button x="10" y="86" height="33" disableUntilTicks="true" forever="false" kind="Observer" display="reset" width="90" sizeVersion="0">restore-initial-values
+    <button x="10" y="90" height="33" disableUntilTicks="true" forever="false" kind="Observer" display="reset" width="90" sizeVersion="0">restore-initial-values
 </button>
-    <button x="110" y="86" height="33" disableUntilTicks="false" forever="false" kind="Observer" width="80" sizeVersion="0">setup</button>
-    <button x="10" y="124" height="33" disableUntilTicks="false" forever="false" kind="Observer" width="90" sizeVersion="0">reset-rng</button>
-    <button x="110" y="124" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="step" width="80" sizeVersion="0">go</button>
-    <switch x="10" y="162" height="33" on="false" variable="force?" display="force?" width="90" sizeVersion="0"></switch>
-    <button x="110" y="162" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="step-10" width="80" sizeVersion="0">repeat 10 [go]</button>
-    <note x="10" y="195" backgroundDark="0" fontSize="11" width="85" markdown="false" height="40" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Go even if stop
-condition met</note>
-    <button x="110" y="200" height="33" disableUntilTicks="false" forever="true" kind="Observer" width="80" sizeVersion="0">go</button>
-    <switch x="10" y="238" height="33" on="false" variable="show-events?" display="show-events?" width="180" sizeVersion="0"></switch>
-    <note x="10" y="271" backgroundDark="0" fontSize="11" width="180" markdown="false" height="33" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Turn off event messages
-to speed things up!</note>
-    <switch x="10" y="306" height="33" on="true" variable="show-landuse?" display="show-landuse?" width="180" sizeVersion="0"></switch>
-    <note x="10" y="339" backgroundDark="0" fontSize="11" width="180" markdown="true" height="65" textColorDark="-1" textColorLight="-16777216" backgroundLight="0"><![CDATA[Colour key (applies to both landuse and farm symbols)
-&nbsp;&nbsp;&nbsp;**Crop** Purple **Dairy** Blue
-  **Forest** Green &nbsp;&nbsp;&nbsp;**SNB** Brown]]></note>
-    <switch x="10" y="405" height="33" on="true" variable="farm-type-colours?" display="farm-type-colours?" width="180" sizeVersion="0"></switch>
-    <note x="10" y="438" backgroundDark="0" fontSize="11" width="180" markdown="false" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Loss-making farms always red</note>
-    <switch x="10" y="460" height="33" on="true" variable="show-luc-codes?" display="show-luc-codes?" width="180" sizeVersion="0"></switch>
-    <note x="10" y="493" backgroundDark="0" fontSize="11" width="180" markdown="false" height="40" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">More intense colours are lower
-LUC values (better land).</note>
-    <button x="10" y="533" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="redraw" width="180" sizeVersion="0">redraw</button>
-    <button x="10" y="571" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-farmers" width="180" sizeVersion="0">ask farmers [ set hidden? not hidden? ]</button>
-    <button x="10" y="609" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-farms" width="180" sizeVersion="0">ask farms [set hidden? not hidden?]</button>
-    <button x="10" y="647" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-holdings" width="180" sizeVersion="0">ask holdings [set hidden? not hidden?]</button>
-    <button x="10" y="685" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-local-links" width="180" sizeVersion="0">ask local-links [ set hidden? not hidden? ]</button>
-    <button x="10" y="723" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-catchment-links" width="180" sizeVersion="0">ask catchment-links [ set hidden? not hidden? ]</button>
-    <button x="10" y="761" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-disposition-links" width="180" sizeVersion="0">ask disposition-links [ set hidden? not hidden? ]</button>
-    <slider x="10" step="1" y="799" max="12" display="n-local-links" height="33" min="0" direction="Horizontal" default="4.0" variable="n-local-links" width="180" sizeVersion="0"></slider>
-    <slider x="10" step="1" y="837" max="20" display="n-catchment-links" height="33" min="0" direction="Horizontal" default="6.0" variable="n-catchment-links" width="180" sizeVersion="0"></slider>
-    <slider x="10" step="1" y="875" max="20" display="n-disposition-links" height="33" min="0" direction="Horizontal" default="5.0" variable="n-disposition-links" width="180" sizeVersion="0"></slider>
-    <slider x="10" step="0.01" y="913" max="1" display="rel-weight-locals" height="33" min="0" direction="Horizontal" default="0.5" variable="rel-weight-locals" width="180" sizeVersion="0"></slider>
-    <slider x="10" step="0.01" y="951" max="1" display="rel-weight-catchment" height="33" min="0" direction="Horizontal" default="0.1" variable="rel-weight-catchment" width="180" sizeVersion="0"></slider>
-    <slider x="10" step="0.01" y="989" max="1" display="rel-weight-disposition" height="33" min="0" direction="Horizontal" default="0.1" variable="rel-weight-disposition" width="180" sizeVersion="0"></slider>
+    <button x="110" y="90" height="33" disableUntilTicks="false" forever="false" kind="Observer" width="80" sizeVersion="0">setup</button>
+    <button x="10" y="130" height="33" disableUntilTicks="false" forever="false" kind="Observer" width="90" sizeVersion="0">reset-rng</button>
+    <button x="110" y="130" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="step" width="80" sizeVersion="0">go</button>
+    <switch x="10" y="170" height="33" on="false" variable="force?" display="force?" width="90" sizeVersion="0"></switch>
+    <button x="110" y="170" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="step-10" width="80" sizeVersion="0">repeat 10 [go]</button>
+    <button x="110" y="210" height="33" disableUntilTicks="false" forever="true" kind="Observer" width="80" sizeVersion="0">go</button>
+    <switch x="10" y="250" height="33" on="false" variable="show-events?" display="show-events?" width="180" sizeVersion="0"></switch>
+    <switch x="10" y="320" height="33" on="true" variable="show-landuse?" display="show-landuse?" width="180" sizeVersion="0"></switch>
+    <switch x="10" y="425" height="33" on="true" variable="farm-type-colours?" display="farm-type-colours?" width="180" sizeVersion="0"></switch>
+    <note x="10" y="460" backgroundDark="0" fontSize="11" width="180" markdown="false" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Loss-making farms always red</note>
+    <switch x="10" y="485" height="33" on="true" variable="show-luc-codes?" display="show-luc-codes?" width="180" sizeVersion="0"></switch>
+    <slider x="10" step="1" y="830" max="25" display="n-local-links" height="33" min="2" direction="Horizontal" default="4.0" variable="n-local-links" width="180" sizeVersion="0"></slider>
+    <slider x="10" step="1" y="870" max="50" display="n-catchment-links" height="33" min="2" direction="Horizontal" default="6.0" variable="n-catchment-links" width="180" sizeVersion="0"></slider>
+    <slider x="10" step="0.01" y="910" max="1" display="rel-weight-locals" height="33" min="0" direction="Horizontal" default="0.5" variable="rel-weight-locals" width="180" sizeVersion="0"></slider>
+    <slider x="10" step="0.01" y="950" max="1" display="rel-weight-catchment" height="33" min="0" direction="Horizontal" default="0.1" variable="rel-weight-catchment" width="180" sizeVersion="0"></slider>
     <chooser x="890" y="10" height="45" variable="scenario" current="0" display="scenario" width="180" sizeVersion="0">
       <choice type="string" value="default"></choice>
       <choice type="string" value="luc-dependent"></choice>
       <choice type="string" value="null-market"></choice>
     </chooser>
+    <slider x="1315" step="0.1" y="830" max="15" display="interest-rate" height="33" min="0" direction="Horizontal" default="0.0" variable="interest-rate" width="225" sizeVersion="0"></slider>
+    <switch x="1080" y="830" height="33" on="false" variable="include-debt?" display="include-debt?" width="225" sizeVersion="0"></switch>
+    <switch x="1080" y="750" height="33" on="false" variable="apply-severity-of-losses?" display="apply-severity-of-losses?" width="225" sizeVersion="0"></switch>
+    <switch x="1080" y="710" height="33" on="false" variable="prioritise-forestry?" display="prioritise-forestry?" width="225" sizeVersion="0"></switch>
+    <switch x="1080" y="670" height="33" on="true" variable="landuse-change-on-succession?" display="landuse-change-on-succession?" width="225" sizeVersion="0"></switch>
+    <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="$ Total" y="80" xMin="0.0" height="285" legend="true" xMax="10.0" yMin="0.0" xAxis="Time" display="Income-costs" width="225" sizeVersion="0">
+      <setup></setup>
+      <update></update>
+    </plot>
+    <plot x="1315" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="# Cells" y="80" xMin="0.0" height="285" legend="true" xMax="10.0" yMin="0.0" xAxis="Time" display="Interventions" width="225" sizeVersion="0">
+      <setup></setup>
+      <update></update>
+    </plot>
+    <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="# Cells" y="375" xMin="0.0" height="285" legend="true" xMax="10.0" yMin="0.0" xAxis="Time" display="Landuse composition" width="225" sizeVersion="0">
+      <setup></setup>
+      <update></update>
+    </plot>
+    <plot x="1315" autoPlotX="true" yMax="1.0" autoPlotY="true" y="375" xMin="0.0" height="285" legend="true" xMax="0.0" yMin="0.0" xAxis="Time" display="Environmental metrics" width="225" sizeVersion="0">
+      <setup></setup>
+      <update></update>
+    </plot>
+    <button x="1315" y="10" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="output-results" width="225" sizeVersion="0">output-results</button>
+    <input x="1080" multiline="false" y="10" height="60" variable="experiment-name" type="string" width="225" sizeVersion="0">scratch</input>
+    <slider x="890" step="0.01" y="750" max="20" display="sigmoid-slope" height="33" min="0.01" direction="Horizontal" default="10.0" variable="sigmoid-slope" width="180" sizeVersion="0"></slider>
+    <monitor x="890" precision="0" y="696" height="45" fontSize="11" width="180" sizeVersion="0">run-seed</monitor>
+    <switch x="890" y="656" height="33" on="true" variable="user-run-seed?" display="user-run-seed?" width="180" sizeVersion="0"></switch>
+    <input x="890" multiline="false" y="592" height="60" variable="run-rng-seed" type="number" width="180" sizeVersion="0">1.0</input>
+    <slider x="890" step="1" y="526" max="20" display="landuse-aggregation-steps" height="33" min="0" direction="Horizontal" default="5.0" variable="landuse-aggregation-steps" width="180" sizeVersion="0"></slider>
+    <switch x="890" y="486" height="33" on="true" variable="correlated-landuse?" display="correlated-landuse?" width="180" sizeVersion="0"></switch>
+    <slider x="890" step="5" y="446" max="1000" display="number-of-farms" height="33" min="10" direction="Horizontal" default="250.0" variable="number-of-farms" width="180" sizeVersion="0"></slider>
+    <slider x="890" step="5" y="406" max="250" display="luc-aggregation-steps" height="33" min="0" direction="Horizontal" default="90.0" variable="luc-aggregation-steps" width="180" sizeVersion="0"></slider>
+    <monitor x="890" precision="0" y="352" height="45" fontSize="11" display="geography-seed" width="180" sizeVersion="0">word geography-seed
+;; this is a workaround per
+;; https://github.com/NetLogo/NetLogo/issues/2562#issuecomment-3353992160</monitor>
+    <switch x="890" y="312" height="33" on="true" variable="user-geography-seed?" display="user-geography-seed?" width="180" sizeVersion="0"></switch>
+    <input x="890" multiline="false" y="246" height="60" variable="geography-rng-seed" type="number" width="180" sizeVersion="0">1.553817984E9</input>
+    <slider x="890" step="1" y="150" max="600" display="max-dimension" height="33" min="100" direction="Horizontal" default="330.0" variable="max-dimension" width="180" sizeVersion="0"></slider>
+    <switch x="890" y="110" height="33" on="false" variable="geography-from-files?" display="geography-from-files?" width="180" sizeVersion="0"></switch>
     <chooser x="890" y="60" height="45" variable="region" current="0" display="region" width="180" sizeVersion="0">
       <choice type="string" value="Oreti"></choice>
       <choice type="string" value="Waihou-Piako"></choice>
       <choice type="string" value="Rangitaiki"></choice>
     </chooser>
-    <switch x="890" y="110" height="33" on="true" variable="geography-from-files?" display="geography-from-files?" width="180" sizeVersion="0"></switch>
-    <slider x="890" step="1" y="148" max="600" display="max-dimension" height="33" min="100" direction="Horizontal" default="330.0" variable="max-dimension" width="180" sizeVersion="0"></slider>
-    <note x="890" y="181" backgroundDark="0" fontSize="11" width="181" markdown="false" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Longer dimension of map will be
+    <note x="10" y="205" backgroundDark="0" fontSize="11" width="85" markdown="false" height="40" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Go even if stop
+condition met</note>
+    <note x="10" y="520" backgroundDark="0" fontSize="11" width="180" markdown="false" height="40" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">More intense colours are lower
+LUC values (better land).</note>
+    <note x="890" y="572" backgroundDark="0" fontSize="12" width="180" markdown="true" height="18" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Model run RNG**</note>
+    <note x="890" y="226" backgroundDark="0" fontSize="12" width="180" markdown="true" height="18" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Random landscape settings**</note>
+    <note x="890" y="186" backgroundDark="0" fontSize="11" width="181" markdown="false" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Longer dimension of map will be
 this many patches</note>
-    <note x="890" y="220" backgroundDark="0" fontSize="12" width="180" markdown="true" height="18" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Random landscape settings**</note>
-    <input x="890" multiline="false" y="240" height="60" variable="geography-rng-seed" type="number" width="180" sizeVersion="0">1.553817984E9</input>
-    <switch x="890" y="305" height="33" on="false" variable="user-geography-seed?" display="user-geography-seed?" width="180" sizeVersion="0"></switch>
-    <monitor x="890" precision="0" y="343" height="45" fontSize="11" display="geography-seed" width="180" sizeVersion="0">word geography-seed
-;; this is a workaround per
-;; https://github.com/NetLogo/NetLogo/issues/2562#issuecomment-3353992160</monitor>
-    <slider x="890" step="5" y="393" max="250" display="luc-aggregation-steps" height="33" min="0" direction="Horizontal" default="50.0" variable="luc-aggregation-steps" width="180" sizeVersion="0"></slider>
-    <slider x="890" step="5" y="431" max="1000" display="number-of-farms" height="33" min="10" direction="Horizontal" default="250.0" variable="number-of-farms" width="180" sizeVersion="0"></slider>
-    <switch x="890" y="469" height="33" on="true" variable="correlated-landuse?" display="correlated-landuse?" width="180" sizeVersion="0"></switch>
-    <slider x="890" step="1" y="507" max="20" display="landuse-aggregation-steps" height="33" min="0" direction="Horizontal" default="4.0" variable="landuse-aggregation-steps" width="180" sizeVersion="0"></slider>
-    <note x="890" y="550" backgroundDark="0" fontSize="12" width="180" markdown="true" height="18" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Model run RNG**</note>
-    <input x="890" multiline="false" y="570" height="60" variable="run-rng-seed" type="number" width="180" sizeVersion="0">1.0</input>
-    <switch x="890" y="635" height="33" on="true" variable="user-run-seed?" display="user-run-seed?" width="180" sizeVersion="0"></switch>
-    <monitor x="890" precision="0" y="673" height="45" fontSize="11" width="180" sizeVersion="0">run-seed</monitor>
-    <slider x="890" step="0.01" y="723" max="20" display="sigmoid-slope" height="33" min="0.01" direction="Horizontal" default="10.0" variable="sigmoid-slope" width="180" sizeVersion="0"></slider>
-    <note x="890" y="765" backgroundDark="0" fontSize="12" width="180" markdown="true" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Interventions**</note>
-    <output x="890" y="785" height="175" fontSize="11" width="180"></output>
+    <button x="10" y="568" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="redraw" width="180" sizeVersion="0">redraw</button>
+    <button x="10" y="768" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-catchment-links" width="180" sizeVersion="0">ask catchment-links [ set hidden? not hidden? ]</button>
+    <button x="10" y="728" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-local-links" width="180" sizeVersion="0">ask local-links [ set hidden? not hidden? ]</button>
+    <button x="10" y="688" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-holdings" width="180" sizeVersion="0">ask holdings [set hidden? not hidden?]</button>
+    <button x="10" y="648" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-farms" width="180" sizeVersion="0">ask farms [set hidden? not hidden?]</button>
+    <button x="10" y="608" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-farmers" width="180" sizeVersion="0">ask farmers [ set hidden? not hidden? ]</button>
     <monitor x="890" precision="1" y="970" height="45" fontSize="11" display="mean-farmer-age" width="180" sizeVersion="0">mean [age] of farmers</monitor>
-    <input x="1080" multiline="false" y="10" height="60" variable="experiment-name" type="string" width="225" sizeVersion="0">scratch</input>
-    <button x="1315" y="10" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="output-results" width="225" sizeVersion="0">output-results</button>
-    <note x="1315" y="43" backgroundDark="0" fontSize="11" width="220" markdown="true" height="56" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**experiment-name** should be subfolder
-of **output-results** folder</note>
-    <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="$ Total" y="75" xMin="0.0" height="295" legend="true" xMax="10.0" yMin="0.0" xAxis="Time" display="Income-costs" width="225" sizeVersion="0">
-      <setup></setup>
-      <update></update>
-    </plot>
-    <plot x="1315" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="# Cells" y="75" xMin="0.0" height="295" legend="true" xMax="10.0" yMin="0.0" xAxis="Time" display="Interventions" width="225" sizeVersion="0">
-      <setup></setup>
-      <update></update>
-    </plot>
-    <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="# Cells" y="375" xMin="0.0" height="295" legend="true" xMax="10.0" yMin="0.0" xAxis="Time" display="Landuse composition" width="225" sizeVersion="0">
-      <setup></setup>
-      <update></update>
-    </plot>
-    <plot x="1315" autoPlotX="true" yMax="1.0" autoPlotY="true" y="375" xMin="0.0" height="295" legend="true" xMax="0.0" yMin="0.0" xAxis="Time" display="Environmental metrics" width="225" sizeVersion="0">
-      <setup></setup>
-      <update></update>
-    </plot>
-    <switch x="1080" y="675" height="33" on="true" variable="landuse-change-on-succession?" display="landuse-change-on-succession?" width="225" sizeVersion="0"></switch>
-    <switch x="1080" y="713" height="33" on="false" variable="prioritise-forestry?" display="prioritise-forestry?" width="225" sizeVersion="0"></switch>
-    <note x="1305" y="715" backgroundDark="0" fontSize="10" width="145" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Off**: Consider all landuses for
-loss-making holdings</note>
-    <switch x="1080" y="751" height="33" on="false" variable="apply-severity-of-losses?" display="apply-severity-of-losses?" width="225" sizeVersion="0"></switch>
-    <note x="1305" y="753" backgroundDark="0" fontSize="10" width="145" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**On**: Severe losses make farm
-conversion more likely</note>
-    <switch x="1080" y="789" height="33" on="true" variable="apply-suitability?" display="apply-suitability?" width="225" sizeVersion="0"></switch>
-    <note x="1305" y="791" backgroundDark="0" fontSize="10" width="145" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**On**: LUC suitability applied to
-farm change</note>
-    <switch x="1080" y="827" height="33" on="true" variable="include-debt?" display="include-debt?" width="225" sizeVersion="0"></switch>
-    <slider x="1315" step="0.1" y="827" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="2.5" variable="interest-rate" width="225" sizeVersion="0"></slider>
-    <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="865" xMin="20.0" height="150" legend="false" xMax="90.0" yMin="0.0" xAxis="Age" display="farmer ages" width="460" sizeVersion="0">
+    <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="870" xMin="20.0" height="145" legend="false" xMax="90.0" yMin="0.0" xAxis="Age" display="farmer ages" width="460" sizeVersion="0">
       <setup></setup>
       <update></update>
       <pen interval="1.0" mode="1" display="default" color="-16777216" legend="true">
@@ -568,6 +540,23 @@ set-histogram-num-bars 14
 histogram [age] of farmers</update>
       </pen>
     </plot>
+    <output x="890" y="820" height="110" fontSize="11" width="180"></output>
+    <switch x="1080" y="790" height="33" on="true" variable="apply-suitability?" display="apply-suitability?" width="225" sizeVersion="0"></switch>
+    <switch x="10" y="50" height="33" on="false" variable="reinitialise?" display="reinitialise?" width="180" sizeVersion="0"></switch>
+    <note x="890" y="796" backgroundDark="0" fontSize="12" width="180" markdown="true" height="19" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Interventions**</note>
+    <note x="10" y="285" backgroundDark="0" fontSize="11" width="180" markdown="false" height="33" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Turn off event messages
+to speed things up!</note>
+    <note x="10" y="355" backgroundDark="0" fontSize="11" width="180" markdown="true" height="65" textColorDark="-1" textColorLight="-16777216" backgroundLight="0"><![CDATA[Colour key (applies to both landuse and farm symbols)
+&nbsp;&nbsp;&nbsp;**Crop** Purple **Dairy** Blue
+  **Forest** Green &nbsp;&nbsp;&nbsp;**SNB** Brown]]></note>
+    <note x="1315" y="46" backgroundDark="0" fontSize="11" width="220" markdown="true" height="56" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**experiment-name** should be subfolder
+of the output folder</note>
+    <note x="1305" y="715" backgroundDark="0" fontSize="10" width="145" markdown="true" height="36" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Off**: Consider all landuses for
+loss-making holdings</note>
+    <note x="1305" y="755" backgroundDark="0" fontSize="10" width="145" markdown="true" height="36" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**On**: Severe losses make farm
+conversion more likely</note>
+    <note x="1305" y="795" backgroundDark="0" fontSize="10" width="145" markdown="true" height="36" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**On**: LUC suitability applied to
+farm change</note>
   </widgets>
   <info>## WHAT IS IT?
 

@@ -302,8 +302,7 @@ end
 to setup-farmer-networks
   ask farmers [ 
     make-farmer-local-links
-    make-farmer-catchment-links
-    make-farmer-disposition-links
+    make-farmer-catchment-links 
   ]
 end
 

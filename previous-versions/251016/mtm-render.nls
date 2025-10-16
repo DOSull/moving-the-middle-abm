@@ -59,9 +59,7 @@ end
 
 
 to redraw-farm
-  let spacing sqrt (count patches / count farms)
-  let max-profit max [abs current-profit] of farms
-  set size spacing * (abs current-profit / max-profit) ^ 0.333
+  set size (abs current-profit / 250) ^ 0.333 ;; scaling size of net profit circle
   ifelse current-profit > 0 [
     ifelse farm-type-colours?
     [ set color table:get table:get colour-key "farm-type" farm-type
@@ -75,9 +73,7 @@ end
 
 
 to redraw-holding
-  let spacing sqrt (count patches / count holdings)
-  let max-profit max [abs current-profit] of holdings
-  set size spacing * (abs current-profit / max-profit) ^ 0.333
+  set size (abs current-profit / 1000) ^ 0.333 ;; scaling size of net profit circle
   ifelse current-profit > 0 [
     ifelse farm-type-colours?
     [ set color table:get table:get colour-key "farm-type" farm-type
@@ -125,7 +121,6 @@ to setup-colours
   table:put colour-key "background" grey - 1
   table:put colour-key "local-link" [255 51 51 192]
   table:put colour-key "catchment-link" [51 153 255 128]
-  table:put colour-key "disposition-link" [102 102 102 128]
   table:put colour-key "not-farmed" grey + 1
 end
 

@@ -466,7 +466,7 @@ end
 ;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ;; DEALINGS IN THE SOFTWARE.]]></code>
   <widgets>
-    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1004" showTickCounter="true" patchSize="3.0" fontSize="6" wrappingAllowedY="false" width="565" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="184" minPxcor="0"></view>
+    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1004" showTickCounter="true" patchSize="3.0" fontSize="6" wrappingAllowedY="false" width="680" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="222" minPxcor="0"></view>
     <switch x="10" y="10" height="33" on="true" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
     <switch x="10" y="48" height="33" on="false" variable="reinitialise?" display="reinitialise?" width="185" sizeVersion="0"></switch>
     <button x="10" y="86" height="33" disableUntilTicks="true" forever="false" kind="Observer" display="reset" width="90" sizeVersion="0">restore-initial-values
@@ -513,7 +513,7 @@ LUC values (better land).</note>
       <choice type="string" value="Waihou-Piako"></choice>
       <choice type="string" value="Rangitaiki"></choice>
     </chooser>
-    <switch x="890" y="110" height="33" on="true" variable="geography-from-files?" display="geography-from-files?" width="180" sizeVersion="0"></switch>
+    <switch x="890" y="110" height="33" on="false" variable="geography-from-files?" display="geography-from-files?" width="180" sizeVersion="0"></switch>
     <slider x="890" step="1" y="148" max="600" display="max-dimension" height="33" min="100" direction="Horizontal" default="330.0" variable="max-dimension" width="180" sizeVersion="0"></slider>
     <note x="890" y="181" backgroundDark="0" fontSize="11" width="181" markdown="false" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Longer dimension of map will be
 this many patches</note>

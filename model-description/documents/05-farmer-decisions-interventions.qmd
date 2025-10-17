@@ -31,7 +31,7 @@ library(stringr)
 library(ggplot2)
 library(kableExtra)
 
-base_dir <- "~/Documents/work/mwlr-moving-the-middle/abm/data/market/default/"
+base_dir <- "~/Documents/work/mwlr-moving-the-middle/abm/data/market/default"
 ```
 
 As shown below if no holdings on the farm are loss-making, then a farmer will consider adopting one or more of the available interventions on various holdings.
@@ -73,7 +73,7 @@ The currently adopted interventions on a particular holding we denote $A$ which 
 For each intervention $i_i$ there are associated impacts, in terms of added costs $\Delta x_{iFL}$, and changes in yields $\Delta q_{iFL}$ and emissions $\Delta e_{iFL}$, where the $F$ and $L$ subscripts indicate the dependence of these impacts on farm type $F$ and land use capability $L$. The impacts of various interventions are stored in the `intervention-impacts.csv` file:
 
 ```{r}
-interventions <- read.csv(str_glue("{base_dir}intervention-impacts.csv"), 
+interventions <- read.csv(str_glue("{base_dir}/intervention-impacts.csv"), 
                           header = T)
 interventions |> 
   kable() |> 

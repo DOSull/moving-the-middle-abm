@@ -1,0 +1,56 @@
+to-report get-loan-repayments [P i-rate loan-term ypt]
+  ifelse i-rate = 0 [
+    report round (P / loan-term * ypt)
+  ]
+  [
+    let r get-effective-rate i-rate ypt
+    let x (1 + r) ^ (loan-term / ypt)
+    report round (P * r * x / (x - 1))
+  ]
+end
+
+to-report get-principal-from-payment [pmt i-rate loan-term ypt]
+  let result nobody
+  ifelse i-rate = 0 [
+    report round (pmt * loan-term / ypt)
+  ]
+  [
+    let r get-effective-rate i-rate ypt
+    let x (1 + r) ^ (loan-term / ypt)
+    report round (pmt * (1 - (1 / x)) / r) 
+  ]
+end
+
+to-report get-principal-remaining [P i-rate loan-term ypt m]
+  let result 0
+  ifelse i-rate = 0 [
+    let n loan-term / ypt
+    report round ((n - m) / n * P)
+  ]
+  [
+    let pmt get-loan-repayments P i-rate loan-term ypt
+    let r get-effective-rate i-rate ypt
+    let x (1 + r) ^ m
+    report round (P * x - pmt * ((x - 1) / r))
+  ]
+end
+
+to-report get-effective-rate [r y]
+  report ((1 + r / 100) ^ y) - 1
+end
+
+
+
+;loans-own [
+;  payment
+;  principal-owing
+;]
+;
+;to initialise-loan [P i-rate loan-term ypt maturity]
+;  set hidden? true
+;  set payment get-loan-repayments P i-rate loan-term ypt
+;  set principal-owing map [x -> get-principal-remaining P i-rate loan-term ypt x] range (loan-term / ypt)
+;  set principal-owing last-n principal-owing maturity
+;end
+;
+

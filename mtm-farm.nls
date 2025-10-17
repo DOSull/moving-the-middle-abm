@@ -12,19 +12,21 @@ farms-own [
   current-income          ;; most recent income of farm summed across patches
   current-costs           ;; most recent costs of farm summed across patches
   my-metrics
-  loans
-  debt
-  debt-maturity
+  total-loans
+  current-debt
   debt-payments
-
+  debt-maturity
+  dsr
+  
   current-profit-0        ;; variables at model initialisation for quick reset
   current-income-0
   current-costs-0
   my-metrics-0
-  loans-0
-  debt-0
-  debt-maturity-0
+  total-loans-0
+  current-debt-0
   debt-payments-0
+  debt-maturity-0
+  dsr-0
 ]
 
 ;; farm 'constructor'
@@ -49,84 +51,53 @@ to-report in-breach? [metric]
   report table:get my-metrics metric / count the-land > table:get (table:get env-metrics metric) "limit"
 end
 
-;; farm profit is simple sum of the contributions from its holdings
-to update-profit-of-farm [initialisation?]
+to update-income-and-costs-of-farm
   set current-income sum [current-income] of [my-holdings] of my-farmer
   set current-costs sum [current-costs] of [my-holdings] of my-farmer
-  let latest-profit current-income - current-costs
-  if initialisation? or loans > 0 [
-    ifelse latest-profit >= debt-payments [
+end
+
+;; farm profit is simple sum of the contributions from its holdings
+to finalise-profit-of-farm
+  let gross-profit current-income - current-costs
+  if total-loans > 0 [
+    ifelse gross-profit >= debt-payments [
       service-debt
-      set current-profit latest-profit - debt-payments
+      set current-profit gross-profit - debt-payments
     ]
     [
-      add-to-debt (debt-payments - latest-profit)
+      add-to-debt (debt-payments - gross-profit)
       set current-profit 0
     ]
   ]
-end
-
-to-report get-loan-repayments [principal rate]
-  let result nobody
-  ifelse rate = 0 [
-    report round (principal / 20 * years-per-tick)
-  ]
-  [
-    let r ((1 + rate / 100) ^ years-per-tick) - 1
-    let x (1 + r) ^ (20 / years-per-tick)
-    report round (principal * r * x / (x - 1))
-  ]
-end
-
-to-report get-principal-from-payment [payment rate]
-  let result nobody
-  ifelse rate = 0 [
-    report round (payment * 20 / years-per-tick)
-  ]
-  [
-    let r ((1 + rate / 100) ^ years-per-tick) - 1
-    report round (payment * (1 - (1 + r) ^ (- 20 / years-per-tick)) / r) 
-  ]
-end
-
-to-report get-principal-remaining [principal rate m]
-  let result 0
-  ifelse rate = 0 [
-    let n 20 / years-per-tick
-    report round ((n - m) / n * principal)
-  ]
-  [
-    let payment get-loan-repayments principal rate
-    let r ((1 + rate / 100) ^ years-per-tick) - 1
-    report round (principal * (1 + r) ^ m - payment * (((1 + r) ^ m - 1) / r))
-  ]
+  set dsr debt-payments / current-income
 end
 
 to set-initial-debt-of-farm
   let m table:get table:get initial-debt-service-ratios farm-type "mean"
   let s table:get table:get initial-debt-service-ratios farm-type "sd"
   set debt-payments precision (random-normal m s * current-income) 0
-  set loans get-principal-from-payment debt-payments interest-rate
+  let principal get-principal-from-payment debt-payments interest-rate 20 years-per-tick
+  set total-loans get-principal-from-payment debt-payments interest-rate 20 years-per-tick
   set debt-maturity one-of range 4
-  set debt get-principal-remaining loans interest-rate debt-maturity
+  set current-debt get-principal-remaining total-loans interest-rate 20 years-per-tick debt-maturity
 end
 
 to add-to-debt [x]
-  set loans round (get-principal-remaining loans interest-rate 0 + x)
-  set debt-payments get-loan-repayments loans interest-rate
+  set total-loans round ((get-principal-remaining total-loans interest-rate 20 years-per-tick debt-maturity) + x)
+  set debt-payments get-loan-repayments total-loans interest-rate 20 years-per-tick
   set debt-maturity 0
-  set debt loans
+  set current-debt total-loans
 end
 
 to service-debt
   set debt-maturity debt-maturity + 1
   ifelse debt-maturity >= (20 / years-per-tick) [
-    set loans 0
-    set debt 0
+    set total-loans 0
+    set current-debt 0
     set debt-payments 0
   ]
   [
-    set debt get-principal-remaining loans interest-rate debt-maturity
+    set current-debt get-principal-remaining total-loans interest-rate 20 years-per-tick debt-maturity
   ]
 end
 

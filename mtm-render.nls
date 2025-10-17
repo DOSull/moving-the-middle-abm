@@ -26,12 +26,6 @@ to colour-patches [pset colour-by-type?]
             set pcolor approximate-hsb hue (30 + 10 * (8 - luc-code)) (100 - degradation)
           ]
         ]
-;        foreach table:to-list table:get colour-key "farm-type-palettes" [ farm-type-palette ->
-;          let [ft pal-name] farm-type-palette
-;          ask pset with [landuse = ft] [
-;            set pcolor palette:scale-scheme "Sequential" pal-name 9 luc-code 9 0
-;          ]
-;        ]
       ]
       [
         foreach table:to-list table:get colour-key "farm-type-hues" [ farm-type-hue ->
@@ -40,12 +34,6 @@ to colour-patches [pset colour-by-type?]
             set pcolor approximate-hsb hue 100 (100 - degradation)
           ]
         ]
-;        foreach table:to-list table:get colour-key "farm-type" [ farm-type-colours ->
-;          let [ft col] farm-type-colours
-;          ask pset with [landuse = ft] [
-;            set pcolor col
-;          ]
-;        ]
       ]
     ]
     [
@@ -62,14 +50,21 @@ to redraw-farm
   let spacing sqrt (count patches / count farms)
   let max-profit max [abs current-profit] of farms
   set size spacing * (abs current-profit / max-profit) ^ 0.333
-  ifelse current-profit > 0 [
-    ifelse farm-type-colours?
-    [ set color table:get table:get colour-key "farm-type" farm-type
-      set color color palette:with-alpha 160
-    ]
-    [ set color table:get colour-key "profit" ]
+  ifelse current-profit = 0 [
+    set shape "x"
+    set size 1
+    set color black
   ]
-  [ set color table:get colour-key "loss" ]
+  [ set shape "circle 3"
+    ifelse current-profit > 0 [
+      ifelse farm-type-colours?
+      [ set color table:get table:get colour-key "farm-type" farm-type
+        set color color palette:with-alpha 160
+      ]
+      [ set color table:get colour-key "profit" ]
+    ]
+    [ set color table:get colour-key "loss" ]
+  ]
   colour-patches the-land show-landuse?
 end
 

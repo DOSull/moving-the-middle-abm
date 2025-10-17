@@ -43,7 +43,7 @@ to update-income-costs-debt-results
   table:put table:get results "income_costs" "costs" time-series
 
   set time-series table:get table:get results "income_costs" "debt"
-  set time-series lput sum [debt] of farms time-series
+  set time-series lput sum [current-debt] of farms time-series
   table:put table:get results "income_costs" "debt" time-series
 end
 

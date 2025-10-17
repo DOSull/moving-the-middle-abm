@@ -6,7 +6,7 @@ farmers-own [
   succession-stage ;; how many times this farmer has moved on... they don't die they
                    ;; are just succeeded - this matters to the rapid reset functionality
   my-interventions ;; 1-0 matrix of interventions adopted by landuse
-
+  
   my-farm          ;; farm turtle of this farmer's farm
   my-holdings      ;; turtle-set of holdings of this farmer
   
@@ -111,9 +111,8 @@ to succeed-farmer
   let ft-now farm-type
   ;; new farmer considers changing the farm type if any holdings are loss-making
   ;; without regard to how long losses have been happening, and with no 'down-weight'
-  if landuse-change-on-succession? and any? my-holdings with [current-profit < 0] [
-    let options consider-farm-type-change "Succession: "
-    ;; let options consider-farm-type-change 1 "Succession: "
+  if landuse-change-on-succession? and (any? my-holdings with [current-profit < 0] or not ([current-profit] of my-farm > 0)) [
+    let options consider-farm-type-change 1 "Succession: "
     if length options > 0 [ make-farm-type-changes options ]
   ]
   ask my-farm [
@@ -140,7 +139,9 @@ to do-survival
   let loss-making-holdings get-loss-making-holdings
   if any? loss-making-holdings [
     if [current-profit] of my-farm <= 0 [ ;; losing lots of money so consider complete change
-      set farm-conversion-options consider-farm-type-change "Losing money: "
+      let down-weight ifelse-value apply-severity-of-losses?
+        [ 1 - (sum [count the-land] of loss-making-holdings) / count the-land ] [ 1 ]
+      set farm-conversion-options consider-farm-type-change down-weight "Losing money: "
     ]
     ;; only some holdings are losing money so consider forestry on those
     let holding-change-options consider-holdings-farm-type-change loss-making-holdings prioritise-forestry?
@@ -220,7 +221,7 @@ end
 ;; 
 ;; The all-of-farm flag tells later steps to apply all these together
 ;; Change to Forest is not considered in this case
-to-report consider-farm-type-change [prefix]
+to-report consider-farm-type-change [down-weight prefix]
   if show-events? [
     with-local-randomness [ ;; the reporter here invokes the RNG
       show (word prefix "Considering changing landuse because holdings profits are " 
@@ -239,33 +240,10 @@ to-report consider-farm-type-change [prefix]
   let affected-holdings my-holdings with [farm-type = ft]
   set options map [new-ft -> 
     (list (list affected-holdings "all-of-farm" ft new-ft) 
-          (table:get table:get farm-type-change-probs ft new-ft))
+          (down-weight * table:get table:get farm-type-change-probs ft new-ft))
   ] options
   report options
 end
-;to-report consider-farm-type-change [down-weight prefix]
-;  if show-events? [
-;    with-local-randomness [ ;; the reporter here invokes the RNG
-;      show (word prefix "Considering changing landuse because holdings profits are " 
-;                 [precision (current-profit / count the-land) 1] of get-loss-making-holdings)
-;    ]
-;  ]
-;  ;; for convenience record this farmer's farmer-type
-;  let ft farm-type
-;  ;; only other farm-types are options for change - and Forest is not an option
-;  let options filter [new-ft -> new-ft != ft and ft != "Forest"] farm-types
-;  if apply-suitability? [
-;    ;; only landuses suitable for the typical land on the farm are considered
-;    let luc-constraint round mean [luc-code] of (the-land with [landuse = ft])
-;    set options filter-farm-types-by-luc options luc-constraint
-;  ]
-;  let affected-holdings my-holdings with [farm-type = ft]
-;  set options map [new-ft -> 
-;    (list (list affected-holdings "all-of-farm" ft new-ft) 
-;          (down-weight * table:get table:get farm-type-change-probs ft new-ft))
-;  ] options
-;  report options
-;end
 
 
 ;; reports list of possible changes in landuse for the supplied set of holdings

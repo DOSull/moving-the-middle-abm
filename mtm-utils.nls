@@ -299,7 +299,7 @@ to-report but-first-n [lst n]
 end
 
 to-report last-n [lst n]
-  report sublist lst (length lst - 2) length lst
+  report sublist lst (length lst - n) length lst
 end
 
 to-report any-true? [lst]

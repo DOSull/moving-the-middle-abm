@@ -7348,7 +7348,7 @@ z-index: 1000;
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">August 5, 2025</p>
+      <p class="date-modified">October 17, 2025</p>
     </div>
   </div>
     
@@ -7359,8 +7359,7 @@ z-index: 1000;
 </header>
 
 
-<p>The steps in model initialisation are shown in the flow chart below. Although almost all code between these two initialisation pathways is shared, they are executed in separate sequences to ensure that random seed initialisation works correctly in the random geography case.</p>
-<p>An important detail is that initialisation completes with a run of a single cycle of the model. This means in the GIS initialisation case that the starting state of the model will not necessarily match exactly the data contained in the initialisation files, but will reflect one tick of model evolution. Using a random seed, this step is guaranteed to be the same every time so that repeatability is not affected. A single ‘burn-in’ step is needed to generate plausible prior year income and costs which the model requires to run.</p>
+<p>The steps in model initialisation are shown in the flow chart below. Although almost all code between these two initialisation pathways is shared, they are executed in separate sequences to ensure that random seed initialisation works correctly in the random geography case. The steps colour pink and blue below run differently depending on whether initialisation is random or from GIS files.</p>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
@@ -7373,17 +7372,17 @@ z-index: 1000;
   D[Read LUC&lt;br&gt;from &lt;span style=&#39;font-family:monospace;&#39;&gt;luc.asc&lt;/span&gt;]
   E[Read farms&lt;br&gt;from &lt;span style=&#39;font-family:monospace;&#39;&gt;parcels.shp&lt;/span&gt;]
   F[Initialise farmers&lt;br&gt;one per farm]
-  G[Read land use from &lt;span style=&#39;font-family:monospace;&#39;&gt;landuse.asc&lt;/span&gt; and assign to farms]
+  G[Read land use from&lt;br&gt;&lt;span style=&#39;font-family:monospace;&#39;&gt;landuse.asc&lt;/span&gt; and assign&lt;br&gt;to farms]
   H[Setup farmer networks]
-  I[Partition farms by LUC into holdings]
+  I[Partition farms by&lt;br&gt;LUC into holdings]
   J[Setup LUC&lt;br&gt;on land]
   K[Partition land&lt;br&gt;into farms]
   L[Initialise farmers&lt;br&gt;one per farm]
-  M[Partition farms by LUC&lt;br&gt;into holdings]
+  M[Partition farms by&lt;br&gt;LUC into holdings]
   N[Setup farmer networks]
-  O[Partition farms by LUC into holdings]
+  O[Partition farms by&lt;br&gt;LUC into holdings]
   P[Initialise market&lt;br&gt;settings from files]
-  Q[Run one cycle]
+  Q[Run one&lt;br&gt;&#39;burn-in&#39; cycle]
   R[Store settings&lt;br&gt;for rapid reset]
   S((END))
   A --&gt; B
@@ -7415,7 +7414,8 @@ z-index: 1000;
 </div>
 </div>
 </div>
-<p>It is worth noting that there are some tricky sequencing issues in the setup which make the associated code a little ‘fragile’ with some obvious-seeming changes for ‘efficiency’ likely to break the model! (These are noted in code comments.) The steps colour pink and blue below run differently depending on whether initialisation is random or from GIS files.</p>
+<p>An important detail is that initialisation completes with a run of a single cycle of the model. This means in the GIS initialisation case that the starting state of the model will not necessarily match exactly the data contained in the initialisation files, but will reflect one tick of model evolution. Using a random seed, this step is guaranteed to be the same every time so that repeatability is not affected. A single ‘burn-in’ step is needed to generate plausible prior year income and costs which the model requires to run.</p>
+<p>It is worth noting that there are some tricky sequencing issues in the setup which make the associated code a little ‘fragile’ with some obvious-seeming changes for ‘efficiency’ likely to break the model! (These are noted in code comments.)</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
@@ -7447,6 +7447,10 @@ Update History
 <tr class="even">
 <td style="text-align: left;">2025-08-05</td>
 <td style="text-align: left;">Made differences between random and GIS initialisation clearer.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2025-10-17</td>
+<td style="text-align: left;">Some blocks with overflow labels fixed.</td>
 </tr>
 </tbody>
 </table>

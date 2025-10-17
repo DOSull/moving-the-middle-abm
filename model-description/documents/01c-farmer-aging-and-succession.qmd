@@ -3,7 +3,7 @@ title: "Farmer aging and succession"
 subtitle: "MtM ABM description"
 author: "David O'Sullivan"
 date: 19 February 2025
-date-modified: 15 February 2025
+date-modified: 17 October 2025
 lightbox: true
 filters:
   - nutshell
@@ -27,18 +27,20 @@ knitr:
 ---
 
 ## Farmer aging
-Farmers age by one year per model tick. Hence the model time scale is 1 year per tick, but this is subject to change. A 5 year model time step may be considered more appropriate.
+Farmers age by five years per model tick (specified by hard-coded global `years-per-tick`).
 
 After aging, a farmer is tested for exiting the industry (or retiring or dying, or however we want to think about it). They exit with a probability given by 
+
 $$
 p_{\mathrm{exit}} = \left\{
   \begin{array}{cl} 
-    \frac{1}{91-\mathrm{age}} & \text{if age} <    91 \\
+    \frac{5}{91-\mathrm{age}} & \text{if age} <    91 \\
                             1 & \text{if age} \geq 91
   \end{array}
 \right.
 $$
-This means that farmers are not guaranteed to exit until they are 90, reflecting the rather surprising number of old farmers in survey data.
+
+This means that farmers are not guaranteed to exit until they are 90, reflecting the surprising numbers of older farmers in survey data.
 
 ## Age of farmers at model initialisation
 The age of farmers at model initialisation is drawn from a [:beta-binomial distribution](https://en.wikipedia.org/wiki/Beta-binomial_distribution), with $n=70$, $\alpha=5$, and $\beta=4$, and ages then offset by adding 20 (so that 20 is the youngest possible age). An example distribution for 250 farmers is shown below, with the red line showing the associated probability density function.
@@ -77,7 +79,7 @@ ggplot(ages_init) +
 This distribution has been roughly matched to survey evidence of farmer ages (it has not been fitted, just matched approximately by eye).
 
 ## Age of new farmers
-Incoming farmer ages are also drawn from a beta-binomial distribution with $n=45$, $\alpha=4$, $\alpha=2$.
+Incoming farmer ages are also drawn from a beta-binomial distribution with $n=45$, $\alpha=4$, $\alpha=2$ again offset so that the youngest farmers are 20.
 
 ```{r}
 #| echo: false
@@ -102,25 +104,26 @@ ages_all <-
   pivot_longer(c(Initial, Succession))
 
 ggplot(ages_all) +
-  geom_line(aes(x = Age, y = value, colour = name, group = name)) +
-  scale_colour_brewer(palette = "Set1") +
+  geom_ribbon(aes(x = Age, ymax = value, ymin = 0, fill = name, group = name), 
+            alpha = 0.5, colour = NA) +
   ylab('Probability density') +
   theme_minimal() +
   theme(legend.title = element_blank())
 ```
 
-In any case, this paramterisation appears to keep the farmer age distribution fairly stable over time. 
+In any case, this paramterisation keeps the farmer age distribution fairly stable over time. 
 
 More detailed fitting and analysis of these (hard-coded) parameter settings around farmer ages is probably desirable.
 
 ## Entrant farmers and landuse change
-A new farmer will consider whole-farm landuse change (see [Farmer decisions about land use](04-farmer-decisions-land-use.qmd) for details) if any of the farm's holdings is losing money. This pathway to land use is more likely to lead to land use change at the whole farm level than the more piecemeal changes that tend to be made by incumbent farmers.
+A new farmer will consider whole-farm landuse change (see [Farmer decisions about land use](04-farmer-decisions-land-use.qmd) for details) **under conditions to be determined**. This pathway to land use is more likely to lead to land use change at the whole farm level than the more piecemeal changes that tend to be made by incumbent farmers.
 
 ::: {.callout-note collapse="true"}
 #### Update History
 
 | Date | Changes
 |:-|:------
-| 2025-02-19 | Initial post.                       
+| 2025-02-19 | Initial post. 
+| 2025-10-17 | Updated to reflect changing in aging by 5 years per tick.
 
 :::

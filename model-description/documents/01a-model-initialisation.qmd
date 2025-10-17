@@ -3,7 +3,7 @@ title: "Model initialisation"
 subtitle: "MtM ABM description"
 author: "David O'Sullivan"
 date: 19 February 2025
-date-modified: 5 August 2025
+date-modified: 17 October 2025
 lightbox: true
 format:
   html:
@@ -24,9 +24,7 @@ knitr:
       knitr.table.html.attr: "quarto-disable-processing=true"
 ---
 
-The steps in model initialisation are shown in the flow chart below. Although almost all code between these two initialisation pathways is shared, they are executed in separate sequences to ensure that random seed initialisation works correctly in the random geography case. 
-
-An important detail is that initialisation completes with a run of a single cycle of the model. This means in the GIS initialisation case that the starting state of the model will not necessarily match exactly the data contained in the initialisation files, but will reflect one tick of model evolution. Using a random seed, this step is guaranteed to be the same every time so that repeatability is not affected. A single 'burn-in' step is needed to generate plausible prior year income and costs which the model requires to run.
+The steps in model initialisation are shown in the flow chart below. Although almost all code between these two initialisation pathways is shared, they are executed in separate sequences to ensure that random seed initialisation works correctly in the random geography case. The steps colour pink and blue below run differently depending on whether initialisation is random or from GIS files.
 
 ```{mermaid}
 flowchart TB
@@ -36,17 +34,17 @@ flowchart TB
   D[Read LUC<br>from <span style='font-family:monospace;'>luc.asc</span>]
   E[Read farms<br>from <span style='font-family:monospace;'>parcels.shp</span>]
   F[Initialise farmers<br>one per farm]
-  G[Read land use from <span style='font-family:monospace;'>landuse.asc</span> and assign to farms]
+  G[Read land use from<br><span style='font-family:monospace;'>landuse.asc</span> and assign<br>to farms]
   H[Setup farmer networks]
-  I[Partition farms by LUC into holdings]
+  I[Partition farms by<br>LUC into holdings]
   J[Setup LUC<br>on land]
   K[Partition land<br>into farms]
   L[Initialise farmers<br>one per farm]
-  M[Partition farms by LUC<br>into holdings]
+  M[Partition farms by<br>LUC into holdings]
   N[Setup farmer networks]
-  O[Partition farms by LUC into holdings]
+  O[Partition farms by<br>LUC into holdings]
   P[Initialise market<br>settings from files]
-  Q[Run one cycle]
+  Q[Run one<br>'burn-in' cycle]
   R[Store settings<br>for rapid reset]
   S((END))
   A --> B
@@ -74,14 +72,17 @@ flowchart TB
   class J,K,M blue
 ```
 
-It is worth noting that there are some tricky sequencing issues in the setup which make the associated code a little 'fragile' with some obvious-seeming changes for 'efficiency' likely to break the model! (These are noted in code comments.) The steps colour pink and blue below run differently depending on whether initialisation is random or from GIS files.
+An important detail is that initialisation completes with a run of a single cycle of the model. This means in the GIS initialisation case that the starting state of the model will not necessarily match exactly the data contained in the initialisation files, but will reflect one tick of model evolution. Using a random seed, this step is guaranteed to be the same every time so that repeatability is not affected. A single 'burn-in' step is needed to generate plausible prior year income and costs which the model requires to run.
+
+It is worth noting that there are some tricky sequencing issues in the setup which make the associated code a little 'fragile' with some obvious-seeming changes for 'efficiency' likely to break the model! (These are noted in code comments.)
 
 ::: {.callout-note collapse="true"}
 #### Update History
 
 | Date | Changes
 |:-|:------
-| 2025-02-19 | Initial post.                       
+| 2025-02-19 | Initial post.
 | 2025-08-05 | Made differences between random and GIS initialisation clearer.
+| 2025-10-17 | Some blocks with overflow labels fixed.
 
 :::

@@ -4907,7 +4907,8 @@ window.Quarto = {
     <h2 id="toc-title">Contents</h2>
    
   <ul>
-  <li><a href="#land-use" id="toc-land-use" class="nav-link active" data-scroll-target="#land-use">Land use</a></li>
+  <li><a href="#scale" id="toc-scale" class="nav-link active" data-scroll-target="#scale">Scale</a></li>
+  <li><a href="#land-use" id="toc-land-use" class="nav-link" data-scroll-target="#land-use">Land use</a></li>
   <li><a href="#management-interventions" id="toc-management-interventions" class="nav-link" data-scroll-target="#management-interventions">Management interventions</a></li>
   <li><a href="#the-land" id="toc-the-land" class="nav-link" data-scroll-target="#the-land">The land</a></li>
   <li><a href="#farmers" id="toc-farmers" class="nav-link" data-scroll-target="#farmers">Farmers</a></li>
@@ -4946,7 +4947,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">August 5, 2025</p>
+      <p class="date-modified">October 17, 2025</p>
     </div>
   </div>
     
@@ -4957,7 +4958,10 @@ window.Quarto = {
 </header>
 
 
-<p>Clearly, there is a lot going on here. The easiest way to get a handle on it is through the main model elements and their attributes and behaviours.</p>
+<section id="scale" class="level3">
+<h3 class="anchored" data-anchor-id="scale">Scale</h3>
+<p>Model grid cells represent 400×400 meter (16 hectare) areas. Model time steps represent 5 years of elapsed time.</p>
+</section>
 <section id="land-use" class="level3">
 <h3 class="anchored" data-anchor-id="land-use">Land use</h3>
 <p>Each unit of land in the model, and the aggregations into <a href="#holdings">holdings</a> or <a href="#farms">farms</a> has a land use, which is one of <code>&quot;Crop&quot;</code>, <code>&quot;Dairy&quot;</code>, <code>&quot;Forest&quot;</code>, or <code>&quot;SNB&quot;</code>. This classification could be made more detailed, although some work would be required on visualization aspects of the model to accommodate the change. <strong>Note:</strong> Applied to grid cells representing the land in the model, land use is the <code>landuse</code> attribute. Applied to <a href="#farmers">farmers</a>, <a href="#farms">farms</a>, or <a href="#holdings">holdings</a> it is <code>farm-type</code>.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> For holdings the two will always match exactly (all cells in a holding will be the same land use), but for farmers and farms not all associated cells need be in the same land use.</p>
@@ -4969,7 +4973,7 @@ window.Quarto = {
 </section>
 <section id="the-land" class="level3">
 <h3 class="anchored" data-anchor-id="the-land">The land</h3>
-<p>The land is represented by a square grid of cells (in NetLogo terminology ‘patches’). Each grid cell represents 16 hectares at present (this may change). Each cell ‘knows’ its owning <a href="#farmers">farmer</a> and the <a href="#holdings">holding</a> and <a href="#farms">farm</a> of which it is a part, although this information at the grid cell level is mostly used during model initialisation. Each cell also has a <code>landuse</code> attribute which is one of the <a href="#land-use">land uses</a> represented, and a <code>luc-code</code>, an integer between 1 and 8 (inclusive). LUC affects what land uses are suited to that land and also impacts, costs, yields, and emissions.</p>
+<p>The land is represented by a square grid of cells (in NetLogo terminology ‘patches’). Each grid cell represents 16 hectares at present (this may change). Each cell ‘knows’ its owning <a href="#farmers">farmer</a> and the <a href="#holdings">holding</a> and <a href="#farms">farm</a> of which it is a part. Each cell also has a <code>landuse</code> attribute which is one of the <a href="#land-use">land uses</a> represented, and a <code>luc-code</code>, an integer between 1 and 8 (inclusive). LUC affects what land uses are suited to that land (recorded in the <code>suitabilities.csv</code> file) and also impacts, costs, yields, and emissions.</p>
 </section>
 <section id="farmers" class="level3">
 <h3 class="anchored" data-anchor-id="farmers">Farmers</h3>
@@ -4982,12 +4986,12 @@ window.Quarto = {
 <li><code>the-land</code>: a list of grid cells that compose the farm.</li>
 <li><code>age</code>: age in years. Affects likelihood of farmer leaving and being succeeded by a new farmer. See <a href="../../model-description/documents/01c-farmer-aging-and-succession.html">Farmer aging and succession</a>.</li>
 <li><code>succession-stage</code>: how many ‘new farmers’ or ‘which generation’ of farmer this one is on this farm. We don’t spawn new farmers on succession, we just change their settings and increment this attribute</li>
-<li><code>disposition</code>: one of <code>&quot;for-profit&quot;</code>, <code>&quot;pro-social&quot;</code>, or <code>&quot;pro-environmental&quot;</code>. <strong>Not currently used</strong>.</li>
-<li><code>my-local-link-neighbors</code> and <code>my-catchment-link-neighbors</code>: other farmers connected to this one, that might influence their decisions.</li>
+<li><code>disposition</code>: one of e.g., <code>&quot;for-profit&quot;</code>, <code>&quot;pro-social&quot;</code>, <code>&quot;pro-environmental&quot;</code>. Farmers with different dispositions have different thresholds for adoption of <a href="#management-interventions">management interventions</a>.</li>
+<li><code>my-local-link-neighbors</code>, <code>my-catchment-link-neighbors</code>, and <code>my-disposition-link-neighbors</code>: other farmers connected to this one, that might influence their decisions.</li>
 </ul>
 <p>Key actions run by farmers include:</p>
 <ul>
-<li><code>age-and-succeed-farmer</code>: each model tick farmers age by one year, and with probability <span class="math inline">\frac{1}{91-\mathrm{age}}</span> exit the industry and are replaced by a new farmer that may be of different <code>disposition</code>, a different <code>age</code> (not necessarily younger, but probably), and if any holdings are currently loss-making will consider all of farm land use change. See <a href="../../model-description/documents/01c-farmer-aging-and-succession.html">Farmer aging and succession</a> for details.</li>
+<li><code>age-and-succeed-farmer</code>: each model tick farmers age by one year, and with probability <span class="math inline">\frac{1}{91-\mathrm{age}}</span> exit the industry and are replaced by a new farmer that may be of different <code>disposition</code>, a different <code>age</code> (not necessarily younger, but probably), and depending on the current farm circumstances will also consider all of farm land use change. See <a href="../../model-description/documents/01c-farmer-aging-and-succession.html">Farmer aging and succession</a> for details.</li>
 <li><code>consider-farm-type-change</code> and <code>consider-holdings-farm-type-change</code>: as detailed in <a href="04-farmer-decisions-land-use-change.qmd">Farmer decisions about land use</a> farmers may decide to change the land use of a whole farm, or change the land use of individual holdings.</li>
 <li><code>make-farm-type-changes</code>: if a decision is taken to change land use on a farm or any of its holdings the farmer coordinates necessary updates to the model state.</li>
 <li><code>consider-management-changes</code> and <code>make-management-changes</code>: consider possible management interventions for adoption and implement them (or not) as detailed in <a href="../../model-description/documents/05-farmer-decisions-interventions.html">Farmer decisions about management interventions</a>.</li>
@@ -4995,11 +4999,11 @@ window.Quarto = {
 </section>
 <section id="farms" class="level3">
 <h3 class="anchored" data-anchor-id="farms">Farms</h3>
-<p>Farms don’t do much of anything since <a href="#holdings">holdings</a> were added to the model. This is reflected in the fact that their only attributes are the self-explanatory <code>the-land</code>, <code>farm-type</code>, and <code>my-farmer</code>. Farms do also keep track of the aggregate profit, income, and costs of all the holdings that compose the farm, but calculation of these amounts happens at the holding level. A potential extension of the model (<strong>part implemented</strong>) records the <code>losses-record</code> of a farm and this impacts the willingness of farmer’s to consider land use change, so that an all-of-farm change in land use would become more likely as losses persist over time.</p>
+<p>Farms don’t <em>do</em> much of anything since <a href="#holdings">holdings</a> were added to the model. This is reflected in the fact that their only attributes are the self-explanatory <code>the-land</code>, <code>farm-type</code>, and <code>my-farmer</code>. Farms do also keep track of the aggregate profit, income, and costs of all the holdings that compose the farm, but calculation of these amounts happens at the holding level. Farms also carry debt represented in their <code>total-loans</code>, <code>current-debt</code>, <code>debt-repayments</code>, <code>debt-maturity</code>, and <code>dsr</code> (debt service ratio) attributes.</p>
 </section>
 <section id="holdings" class="level3">
 <h3 class="anchored" data-anchor-id="holdings">Holdings</h3>
-<p>Holdings are subfarm level units at which management interventions and land use changes are implemented.</p>
+<p>Holdings are subfarm level units where management interventions and land use changes are implemented.</p>
 <p>Holdings have the following attributes:</p>
 <ul>
 <li><code>farm-type</code>: one of the land uses in the model, i.e. one of <code>&quot;Crop&quot;</code>, <code>&quot;Dairy&quot;</code>, <code>&quot;Forest&quot;</code>, or <code>&quot;SNB&quot;</code>.</li>
@@ -5046,6 +5050,10 @@ Update History
 <tr class="even">
 <td style="text-align: left;">2025-08-05</td>
 <td style="text-align: left;">Split out to a separate model elements page.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2025-10-17</td>
+<td style="text-align: left;">Updated for version including debt.</td>
 </tr>
 </tbody>
 </table>

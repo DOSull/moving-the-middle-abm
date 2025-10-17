@@ -2,6 +2,7 @@
 title: "Moving the Middle ABM description"
 author: "David O'Sullivan"
 date: 19 February 2025
+modified: 17 October 2025
 # execute: 
 #   cache: true
 #   freeze: auto
@@ -44,5 +45,6 @@ The model code is available for download at [this repository](https://github.com
 | Date | Changes
 |:-|:------
 | 2025-02-14 | Initial post.                       
+| 2025-10-16 | Updated for latest version (incl debt).                       
 
 ::: -->

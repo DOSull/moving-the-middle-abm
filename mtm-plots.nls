@@ -57,10 +57,8 @@ to update-income-costs-plot [with-pen-down?]
     plot sum [current-income] of farms
     set-current-plot-pen "Costs"
     plot sum [current-costs] of farms
-    if include-debt? [
-      set-current-plot-pen "Debt"
-      plot sum [current-debt] of farms
-    ]
+    set-current-plot-pen "Debt"
+    plot sum [current-debt] of farms
   ]
   [
     set-current-plot "Income-costs"
@@ -72,12 +70,10 @@ to update-income-costs-plot [with-pen-down?]
     plot-pen-up
     plot sum [current-costs] of farms
     plot-pen-down
-    if include-debt? [
-      set-current-plot-pen "Debt"
-      plot-pen-up
-      plot sum [current-debt] of farms
-      plot-pen-down
-    ]
+    set-current-plot-pen "Debt"
+    plot-pen-up
+    plot sum [current-debt] of farms
+    plot-pen-down
   ]
 end
 

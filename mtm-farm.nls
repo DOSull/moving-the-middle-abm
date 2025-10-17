@@ -76,28 +76,27 @@ to set-initial-debt-of-farm
   let m table:get table:get initial-debt-service-ratios farm-type "mean"
   let s table:get table:get initial-debt-service-ratios farm-type "sd"
   set debt-payments precision (random-normal m s * current-income) 0
-  let principal get-principal-from-payment debt-payments interest-rate 20 years-per-tick
-  set total-loans get-principal-from-payment debt-payments interest-rate 20 years-per-tick
-  set debt-maturity one-of range 4
-  set current-debt get-principal-remaining total-loans interest-rate 20 years-per-tick debt-maturity
+  set total-loans get-principal-from-payment debt-payments interest-rate mortgage-term years-per-tick
+  set debt-maturity one-of range round (mortgage-term / years-per-tick)
+  set current-debt get-principal-remaining total-loans interest-rate mortgage-term years-per-tick debt-maturity
 end
 
 to add-to-debt [x]
-  set total-loans round ((get-principal-remaining total-loans interest-rate 20 years-per-tick debt-maturity) + x)
-  set debt-payments get-loan-repayments total-loans interest-rate 20 years-per-tick
+  set total-loans round ((get-principal-remaining total-loans interest-rate mortgage-term years-per-tick debt-maturity) + x)
+  set debt-payments get-loan-repayments total-loans interest-rate mortgage-term years-per-tick
   set debt-maturity 0
   set current-debt total-loans
 end
 
 to service-debt
   set debt-maturity debt-maturity + 1
-  ifelse debt-maturity >= (20 / years-per-tick) [
+  ifelse debt-maturity >= (mortgage-term / years-per-tick) [
     set total-loans 0
     set current-debt 0
     set debt-payments 0
   ]
   [
-    set current-debt get-principal-remaining total-loans interest-rate 20 years-per-tick debt-maturity
+    set current-debt get-principal-remaining total-loans interest-rate mortgage-term years-per-tick debt-maturity
   ]
 end
 

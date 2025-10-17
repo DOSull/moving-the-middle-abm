@@ -96,12 +96,10 @@ end
 to age-and-succeed-farmer
   ;; don't create a new farmer, just change age and
   ;; consider some other changes
-  set age ifelse-value age + 5 > 90 [90] [age + 5] 
+  set age ifelse-value age + years-per-tick > 90 [90] [age + years-per-tick] 
   ;; they have five chances to leave at probability 1/(91-age) as they age
   ;; which comes out to a single chance at probability 5/(91-age) 
-  if age > 90 or random-float 1 < (5 / (91 - age)) [
-    succeed-farmer
-  ]
+  if age > 90 or random-float 1 < (years-per-tick / (91 - age)) [ succeed-farmer ]
 end
 
 to succeed-farmer

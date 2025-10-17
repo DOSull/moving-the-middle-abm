@@ -4891,7 +4891,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">August 5, 2025</p>
+      <p class="date-modified">October 17, 2025</p>
     </div>
   </div>
     
@@ -4904,7 +4904,7 @@ vertical-align: -.125em;
 
 <section id="code" class="level2">
 <h2 class="anchored" data-anchor-id="code">Code</h2>
-<p>To make managing model source code a little easier it is broken into a main <code>.nlogo</code> file and a number of NetLogo source <code>.nls</code> files. Unfortunately the built in IDE for NetLogo is rather primitive, so this breakdown is not perfect, but it at least keeps the size of each source file manageable (a few hundred lines at most), where a monolithic flat file would be an unwieldy 2000+ lines. The files are as follows:</p>
+<p>To make managing model source code a little easier it is broken into a main <code>.nlogo</code> file and a number of NetLogo source <code>.nls</code> files. Unfortunately the built in IDE for NetLogo is rather primitive, so this breakdown is not perfect, but it at least keeps the size of each source file manageable (a few hundred lines at most), where a monolithic flat file would be an unwieldy 3000+ lines (and counting). The files are as follows:</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 25%">
@@ -4927,19 +4927,27 @@ vertical-align: -.125em;
 </tr>
 <tr class="odd">
 <td style="text-align: left;"><code>mtm-read-files.nls</code></td>
-<td style="text-align: left;">Reading of market setting files into tables and matrices</td>
+<td style="text-align: left;">Reading of market setting files into tables and matrices…</td>
 </tr>
 <tr class="even">
+<td style="text-align: left;"><code>mtm-tables.nls</code></td>
+<td style="text-align: left;">… using code in this file for reading tabular data in various formats</td>
+</tr>
+<tr class="odd">
 <td style="text-align: left;"><code>mtm-farm.nls</code></td>
 <td style="text-align: left;">Initialisation and maintenance of farm agents</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td style="text-align: left;"><code>mtm-farmer.nls</code></td>
 <td style="text-align: left;">Initialisation and maintenance of farmer agents, primarily procedures for choosing among options for land use change / management interventions</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td style="text-align: left;"><code>mtm-holding.nls</code></td>
 <td style="text-align: left;">Initialisation and maintence of holding agents, primarily calculation of income and costs</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>mtm-loans.nls</code></td>
+<td style="text-align: left;">Code for calculation of loan payments, outstanding principal, etc.</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;"><code>mtm-plots.nls</code></td>
@@ -4957,9 +4965,12 @@ vertical-align: -.125em;
 <td style="text-align: left;"><code>mtm-render.nls</code></td>
 <td style="text-align: left;">Visual rendering of model state</td>
 </tr>
+<tr class="odd">
+<td style="text-align: left;"><code>mtm-utils.nls</code></td>
+<td style="text-align: left;">Various list, matrix, string, statistical distributions, and other utility functions, used throughout the model</td>
+</tr>
 </tbody>
 </table>
-<p>In addition the files <code>list-utils.nls</code>, <code>distribution-utils.nls</code> (both from my <a href="https://github.com/DOSull/netlogo-utils"><strong>netlogo-utils</strong> project</a>), and <code>mtm-utils.nls</code> collect together a large number of utility functions of general use to all the other model components.</p>
 </section>
 <section id="data" class="level2">
 <h2 class="anchored" data-anchor-id="data">Data</h2>
@@ -4968,10 +4979,6 @@ vertical-align: -.125em;
 <h3 class="anchored" data-anchor-id="market">Market</h3>
 <p>Each <code>./data/market/&lt;scenario-name&gt;</code> subfolder contains a collection of files that configure aspects of the market, which together form a scenario.</p>
 <table class="caption-top table">
-<colgroup>
-<col style="width: 25%">
-<col style="width: 75%">
-</colgroup>
 <thead>
 <tr class="header">
 <th style="text-align: left;">Filename</th>
@@ -4984,7 +4991,7 @@ vertical-align: -.125em;
 <td style="text-align: left;">Relative probability of conversion between the different land uses.</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;"><code>environmental-metrics.csv</code>.</td>
+<td style="text-align: left;"><code>environmental-metrics.csv</code></td>
 <td style="text-align: left;">A list of environmental metrics which the modeller wishes to explore in this scenario. Each metric should have a name, and a limit and price associated (where either may be NA), which are regulatory limits and taxes associated with that metric. <strong>This is now where the carbon price in the model is set.</strong> Files called <code>&lt;factor&gt;.csv</code> and <code>&lt;factor&gt;-intervention-impacts.csv</code> must also be present in the folder for all listed metrics. Metrics can be ‘commented out’ by preceding them with a <code>#</code> in this file, when they will then have no impact on a model run (this is for ease of making variant scenarios).</td>
 </tr>
 <tr class="odd">
@@ -5000,6 +5007,14 @@ vertical-align: -.125em;
 <td style="text-align: left;">Baseline probabilities of adoption by farmers of available management interventions by land use.</td>
 </tr>
 <tr class="even">
+<td style="text-align: left;"><code>intervention-initial-props</code></td>
+<td style="text-align: left;">Initial proportions of holdings of each landuse on which each intervention should already have been implemented at model initialisation; also includes a maximum proportion for each of these on each landuse type reflecting possible obstacles to implementation.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>farmer-dispositions.csv</code></td>
+<td style="text-align: left;">The farmer dispositions in the model including their relative proportions.</td>
+</tr>
+<tr class="even">
 <td style="text-align: left;"><code>suitabilities.csv</code></td>
 <td style="text-align: left;">Lists of land use that are allowed on each land use capability class.</td>
 </tr>
@@ -5007,10 +5022,17 @@ vertical-align: -.125em;
 <td style="text-align: left;"><code>prices.csv</code></td>
 <td style="text-align: left;">Market price of commodities (per unit of output) by land use.</td>
 </tr>
+<tr class="even">
+<td style="text-align: left;"><code>debt-service-ratios.csv</code></td>
+<td style="text-align: left;">Mean and standard deviation of the debt service ratios of each farm type.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>costs-yields-time-series.csv</code> and <code>prices-time-series.csv</code></td>
+<td style="text-align: left;">Time series multipliers for costs, yields, and prices.</td>
+</tr>
 </tbody>
 </table>
 <p>The first of these files (<code>farmer-threshold-matrix.csv</code>) effectively defines the available land use types and interventions and additional rows or columns could be added to it to further detail the model’s representation. <strong>Note:</strong> Extending the model in this way to add interventions is trivial; adding additional land uses will require additional code to deal with visualisation aspects.</p>
-<p>The first 4 files effectively define the decision space of farmers in the model. The latter 4 define the market constraints (costs, yields, prices, emissions).</p>
 </section>
 <section id="geographical-setting" class="level3">
 <h3 class="anchored" data-anchor-id="geographical-setting">Geographical setting</h3>
@@ -5065,7 +5087,7 @@ vertical-align: -.125em;
 </section>
 <section id="random-geography" class="level4">
 <h4 class="anchored" data-anchor-id="random-geography">Random geography</h4>
-<p>Random initialisation first sets up a land use capability (LUC) landscape using iterative smoothing<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, then randomly distributes farmers across the landscape assigning them a farm based on Voronoi polygons<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> and breaking the farm into sub-farm level holdings based on contiguouse areas of the same LUC.</p>
+<p>Random initialisation first sets up a land use capability (LUC) landscape using iterative smoothing<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> (number of iterations of smoothing set by <code>luc-aggregation-steps</code>), then randomly distributes farmers across the landscape assigning them a farm based on Voronoi polygons<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> and breaking the farm into sub-farm level holdings based on contiguous areas of the same LUC. Additionally a voter model is iteratively run on the landuses so that regions of uniform landuse are produced (number of iterations of voter model set by <code>landuse-aggregation-steps</code>).</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
@@ -5094,6 +5116,10 @@ Update History
 <td style="text-align: left;">2025-08-05</td>
 <td style="text-align: left;">Split out to a separate model file config page.</td>
 </tr>
+<tr class="odd">
+<td style="text-align: left;">2025-10-17</td>
+<td style="text-align: left;">Updated to reflect addition of debt.</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -5109,8 +5135,9 @@ Update History
 <div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
 
 <ol>
-<li id="fn1"><p>See pages 60-63 in O’Sullivan D and GLW Perry. 2013. <em>Spatial Simulation: Exploring Pattern and Process</em>. Chichester, UK: Wiley.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn2"><p>Okabe A, B Boots, K Sugihara, and SN Chiu. 2000. <em>Spatial Tessellations: Concepts and Applications of Voronoi Diagrams</em>. 2nd edn. Chichester, UK: Wiley.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn1"><p>See Ma W, A Renwick and X Zhou. (2020). <a href="https://dx.doi.org/10.3168/jds.2019-17506">The relationship between farm debt and dairy productivity and profitability in New Zealand</a>. <em>Journal of Dairy Science</em> <strong>103</strong>(9), 8251-8256.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>See pages 60-63 in O’Sullivan D and GLW Perry. 2013. <em>Spatial Simulation: Exploring Pattern and Process</em>. Chichester, UK: Wiley.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Okabe A, B Boots, K Sugihara, and SN Chiu. 2000. <em>Spatial Tessellations: Concepts and Applications of Voronoi Diagrams</em>. 2nd edn. Chichester, UK: Wiley.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

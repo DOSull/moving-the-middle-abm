@@ -157,12 +157,12 @@ to-report results-header
     (list "rel_weight_locals"            rel-weight-locals)
     (list "rel_weight_catchment"         rel-weight-catchment)
     (list "interest_rate"                interest-rate)
+    (list "mortgate_term"                mortgage-term)
     (list "sigmoid_slope"                sigmoid-slope)
     (list "landuse_change_on_succession" landuse-change-on-succession?)
     (list "prioritise_forestry"          prioritise-forestry?)
     (list "apply_severity_of_losses"     apply-severity-of-losses?)
     (list "apply_suitability"            apply-suitability?)
-    (list "include_debt"                 include-debt?)
   )
 end
 

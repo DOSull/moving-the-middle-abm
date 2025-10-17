@@ -3,7 +3,7 @@ title: "Overall model structure"
 subtitle: "MtM ABM description"
 author: "David O'Sullivan"
 date: 19 February 2025
-date-modified: 5 August 2025
+date-modified: 17 October 2025
 lightbox: true
 filters: 
   - nutshell
@@ -25,9 +25,9 @@ knitr:
 ---
 
 ## The model interface
-The easiest place to start is with an overview of what the model looks like. At time of writing (early August 2025) the GUI appears as below (click on the image for a closer look):
+The easiest place to start is with an overview of what the model looks like. At time of writing (mid-October 2025) the GUI appears as below (click on the image for a closer look):
 
-![](abm-working-interface-2.png)
+![](abm-working-interface.png)
 
 ### Column 1
 Controls on the left-hand side are primarily starting and running the model and controlling display of visual elements.
@@ -35,12 +35,12 @@ Controls on the left-hand side are primarily starting and running the model and 
 ### Column 2
 The map area shows land use capability (LUC; more intense colours are better land) and [land use](#land-use) according to the following key:
 
-+ [**Greens**]{style='color:forestgreen;'} Forest
++ [**Greens**]{style='color:green;'} Forest
 + [**Blues**]{style='color:dodgerblue;'} Dairy
 + [**Oranges**]{style='color:orange'} Sheep and beef (SNB)
-+ [**Purples**]{style='color:purple'} Crops
++ [**Magentas**]{style='color:magenta'} Crops
 
-[Farms](#farms) are delineated in black and their current profit is shown by a circle scaled by the level of profit. If 'in the black' the circle is coloured to match dominant land use on the farm. If the farm is losing money ('in the red') the circle is coloured red.
+[Farms](#farms) are delineated in black and their current profit is shown by a circle scaled by the level of profit. If 'in the black' the circle is coloured to match dominant land use on the farm. If the farm is losing money ('in the red') the circle is coloured red. If profit is zero then the circle is replaced with a small 'x'. This happens when an indebted farm has to apply all of gross profits to servicing debt.
 
 [Holdings](#holdings) are delineated in grey and shown by squares scaled and coloured in the same way as farms.
 
@@ -52,12 +52,13 @@ Controls immediately to the right of the map area mostly affect model initialisa
 One other important setting is controlled by a 'slider': `sigmoid-slope` controls the rate of change of probabilities of adoption of intervention in response to push and pull factors. This is uncalibrated at present. A potential extension of the model would allow different levels of this control for different 'nudge' or market effects.
 
 ### Column 4
-The column of controls on the right of the model provides some tracking plots (overall income and costs, overall land on which different interventions have been adopted, overall land in different land uses, and aggregate environmental impacts), and also some high level controls as follows:
+The column of controls on the right of the model provides some tracking plots (overall income and costs, overall land on which different interventions have been adopted, overall land in different land uses, aggregate environmental impacts, age and debt profiles of famrs), and also some high level controls as follows:
 
 + `landuse-change-on-succession?`: If _On_ when a farmer is succeeded by a new entrant the new farmer considers a change in (all of farm) land use if any of the farm's holdings are losing money.
 + `prioritise-forestry?`: If _On_ when a holding is unprofitable _only_ forestry is considered as new land use; other land uses are also considered if this option is _Off_.
 + `apply-severity-of-losses?`: If _On_ losses occurring across more of the farm (by area) make whole of farm conversion of land use less unlikely.
 + `apply-suitability?`: If _On_ suitability of LUC of holdings is taken into account when land use change is undertaken; if _Off_ land use change disregards LUC.
++ `include-debt?` and `interest-rate`: If `include-debt?` is _On_ then farm debt accrues and has various impacts on farmer behaviour.
 
 
 ::: {.callout-note collapse="true"}
@@ -66,7 +67,7 @@ The column of controls on the right of the model provides some tracking plots (o
 | Date | Changes
 |:-|:------
 | 2025-02-19 | Initial post.
-| 2025-08-05 | Original page broken out into 3 - overview, elements, files.                   
+| 2025-08-05 | Original page broken out into 3 - overview, elements, files.         | 2025-10-17 | Updating to include debt aspects.
 
 :::
 

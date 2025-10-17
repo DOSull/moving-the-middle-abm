@@ -466,7 +466,7 @@ end
 ;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ;; DEALINGS IN THE SOFTWARE.]]></code>
   <widgets>
-    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1003" showTickCounter="true" patchSize="3.0" fontSize="6" wrappingAllowedY="false" width="679" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="222" minPxcor="0"></view>
+    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1004" showTickCounter="true" patchSize="3.0" fontSize="6" wrappingAllowedY="false" width="565" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="184" minPxcor="0"></view>
     <switch x="10" y="10" height="33" on="true" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
     <switch x="10" y="48" height="33" on="false" variable="reinitialise?" display="reinitialise?" width="185" sizeVersion="0"></switch>
     <button x="10" y="86" height="33" disableUntilTicks="true" forever="false" kind="Observer" display="reset" width="90" sizeVersion="0">restore-initial-values
@@ -508,12 +508,12 @@ LUC values (better land).</note>
       <choice type="string" value="luc-dependent"></choice>
       <choice type="string" value="null-market"></choice>
     </chooser>
-    <chooser x="890" y="60" height="45" variable="region" current="0" display="region" width="180" sizeVersion="0">
+    <chooser x="890" y="60" height="45" variable="region" current="1" display="region" width="180" sizeVersion="0">
       <choice type="string" value="Oreti"></choice>
       <choice type="string" value="Waihou-Piako"></choice>
       <choice type="string" value="Rangitaiki"></choice>
     </chooser>
-    <switch x="890" y="110" height="33" on="false" variable="geography-from-files?" display="geography-from-files?" width="180" sizeVersion="0"></switch>
+    <switch x="890" y="110" height="33" on="true" variable="geography-from-files?" display="geography-from-files?" width="180" sizeVersion="0"></switch>
     <slider x="890" step="1" y="148" max="600" display="max-dimension" height="33" min="100" direction="Horizontal" default="330.0" variable="max-dimension" width="180" sizeVersion="0"></slider>
     <note x="890" y="181" backgroundDark="0" fontSize="11" width="181" markdown="false" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Longer dimension of map will be
 this many patches</note>
@@ -562,11 +562,8 @@ loss-making holdings</note>
     <switch x="1080" y="751" height="33" on="false" variable="apply-severity-of-losses?" display="apply-severity-of-losses?" width="225" sizeVersion="0"></switch>
     <note x="1305" y="753" backgroundDark="0" fontSize="10" width="225" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**On**: Severe losses make farm
 conversion more likely</note>
-    <switch x="1080" y="789" height="33" on="true" variable="apply-suitability?" display="apply-suitability?" width="225" sizeVersion="0"></switch>
     <note x="1305" y="791" backgroundDark="0" fontSize="10" width="225" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**On**: LUC suitability applied to
 farm change</note>
-    <switch x="1080" y="827" height="33" on="true" variable="include-debt?" display="include-debt?" width="225" sizeVersion="0"></switch>
-    <slider x="1315" step="0.1" y="827" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="2.5" variable="interest-rate" width="225" sizeVersion="0"></slider>
     <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="865" xMin="20.0" height="150" legend="false" xMax="90.0" yMin="0.0" xAxis="Age" display="farmer ages" width="225" sizeVersion="0">
       <setup></setup>
       <update></update>
@@ -587,6 +584,9 @@ set-histogram-num-bars 10
 histogram [dsr] of farms</update>
       </pen>
     </plot>
+    <slider x="1315" step="5" y="827" max="30" display="mortgage-term" height="33" min="5" direction="Horizontal" default="20.0" variable="mortgage-term" width="225" sizeVersion="0"></slider>
+    <slider x="1080" step="0.1" y="827" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="2.5" variable="interest-rate" width="225" sizeVersion="0"></slider>
+    <switch x="1080" y="789" height="33" on="true" variable="apply-suitability?" display="apply-suitability?" width="225" sizeVersion="0"></switch>
   </widgets>
   <info>## WHAT IS IT?
 

@@ -3,7 +3,7 @@ title: "Calculation of holding income"
 subtitle: "MtM ABM description"
 author: "David O'Sullivan"
 date: 2 July 2024
-modified-data: 19 February 2025
+date-modified: 17 October 2025
 lightbox: true
 format:
   html:
@@ -30,7 +30,7 @@ library(stringr)
 library(ggplot2)
 library(kableExtra)
 
-base_dir <- "~/Documents/work/mwlr-moving-the-middle/abm/data/market/default/"
+base_dir <- "~/Documents/work/mwlr-moving-the-middle/abm/data/market/default"
 ```
 
 
@@ -70,7 +70,7 @@ $p_F$ is found in the `prices.csv` file:
 
 ```{r}
 #| label: prices
-prices <- read.csv(str_glue("{base_dir}prices.csv"), 
+prices <- read.csv(str_glue("{base_dir}/prices.csv"), 
                    header = T, row.names = 1) |> 
   slice(1:2) # only rows 1 & 2 relevant
 prices |> 
@@ -82,7 +82,7 @@ Environmental taxes $t_i$ are found in the `environmental-metrics.csv` file in t
 
 ```{r}
 #| label: taxes
-print(read.csv(str_glue("{base_dir}environmental-metrics.csv"), header = T, row.names = 1))
+print(read.csv(str_glue("{base_dir}/environmental-metrics.csv"), header = T, row.names = 1))
 ```
 
 In the remainder of this page we assume only greenhouse gases are taxed and use the simplified form $te$ for the environmental tax burden in preference to the more complete  $\sum_i t_ie_{i,FL}$ shown above.
@@ -92,9 +92,9 @@ Yields by farm type and land use capability, $q_{FL}$, are in the `commodity-yie
 
 ```{r}
 #| label: yields
-yields <- read.csv(str_glue("{base_dir}yields.csv"), 
-                   header = T, row.names = 1)
+yields <- read.csv(str_glue("{base_dir}/yields.csv"), header = T)
 yields |> 
+  mutate(across(3:6, ~ round(., 1))) |>
   kable() |> 
   kable_styling("striped", full_width = F) |>
   scroll_box(height = "250px")
@@ -105,9 +105,9 @@ Base costs per ha. by farm type and land use capability, $x_{FL}$, are in the `i
 
 ```{r}
 #| label: costs
-costs <- read.csv(str_glue("{base_dir}costs.csv"), 
-                   header = T, row.names = 1)
+costs <- read.csv(str_glue("{base_dir}/costs.csv"), header = TRUE)
 costs |> 
+  mutate(across(3:6, ~ round(., 1))) |>
   kable() |> 
   kable_styling("striped", full_width = F) |>
   scroll_box(height = "250px")
@@ -118,9 +118,9 @@ Emissions per ha. by farm type and land use capability, $e_{FL}$, are in the `gh
 
 ```{r}
 #| label: emissions
-emissions <- read.csv(str_glue("{base_dir}ghg_emissions.csv"), 
-                      header = T, row.names = 1)
+emissions <- read.csv(str_glue("{base_dir}/ghg_emissions.csv"), header = TRUE)
 emissions |> 
+  mutate(across(3:6, ~ round(., 1))) |>
   kable() |> 
   kable_styling("striped", full_width = F) |>
   scroll_box(height = "250px")
@@ -137,43 +137,35 @@ prices <- prices |>
   t() |> 
   as.data.frame() |> 
   tibble::rownames_to_column("farm_type") |>
-  mutate(carbon_tax = 10) |>
-  slice(rep(row_number(), 8)) |>
-  mutate(LUC = rep(1:8, each = 4))
+  mutate(carbon_tax = 10)
 
 yields <- yields |>
-  slice(seq(1, 15, 2)) |> 
-  t() |> 
-  as.data.frame() |> 
-  tibble::rownames_to_column("farm_type") |>
+  mutate(across(3:6, ~ round(., 1))) |>
+  filter(mean_or_sd == "Mean") |> 
+  select(-mean_or_sd) |>
   pivot_longer(-1) |>
-  mutate(LUC = rep(1:8, 4), yield = round(value, 1)) |>
-  select(farm_type, LUC, yield)
+  rename(farm_type = name, yield = value)
 
 costs <- costs |>
-  slice(seq(1, 15, 2)) |> 
-  t() |> 
-  as.data.frame() |> 
-  tibble::rownames_to_column("farm_type") |>
+  mutate(across(3:6, ~ round(., 1))) |>
+  filter(mean_or_sd == "Mean") |> 
+  select(-mean_or_sd) |>
   pivot_longer(-1) |>
-  mutate(LUC = rep(1:8, 4), costs = round(value, 1)) |>
-  select(farm_type, LUC, costs)
+  rename(farm_type = name, cost = value)
 
-emissions <- emissions |> 
-  slice(seq(1, 15, 2)) |> 
-  t() |> 
-  as.data.frame() |> 
-  tibble::rownames_to_column("farm_type") |>
+emissions <- emissions |>
+  mutate(across(3:6, ~ round(., 1))) |>
+  filter(mean_or_sd == "Mean") |> 
+  select(-mean_or_sd) |>
   pivot_longer(-1) |>
-  mutate(LUC = rep(1:8, 4), emissions = round(value, 1)) |>
-  select(farm_type, LUC, emissions)
+  rename(farm_type = name, emissions = value)
 
 combined_data <- prices |>
   left_join(yields) |>
   left_join(costs) |>
   left_join(emissions) |>
   mutate(gross_income = price * yield, # LUC = as.factor(LUC),
-         total_costs = costs + carbon_tax * emissions, base_costs = costs,
+         total_costs = cost + carbon_tax * emissions, base_costs = cost,
          profit = gross_income - total_costs) |>
   select(farm_type, LUC, profit, price, yield, gross_income, base_costs,
          emissions, carbon_tax, total_costs) |>
@@ -199,11 +191,6 @@ ggplot(plot_data |> filter(name %in% c("Gross income", "Total costs"))) +
   geom_point(data = plot_data |> filter(name == "Profit"), 
             aes(x = LUC, y = value, shape = name), size = 7) +
   scale_shape_manual(values = "\u2014", name = "") + # \u2014 is an em-dash
-  # The below more correct, but doesn't extend the lines to the full width of the plot
-  # geom_step(data = plot_data |> filter(name == "Profit"), 
-  #           aes(x = LUC, y = value, group = farm_type, colour = name), 
-  #           direction = "mid", lwd = 0.65) +
-  # scale_colour_manual(values = c("black"), name = "") +
   xlab("Landuse Capability (LUC)") +
   ylab("Profit, $ per ha.") +
   facet_wrap(~ farm_type) +
@@ -215,11 +202,12 @@ ggplot(plot_data |> filter(name %in% c("Gross income", "Total costs"))) +
 
 | Date | Changes
 |:-|:------
-| 2025-02-19 | Split out from previous 'core loop' document.
-| 2024-07-28 | Correction in equation summarising full calculation of profit. Added note to consider the nudge calculation's possible bias favouring changes _after_ bad years.
-| 2024-07-05 | Corrected relative change from a percentage to a proportion.
-| 2024-07-04 | Added detail on calculation of relative change noting that profit can't be handled this way because it is $\pm$ and relative change is meaningless for such variables.
-| 2024-07-03 | Added bar chart of farm income/costs estimates. 
 | 2024-07-02 | Initial post.
+| 2024-07-03 | Added bar chart of farm income/costs estimates. 
+| 2024-07-04 | Added detail on calculation of relative change noting that profit can't be handled this way because it is $\pm$ and relative change is meaningless for such variables.
+| 2024-07-05 | Corrected relative change from a percentage to a proportion.
+| 2024-07-28 | Correction in equation summarising full calculation of profit. Added note to consider the nudge calculation's possible bias favouring changes _after_ bad years.
+| 2025-02-19 | Split out from previous 'core loop' document.
+| 2025-10-17 | Corrected code to cope with new formatting of various datasets.
 
 :::

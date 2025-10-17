@@ -5225,6 +5225,12 @@ window.Quarto = {
     </div>
   </div>
   
+    <div>
+    <div class="quarto-title-meta-heading">Modified</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date-modified">October 17, 2025</p>
+    </div>
+  </div>
     
   </div>
   
@@ -5264,7 +5270,7 @@ Z_{FL} = p_Fq_{FL} - x_{FL} - \sum_i t_ie_{i,FL}
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>prices <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">str_glue</span>(<span class="st">&quot;{base_dir}prices.csv&quot;</span>), </span>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>prices <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">str_glue</span>(<span class="st">&quot;{base_dir}/prices.csv&quot;</span>), </span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>                   <span class="at">header =</span> T, <span class="at">row.names =</span> <span class="dv">1</span>) <span class="sc">|&gt;</span> </span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>) <span class="co"># only rows 1 &amp; 2 relevant</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>prices <span class="sc">|&gt;</span> </span>
@@ -5299,15 +5305,15 @@ Z_{FL} = p_Fq_{FL} - x_{FL} - \sum_i t_ie_{i,FL}
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">read.csv</span>(<span class="fu">str_glue</span>(<span class="st">&quot;{base_dir}environmental-metrics.csv&quot;</span>), <span class="at">header =</span> T, <span class="at">row.names =</span> <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">read.csv</span>(<span class="fu">str_glue</span>(<span class="st">&quot;{base_dir}/environmental-metrics.csv&quot;</span>), <span class="at">header =</span> T, <span class="at">row.names =</span> <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>              limit price
 ghg_emissions    10    10
-nitrates         11    NA
-#sediment        10    NA
-#phosphates       1    NA
-#e_coli           4    NA</code></pre>
+nitrates         11     0
+sediment         10     0
+phosphates        1     0
+e_coli            4     0</code></pre>
 </div>
 </div>
 <p>In the remainder of this page we assume only greenhouse gases are taxed and use the simplified form <span class="math inline">te</span> for the environmental tax burden in preference to the more complete <span class="math inline">\sum_i t_ie_{i,FL}</span> shown above.</p>
@@ -5318,9 +5324,9 @@ nitrates         11    NA
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>yields <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">str_glue</span>(<span class="st">&quot;{base_dir}yields.csv&quot;</span>), </span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                   <span class="at">header =</span> T, <span class="at">row.names =</span> <span class="dv">1</span>)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>yields <span class="sc">|&gt;</span> </span>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>yields <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">str_glue</span>(<span class="st">&quot;{base_dir}/yields.csv&quot;</span>), <span class="at">header =</span> T)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>yields <span class="sc">|&gt;</span> </span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="dv">3</span><span class="sc">:</span><span class="dv">6</span>, <span class="sc">~</span> <span class="fu">round</span>(., <span class="dv">1</span>))) <span class="sc">|&gt;</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>() <span class="sc">|&gt;</span> </span>
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_styling</span>(<span class="st">&quot;striped&quot;</span>, <span class="at">full_width =</span> F) <span class="sc">|&gt;</span></span>
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scroll_box</span>(<span class="at">height =</span> <span class="st">&quot;250px&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -5329,7 +5335,8 @@ nitrates         11    NA
 <div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:250px; "><table quarto-disable-processing="true" class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
  <thead>
   <tr>
-   <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">  </th>
+   <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;"> mean_or_sd </th>
+   <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> LUC </th>
    <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> SNB </th>
    <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> Dairy </th>
    <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> Forest </th>
@@ -5338,116 +5345,132 @@ nitrates         11    NA
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:left;"> LUC1_Mean </td>
-   <td style="text-align:right;"> 768.505660 </td>
-   <td style="text-align:right;"> 1503.0000 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 768.5 </td>
+   <td style="text-align:right;"> 1503.0 </td>
    <td style="text-align:right;"> 30.0 </td>
-   <td style="text-align:right;"> 9667.000 </td>
+   <td style="text-align:right;"> 9667.0 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC1_SD </td>
-   <td style="text-align:right;"> 153.701132 </td>
-   <td style="text-align:right;"> 300.6000 </td>
-   <td style="text-align:right;"> 6.0 </td>
-   <td style="text-align:right;"> 1933.400 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> LUC2_Mean </td>
-   <td style="text-align:right;"> 581.247332 </td>
-   <td style="text-align:right;"> 1283.0000 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 581.2 </td>
+   <td style="text-align:right;"> 1283.0 </td>
    <td style="text-align:right;"> 29.0 </td>
-   <td style="text-align:right;"> 9183.650 </td>
+   <td style="text-align:right;"> 9183.6 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC2_SD </td>
-   <td style="text-align:right;"> 116.249466 </td>
-   <td style="text-align:right;"> 256.6000 </td>
-   <td style="text-align:right;"> 5.8 </td>
-   <td style="text-align:right;"> 1836.730 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> LUC3_Mean </td>
-   <td style="text-align:right;"> 372.371287 </td>
-   <td style="text-align:right;"> 1174.3000 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 372.4 </td>
+   <td style="text-align:right;"> 1174.3 </td>
    <td style="text-align:right;"> 28.0 </td>
-   <td style="text-align:right;"> 8724.468 </td>
+   <td style="text-align:right;"> 8724.5 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC3_SD </td>
-   <td style="text-align:right;"> 74.474257 </td>
-   <td style="text-align:right;"> 234.8600 </td>
-   <td style="text-align:right;"> 5.6 </td>
-   <td style="text-align:right;"> 1744.893 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> LUC4_Mean </td>
-   <td style="text-align:right;"> 332.178378 </td>
-   <td style="text-align:right;"> 923.3900 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 332.2 </td>
+   <td style="text-align:right;"> 923.4 </td>
    <td style="text-align:right;"> 27.0 </td>
-   <td style="text-align:right;"> 8288.244 </td>
+   <td style="text-align:right;"> 8288.2 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC4_SD </td>
-   <td style="text-align:right;"> 66.435676 </td>
-   <td style="text-align:right;"> 184.6780 </td>
-   <td style="text-align:right;"> 5.4 </td>
-   <td style="text-align:right;"> 1657.649 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> LUC5_Mean </td>
-   <td style="text-align:right;"> 259.480336 </td>
-   <td style="text-align:right;"> 877.7308 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 259.5 </td>
+   <td style="text-align:right;"> 877.7 </td>
    <td style="text-align:right;"> 26.0 </td>
-   <td style="text-align:right;"> 7873.832 </td>
+   <td style="text-align:right;"> 7873.8 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC5_SD </td>
-   <td style="text-align:right;"> 51.896067 </td>
-   <td style="text-align:right;"> 175.5462 </td>
-   <td style="text-align:right;"> 5.2 </td>
-   <td style="text-align:right;"> 1574.766 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> LUC6_Mean </td>
-   <td style="text-align:right;"> 207.386971 </td>
-   <td style="text-align:right;"> 845.7812 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 207.4 </td>
+   <td style="text-align:right;"> 845.8 </td>
    <td style="text-align:right;"> 25.0 </td>
-   <td style="text-align:right;"> 7480.140 </td>
+   <td style="text-align:right;"> 7480.1 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC6_SD </td>
-   <td style="text-align:right;"> 41.477394 </td>
-   <td style="text-align:right;"> 169.1562 </td>
-   <td style="text-align:right;"> 5.0 </td>
-   <td style="text-align:right;"> 1496.028 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> LUC7_Mean </td>
-   <td style="text-align:right;"> 193.188428 </td>
-   <td style="text-align:right;"> 700.0000 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 193.2 </td>
+   <td style="text-align:right;"> 700.0 </td>
    <td style="text-align:right;"> 24.0 </td>
-   <td style="text-align:right;"> 7106.133 </td>
+   <td style="text-align:right;"> 7106.1 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC7_SD </td>
-   <td style="text-align:right;"> 38.637686 </td>
-   <td style="text-align:right;"> 140.0000 </td>
-   <td style="text-align:right;"> 4.8 </td>
-   <td style="text-align:right;"> 1421.227 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> LUC8_Mean </td>
-   <td style="text-align:right;"> 49.945208 </td>
-   <td style="text-align:right;"> 661.0000 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:right;"> 49.9 </td>
+   <td style="text-align:right;"> 661.0 </td>
    <td style="text-align:right;"> 23.0 </td>
-   <td style="text-align:right;"> 6750.827 </td>
+   <td style="text-align:right;"> 6750.8 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC8_SD </td>
-   <td style="text-align:right;"> 9.989042 </td>
-   <td style="text-align:right;"> 132.2000 </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 153.7 </td>
+   <td style="text-align:right;"> 300.6 </td>
+   <td style="text-align:right;"> 6.0 </td>
+   <td style="text-align:right;"> 1933.4 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 116.2 </td>
+   <td style="text-align:right;"> 256.6 </td>
+   <td style="text-align:right;"> 5.8 </td>
+   <td style="text-align:right;"> 1836.7 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 74.5 </td>
+   <td style="text-align:right;"> 234.9 </td>
+   <td style="text-align:right;"> 5.6 </td>
+   <td style="text-align:right;"> 1744.9 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 66.4 </td>
+   <td style="text-align:right;"> 184.7 </td>
+   <td style="text-align:right;"> 5.4 </td>
+   <td style="text-align:right;"> 1657.6 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 51.9 </td>
+   <td style="text-align:right;"> 175.5 </td>
+   <td style="text-align:right;"> 5.2 </td>
+   <td style="text-align:right;"> 1574.8 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 41.5 </td>
+   <td style="text-align:right;"> 169.2 </td>
+   <td style="text-align:right;"> 5.0 </td>
+   <td style="text-align:right;"> 1496.0 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 38.6 </td>
+   <td style="text-align:right;"> 140.0 </td>
+   <td style="text-align:right;"> 4.8 </td>
+   <td style="text-align:right;"> 1421.2 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:right;"> 10.0 </td>
+   <td style="text-align:right;"> 132.2 </td>
    <td style="text-align:right;"> 4.6 </td>
-   <td style="text-align:right;"> 1350.165 </td>
+   <td style="text-align:right;"> 1350.2 </td>
   </tr>
 </tbody>
 </table></div>
@@ -5461,9 +5484,9 @@ nitrates         11    NA
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>costs <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">str_glue</span>(<span class="st">&quot;{base_dir}costs.csv&quot;</span>), </span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>                   <span class="at">header =</span> T, <span class="at">row.names =</span> <span class="dv">1</span>)</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>costs <span class="sc">|&gt;</span> </span>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>costs <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">str_glue</span>(<span class="st">&quot;{base_dir}/costs.csv&quot;</span>), <span class="at">header =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>costs <span class="sc">|&gt;</span> </span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="dv">3</span><span class="sc">:</span><span class="dv">6</span>, <span class="sc">~</span> <span class="fu">round</span>(., <span class="dv">1</span>))) <span class="sc">|&gt;</span></span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>() <span class="sc">|&gt;</span> </span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_styling</span>(<span class="st">&quot;striped&quot;</span>, <span class="at">full_width =</span> F) <span class="sc">|&gt;</span></span>
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scroll_box</span>(<span class="at">height =</span> <span class="st">&quot;250px&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -5472,7 +5495,8 @@ nitrates         11    NA
 <div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:250px; "><table quarto-disable-processing="true" class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
  <thead>
   <tr>
-   <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">  </th>
+   <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;"> mean_or_sd </th>
+   <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> LUC </th>
    <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> SNB </th>
    <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> Dairy </th>
    <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> Forest </th>
@@ -5481,112 +5505,128 @@ nitrates         11    NA
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:left;"> LUC1_Mean </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 3500 </td>
    <td style="text-align:right;"> 9500 </td>
    <td style="text-align:right;"> 4000 </td>
    <td style="text-align:right;"> 3000 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC1_SD </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 1 </td>
    <td style="text-align:right;"> 700 </td>
    <td style="text-align:right;"> 1900 </td>
    <td style="text-align:right;"> 800 </td>
    <td style="text-align:right;"> 600 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC2_Mean </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 2650 </td>
    <td style="text-align:right;"> 8050 </td>
    <td style="text-align:right;"> 4000 </td>
    <td style="text-align:right;"> 2850 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC2_SD </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 530 </td>
    <td style="text-align:right;"> 1610 </td>
    <td style="text-align:right;"> 800 </td>
    <td style="text-align:right;"> 570 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC3_Mean </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 3 </td>
    <td style="text-align:right;"> 1625 </td>
    <td style="text-align:right;"> 7350 </td>
    <td style="text-align:right;"> 3850 </td>
    <td style="text-align:right;"> 2675 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC3_SD </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 3 </td>
    <td style="text-align:right;"> 325 </td>
    <td style="text-align:right;"> 1470 </td>
    <td style="text-align:right;"> 770 </td>
    <td style="text-align:right;"> 535 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC4_Mean </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 4 </td>
    <td style="text-align:right;"> 1450 </td>
    <td style="text-align:right;"> 5500 </td>
    <td style="text-align:right;"> 3700 </td>
    <td style="text-align:right;"> 2500 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC4_SD </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 4 </td>
    <td style="text-align:right;"> 290 </td>
    <td style="text-align:right;"> 1100 </td>
    <td style="text-align:right;"> 740 </td>
    <td style="text-align:right;"> 500 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC5_Mean </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 5 </td>
    <td style="text-align:right;"> 1110 </td>
    <td style="text-align:right;"> 5200 </td>
    <td style="text-align:right;"> 3550 </td>
    <td style="text-align:right;"> 2400 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC5_SD </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 5 </td>
    <td style="text-align:right;"> 222 </td>
    <td style="text-align:right;"> 1040 </td>
    <td style="text-align:right;"> 710 </td>
    <td style="text-align:right;"> 480 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC6_Mean </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 875 </td>
    <td style="text-align:right;"> 5000 </td>
    <td style="text-align:right;"> 3500 </td>
    <td style="text-align:right;"> 2200 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC6_SD </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 175 </td>
    <td style="text-align:right;"> 1000 </td>
    <td style="text-align:right;"> 700 </td>
    <td style="text-align:right;"> 440 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC7_Mean </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 7 </td>
    <td style="text-align:right;"> 810 </td>
    <td style="text-align:right;"> 4000 </td>
    <td style="text-align:right;"> 3375 </td>
    <td style="text-align:right;"> 2100 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC7_SD </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 7 </td>
    <td style="text-align:right;"> 162 </td>
    <td style="text-align:right;"> 800 </td>
    <td style="text-align:right;"> 675 </td>
    <td style="text-align:right;"> 420 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC8_Mean </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 125 </td>
    <td style="text-align:right;"> 4000 </td>
    <td style="text-align:right;"> 3250 </td>
    <td style="text-align:right;"> 2000 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC8_SD </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 25 </td>
    <td style="text-align:right;"> 800 </td>
    <td style="text-align:right;"> 650 </td>
@@ -5604,9 +5644,9 @@ nitrates         11    NA
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>emissions <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">str_glue</span>(<span class="st">&quot;{base_dir}ghg_emissions.csv&quot;</span>), </span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">header =</span> T, <span class="at">row.names =</span> <span class="dv">1</span>)</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>emissions <span class="sc">|&gt;</span> </span>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>emissions <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="fu">str_glue</span>(<span class="st">&quot;{base_dir}/ghg_emissions.csv&quot;</span>), <span class="at">header =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>emissions <span class="sc">|&gt;</span> </span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="dv">3</span><span class="sc">:</span><span class="dv">6</span>, <span class="sc">~</span> <span class="fu">round</span>(., <span class="dv">1</span>))) <span class="sc">|&gt;</span></span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>() <span class="sc">|&gt;</span> </span>
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_styling</span>(<span class="st">&quot;striped&quot;</span>, <span class="at">full_width =</span> F) <span class="sc">|&gt;</span></span>
 <span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scroll_box</span>(<span class="at">height =</span> <span class="st">&quot;250px&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -5615,7 +5655,8 @@ nitrates         11    NA
 <div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:250px; "><table quarto-disable-processing="true" class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
  <thead>
   <tr>
-   <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">  </th>
+   <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;"> mean_or_sd </th>
+   <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> LUC </th>
    <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> SNB </th>
    <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> Dairy </th>
    <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> Forest </th>
@@ -5624,116 +5665,132 @@ nitrates         11    NA
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:left;"> LUC1_Mean </td>
-   <td style="text-align:right;"> 4.000 </td>
-   <td style="text-align:right;"> 11.00 </td>
-   <td style="text-align:right;"> -15.000000 </td>
-   <td style="text-align:right;"> 1.2000000 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 4.0 </td>
+   <td style="text-align:right;"> 11.0 </td>
+   <td style="text-align:right;"> -15.0 </td>
+   <td style="text-align:right;"> 1.2 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC1_SD </td>
-   <td style="text-align:right;"> 1.200 </td>
-   <td style="text-align:right;"> 3.30 </td>
-   <td style="text-align:right;"> 4.500000 </td>
-   <td style="text-align:right;"> 0.3600000 </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 1.2 </td>
+   <td style="text-align:right;"> 3.3 </td>
+   <td style="text-align:right;"> 4.5 </td>
+   <td style="text-align:right;"> 0.4 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC2_Mean </td>
-   <td style="text-align:right;"> 3.750 </td>
-   <td style="text-align:right;"> 10.50 </td>
-   <td style="text-align:right;"> -14.250000 </td>
-   <td style="text-align:right;"> 1.1400000 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 3.8 </td>
+   <td style="text-align:right;"> 10.5 </td>
+   <td style="text-align:right;"> -14.2 </td>
+   <td style="text-align:right;"> 1.1 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC2_SD </td>
-   <td style="text-align:right;"> 1.125 </td>
-   <td style="text-align:right;"> 3.15 </td>
-   <td style="text-align:right;"> 4.275000 </td>
-   <td style="text-align:right;"> 0.3420000 </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 1.1 </td>
+   <td style="text-align:right;"> 3.1 </td>
+   <td style="text-align:right;"> 4.3 </td>
+   <td style="text-align:right;"> 0.3 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC3_Mean </td>
-   <td style="text-align:right;"> 3.500 </td>
-   <td style="text-align:right;"> 10.00 </td>
-   <td style="text-align:right;"> -13.537500 </td>
-   <td style="text-align:right;"> 1.0830000 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 3.5 </td>
+   <td style="text-align:right;"> 10.0 </td>
+   <td style="text-align:right;"> -13.5 </td>
+   <td style="text-align:right;"> 1.1 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC3_SD </td>
-   <td style="text-align:right;"> 1.050 </td>
-   <td style="text-align:right;"> 3.00 </td>
-   <td style="text-align:right;"> 4.061250 </td>
-   <td style="text-align:right;"> 0.3249000 </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 3.0 </td>
+   <td style="text-align:right;"> 4.1 </td>
+   <td style="text-align:right;"> 0.3 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC4_Mean </td>
-   <td style="text-align:right;"> 3.250 </td>
-   <td style="text-align:right;"> 9.50 </td>
-   <td style="text-align:right;"> -12.860625 </td>
-   <td style="text-align:right;"> 1.0288500 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 3.2 </td>
+   <td style="text-align:right;"> 9.5 </td>
+   <td style="text-align:right;"> -12.9 </td>
+   <td style="text-align:right;"> 1.0 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC4_SD </td>
-   <td style="text-align:right;"> 0.975 </td>
-   <td style="text-align:right;"> 2.85 </td>
-   <td style="text-align:right;"> 3.858188 </td>
-   <td style="text-align:right;"> 0.3086550 </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 2.9 </td>
+   <td style="text-align:right;"> 3.9 </td>
+   <td style="text-align:right;"> 0.3 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC5_Mean </td>
-   <td style="text-align:right;"> 3.000 </td>
-   <td style="text-align:right;"> 9.00 </td>
-   <td style="text-align:right;"> -12.217594 </td>
-   <td style="text-align:right;"> 0.9774075 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 3.0 </td>
+   <td style="text-align:right;"> 9.0 </td>
+   <td style="text-align:right;"> -12.2 </td>
+   <td style="text-align:right;"> 1.0 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC5_SD </td>
-   <td style="text-align:right;"> 0.900 </td>
-   <td style="text-align:right;"> 2.70 </td>
-   <td style="text-align:right;"> 3.665278 </td>
-   <td style="text-align:right;"> 0.2932223 </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 0.9 </td>
+   <td style="text-align:right;"> 2.7 </td>
+   <td style="text-align:right;"> 3.7 </td>
+   <td style="text-align:right;"> 0.3 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC6_Mean </td>
-   <td style="text-align:right;"> 2.750 </td>
-   <td style="text-align:right;"> 8.50 </td>
-   <td style="text-align:right;"> -11.606714 </td>
-   <td style="text-align:right;"> 0.9285371 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 2.8 </td>
+   <td style="text-align:right;"> 8.5 </td>
+   <td style="text-align:right;"> -11.6 </td>
+   <td style="text-align:right;"> 0.9 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC6_SD </td>
-   <td style="text-align:right;"> 0.825 </td>
-   <td style="text-align:right;"> 2.55 </td>
-   <td style="text-align:right;"> 3.482014 </td>
-   <td style="text-align:right;"> 0.2785611 </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 0.8 </td>
+   <td style="text-align:right;"> 2.5 </td>
+   <td style="text-align:right;"> 3.5 </td>
+   <td style="text-align:right;"> 0.3 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC7_Mean </td>
-   <td style="text-align:right;"> 2.500 </td>
-   <td style="text-align:right;"> 8.00 </td>
-   <td style="text-align:right;"> -11.026378 </td>
-   <td style="text-align:right;"> 0.8821103 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 2.5 </td>
+   <td style="text-align:right;"> 8.0 </td>
+   <td style="text-align:right;"> -11.0 </td>
+   <td style="text-align:right;"> 0.9 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC7_SD </td>
-   <td style="text-align:right;"> 0.750 </td>
-   <td style="text-align:right;"> 2.40 </td>
-   <td style="text-align:right;"> 3.307914 </td>
-   <td style="text-align:right;"> 0.2646331 </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 0.8 </td>
+   <td style="text-align:right;"> 2.4 </td>
+   <td style="text-align:right;"> 3.3 </td>
+   <td style="text-align:right;"> 0.3 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC8_Mean </td>
-   <td style="text-align:right;"> 2.250 </td>
-   <td style="text-align:right;"> 7.50 </td>
-   <td style="text-align:right;"> -10.475059 </td>
-   <td style="text-align:right;"> 0.8380048 </td>
+   <td style="text-align:left;"> Mean </td>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:right;"> 2.2 </td>
+   <td style="text-align:right;"> 7.5 </td>
+   <td style="text-align:right;"> -10.5 </td>
+   <td style="text-align:right;"> 0.8 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> LUC8_SD </td>
-   <td style="text-align:right;"> 0.675 </td>
-   <td style="text-align:right;"> 2.25 </td>
-   <td style="text-align:right;"> 3.142518 </td>
-   <td style="text-align:right;"> 0.2514014 </td>
+   <td style="text-align:left;"> SD </td>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:right;"> 0.7 </td>
+   <td style="text-align:right;"> 2.2 </td>
+   <td style="text-align:right;"> 3.1 </td>
+   <td style="text-align:right;"> 0.3 </td>
   </tr>
 </tbody>
 </table></div>
@@ -5750,52 +5807,44 @@ nitrates         11    NA
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">t</span>() <span class="sc">|&gt;</span> </span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>() <span class="sc">|&gt;</span> </span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  tibble<span class="sc">::</span><span class="fu">rownames_to_column</span>(<span class="st">&quot;farm_type&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">carbon_tax =</span> <span class="dv">10</span>) <span class="sc">|&gt;</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice</span>(<span class="fu">rep</span>(<span class="fu">row_number</span>(), <span class="dv">8</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">LUC =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">8</span>, <span class="at">each =</span> <span class="dv">4</span>))</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>yields <span class="ot">&lt;-</span> yields <span class="sc">|&gt;</span></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice</span>(<span class="fu">seq</span>(<span class="dv">1</span>, <span class="dv">15</span>, <span class="dv">2</span>)) <span class="sc">|&gt;</span> </span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">t</span>() <span class="sc">|&gt;</span> </span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>() <span class="sc">|&gt;</span> </span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>  tibble<span class="sc">::</span><span class="fu">rownames_to_column</span>(<span class="st">&quot;farm_type&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="sc">-</span><span class="dv">1</span>) <span class="sc">|&gt;</span></span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">LUC =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">8</span>, <span class="dv">4</span>), <span class="at">yield =</span> <span class="fu">round</span>(value, <span class="dv">1</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(farm_type, LUC, yield)</span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>costs <span class="ot">&lt;-</span> costs <span class="sc">|&gt;</span></span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice</span>(<span class="fu">seq</span>(<span class="dv">1</span>, <span class="dv">15</span>, <span class="dv">2</span>)) <span class="sc">|&gt;</span> </span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">t</span>() <span class="sc">|&gt;</span> </span>
-<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>() <span class="sc">|&gt;</span> </span>
-<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>  tibble<span class="sc">::</span><span class="fu">rownames_to_column</span>(<span class="st">&quot;farm_type&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="sc">-</span><span class="dv">1</span>) <span class="sc">|&gt;</span></span>
-<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">LUC =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">8</span>, <span class="dv">4</span>), <span class="at">costs =</span> <span class="fu">round</span>(value, <span class="dv">1</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(farm_type, LUC, costs)</span>
-<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>emissions <span class="ot">&lt;-</span> emissions <span class="sc">|&gt;</span> </span>
-<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice</span>(<span class="fu">seq</span>(<span class="dv">1</span>, <span class="dv">15</span>, <span class="dv">2</span>)) <span class="sc">|&gt;</span> </span>
-<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">t</span>() <span class="sc">|&gt;</span> </span>
-<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>() <span class="sc">|&gt;</span> </span>
-<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>  tibble<span class="sc">::</span><span class="fu">rownames_to_column</span>(<span class="st">&quot;farm_type&quot;</span>) <span class="sc">|&gt;</span></span>
-<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="sc">-</span><span class="dv">1</span>) <span class="sc">|&gt;</span></span>
-<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">LUC =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">8</span>, <span class="dv">4</span>), <span class="at">emissions =</span> <span class="fu">round</span>(value, <span class="dv">1</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(farm_type, LUC, emissions)</span>
-<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>combined_data <span class="ot">&lt;-</span> prices <span class="sc">|&gt;</span></span>
-<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(yields) <span class="sc">|&gt;</span></span>
-<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(costs) <span class="sc">|&gt;</span></span>
-<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(emissions) <span class="sc">|&gt;</span></span>
-<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">gross_income =</span> price <span class="sc">*</span> yield, <span class="co"># LUC = as.factor(LUC),</span></span>
-<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>         <span class="at">total_costs =</span> costs <span class="sc">+</span> carbon_tax <span class="sc">*</span> emissions, <span class="at">base_costs =</span> costs,</span>
-<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>         <span class="at">profit =</span> gross_income <span class="sc">-</span> total_costs) <span class="sc">|&gt;</span></span>
-<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(farm_type, LUC, profit, price, yield, gross_income, base_costs,</span>
-<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>         emissions, carbon_tax, total_costs) <span class="sc">|&gt;</span></span>
-<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">Profit =</span> profit, <span class="st">`</span><span class="at">Gross income</span><span class="st">`</span> <span class="ot">=</span> gross_income, <span class="st">`</span><span class="at">Total costs</span><span class="st">`</span> <span class="ot">=</span> total_costs)</span>
-<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a>combined_data <span class="sc">|&gt;</span> </span>
-<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>() <span class="sc">|&gt;</span> </span>
-<span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_styling</span>(<span class="st">&quot;striped&quot;</span>, <span class="at">full_width =</span> F) <span class="sc">|&gt;</span></span>
-<span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scroll_box</span>(<span class="at">height =</span> <span class="st">&quot;250px&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">carbon_tax =</span> <span class="dv">10</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>yields <span class="ot">&lt;-</span> yields <span class="sc">|&gt;</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="dv">3</span><span class="sc">:</span><span class="dv">6</span>, <span class="sc">~</span> <span class="fu">round</span>(., <span class="dv">1</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(mean_or_sd <span class="sc">==</span> <span class="st">&quot;Mean&quot;</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>mean_or_sd) <span class="sc">|&gt;</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="sc">-</span><span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">farm_type =</span> name, <span class="at">yield =</span> value)</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>costs <span class="ot">&lt;-</span> costs <span class="sc">|&gt;</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="dv">3</span><span class="sc">:</span><span class="dv">6</span>, <span class="sc">~</span> <span class="fu">round</span>(., <span class="dv">1</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(mean_or_sd <span class="sc">==</span> <span class="st">&quot;Mean&quot;</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>mean_or_sd) <span class="sc">|&gt;</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="sc">-</span><span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">farm_type =</span> name, <span class="at">cost =</span> value)</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>emissions <span class="ot">&lt;-</span> emissions <span class="sc">|&gt;</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="dv">3</span><span class="sc">:</span><span class="dv">6</span>, <span class="sc">~</span> <span class="fu">round</span>(., <span class="dv">1</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(mean_or_sd <span class="sc">==</span> <span class="st">&quot;Mean&quot;</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>mean_or_sd) <span class="sc">|&gt;</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="sc">-</span><span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">farm_type =</span> name, <span class="at">emissions =</span> value)</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>combined_data <span class="ot">&lt;-</span> prices <span class="sc">|&gt;</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(yields) <span class="sc">|&gt;</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(costs) <span class="sc">|&gt;</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(emissions) <span class="sc">|&gt;</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">gross_income =</span> price <span class="sc">*</span> yield, <span class="co"># LUC = as.factor(LUC),</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>         <span class="at">total_costs =</span> cost <span class="sc">+</span> carbon_tax <span class="sc">*</span> emissions, <span class="at">base_costs =</span> cost,</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>         <span class="at">profit =</span> gross_income <span class="sc">-</span> total_costs) <span class="sc">|&gt;</span></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(farm_type, LUC, profit, price, yield, gross_income, base_costs,</span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>         emissions, carbon_tax, total_costs) <span class="sc">|&gt;</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">Profit =</span> profit, <span class="st">`</span><span class="at">Gross income</span><span class="st">`</span> <span class="ot">=</span> gross_income, <span class="st">`</span><span class="at">Total costs</span><span class="st">`</span> <span class="ot">=</span> total_costs)</span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>combined_data <span class="sc">|&gt;</span> </span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>() <span class="sc">|&gt;</span> </span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_styling</span>(<span class="st">&quot;striped&quot;</span>, <span class="at">full_width =</span> F) <span class="sc">|&gt;</span></span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scroll_box</span>(<span class="at">height =</span> <span class="st">&quot;250px&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:250px; "><table quarto-disable-processing="true" class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
@@ -5827,42 +5876,6 @@ nitrates         11    NA
    <td style="text-align:right;"> 3540 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> Dairy </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 1662.50 </td>
-   <td style="text-align:right;"> 7.5 </td>
-   <td style="text-align:right;"> 1503.0 </td>
-   <td style="text-align:right;"> 11272.50 </td>
-   <td style="text-align:right;"> 9500 </td>
-   <td style="text-align:right;"> 11.0 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 9610 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Forest </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 860.00 </td>
-   <td style="text-align:right;"> 157.0 </td>
-   <td style="text-align:right;"> 30.0 </td>
-   <td style="text-align:right;"> 4710.00 </td>
-   <td style="text-align:right;"> 4000 </td>
-   <td style="text-align:right;"> -15.0 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 3850 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Crop </td>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:right;"> 1821.50 </td>
-   <td style="text-align:right;"> 0.5 </td>
-   <td style="text-align:right;"> 9667.0 </td>
-   <td style="text-align:right;"> 4833.50 </td>
-   <td style="text-align:right;"> 3000 </td>
-   <td style="text-align:right;"> 1.2 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 3012 </td>
-  </tr>
-  <tr>
    <td style="text-align:left;"> SNB </td>
    <td style="text-align:right;"> 2 </td>
    <td style="text-align:right;"> 218.00 </td>
@@ -5873,42 +5886,6 @@ nitrates         11    NA
    <td style="text-align:right;"> 3.8 </td>
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 2688 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Dairy </td>
-   <td style="text-align:right;"> 2 </td>
-   <td style="text-align:right;"> 1467.50 </td>
-   <td style="text-align:right;"> 7.5 </td>
-   <td style="text-align:right;"> 1283.0 </td>
-   <td style="text-align:right;"> 9622.50 </td>
-   <td style="text-align:right;"> 8050 </td>
-   <td style="text-align:right;"> 10.5 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 8155 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Forest </td>
-   <td style="text-align:right;"> 2 </td>
-   <td style="text-align:right;"> 695.00 </td>
-   <td style="text-align:right;"> 157.0 </td>
-   <td style="text-align:right;"> 29.0 </td>
-   <td style="text-align:right;"> 4553.00 </td>
-   <td style="text-align:right;"> 4000 </td>
-   <td style="text-align:right;"> -14.2 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 3858 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Crop </td>
-   <td style="text-align:right;"> 2 </td>
-   <td style="text-align:right;"> 1730.80 </td>
-   <td style="text-align:right;"> 0.5 </td>
-   <td style="text-align:right;"> 9183.6 </td>
-   <td style="text-align:right;"> 4591.80 </td>
-   <td style="text-align:right;"> 2850 </td>
-   <td style="text-align:right;"> 1.1 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 2861 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> SNB </td>
@@ -5923,42 +5900,6 @@ nitrates         11    NA
    <td style="text-align:right;"> 1660 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> Dairy </td>
-   <td style="text-align:right;"> 3 </td>
-   <td style="text-align:right;"> 1357.25 </td>
-   <td style="text-align:right;"> 7.5 </td>
-   <td style="text-align:right;"> 1174.3 </td>
-   <td style="text-align:right;"> 8807.25 </td>
-   <td style="text-align:right;"> 7350 </td>
-   <td style="text-align:right;"> 10.0 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 7450 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Forest </td>
-   <td style="text-align:right;"> 3 </td>
-   <td style="text-align:right;"> 681.00 </td>
-   <td style="text-align:right;"> 157.0 </td>
-   <td style="text-align:right;"> 28.0 </td>
-   <td style="text-align:right;"> 4396.00 </td>
-   <td style="text-align:right;"> 3850 </td>
-   <td style="text-align:right;"> -13.5 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 3715 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Crop </td>
-   <td style="text-align:right;"> 3 </td>
-   <td style="text-align:right;"> 1676.25 </td>
-   <td style="text-align:right;"> 0.5 </td>
-   <td style="text-align:right;"> 8724.5 </td>
-   <td style="text-align:right;"> 4362.25 </td>
-   <td style="text-align:right;"> 2675 </td>
-   <td style="text-align:right;"> 1.1 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 2686 </td>
-  </tr>
-  <tr>
    <td style="text-align:left;"> SNB </td>
    <td style="text-align:right;"> 4 </td>
    <td style="text-align:right;"> 179.00 </td>
@@ -5969,42 +5910,6 @@ nitrates         11    NA
    <td style="text-align:right;"> 3.2 </td>
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 1482 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Dairy </td>
-   <td style="text-align:right;"> 4 </td>
-   <td style="text-align:right;"> 1330.50 </td>
-   <td style="text-align:right;"> 7.5 </td>
-   <td style="text-align:right;"> 923.4 </td>
-   <td style="text-align:right;"> 6925.50 </td>
-   <td style="text-align:right;"> 5500 </td>
-   <td style="text-align:right;"> 9.5 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 5595 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Forest </td>
-   <td style="text-align:right;"> 4 </td>
-   <td style="text-align:right;"> 668.00 </td>
-   <td style="text-align:right;"> 157.0 </td>
-   <td style="text-align:right;"> 27.0 </td>
-   <td style="text-align:right;"> 4239.00 </td>
-   <td style="text-align:right;"> 3700 </td>
-   <td style="text-align:right;"> -12.9 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 3571 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Crop </td>
-   <td style="text-align:right;"> 4 </td>
-   <td style="text-align:right;"> 1634.10 </td>
-   <td style="text-align:right;"> 0.5 </td>
-   <td style="text-align:right;"> 8288.2 </td>
-   <td style="text-align:right;"> 4144.10 </td>
-   <td style="text-align:right;"> 2500 </td>
-   <td style="text-align:right;"> 1.0 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 2510 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> SNB </td>
@@ -6019,42 +5924,6 @@ nitrates         11    NA
    <td style="text-align:right;"> 1140 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> Dairy </td>
-   <td style="text-align:right;"> 5 </td>
-   <td style="text-align:right;"> 1292.75 </td>
-   <td style="text-align:right;"> 7.5 </td>
-   <td style="text-align:right;"> 877.7 </td>
-   <td style="text-align:right;"> 6582.75 </td>
-   <td style="text-align:right;"> 5200 </td>
-   <td style="text-align:right;"> 9.0 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 5290 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Forest </td>
-   <td style="text-align:right;"> 5 </td>
-   <td style="text-align:right;"> 654.00 </td>
-   <td style="text-align:right;"> 157.0 </td>
-   <td style="text-align:right;"> 26.0 </td>
-   <td style="text-align:right;"> 4082.00 </td>
-   <td style="text-align:right;"> 3550 </td>
-   <td style="text-align:right;"> -12.2 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 3428 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Crop </td>
-   <td style="text-align:right;"> 5 </td>
-   <td style="text-align:right;"> 1526.90 </td>
-   <td style="text-align:right;"> 0.5 </td>
-   <td style="text-align:right;"> 7873.8 </td>
-   <td style="text-align:right;"> 3936.90 </td>
-   <td style="text-align:right;"> 2400 </td>
-   <td style="text-align:right;"> 1.0 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 2410 </td>
-  </tr>
-  <tr>
    <td style="text-align:left;"> SNB </td>
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 134.00 </td>
@@ -6067,42 +5936,6 @@ nitrates         11    NA
    <td style="text-align:right;"> 903 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> Dairy </td>
-   <td style="text-align:right;"> 6 </td>
-   <td style="text-align:right;"> 1258.50 </td>
-   <td style="text-align:right;"> 7.5 </td>
-   <td style="text-align:right;"> 845.8 </td>
-   <td style="text-align:right;"> 6343.50 </td>
-   <td style="text-align:right;"> 5000 </td>
-   <td style="text-align:right;"> 8.5 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 5085 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Forest </td>
-   <td style="text-align:right;"> 6 </td>
-   <td style="text-align:right;"> 541.00 </td>
-   <td style="text-align:right;"> 157.0 </td>
-   <td style="text-align:right;"> 25.0 </td>
-   <td style="text-align:right;"> 3925.00 </td>
-   <td style="text-align:right;"> 3500 </td>
-   <td style="text-align:right;"> -11.6 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 3384 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Crop </td>
-   <td style="text-align:right;"> 6 </td>
-   <td style="text-align:right;"> 1531.05 </td>
-   <td style="text-align:right;"> 0.5 </td>
-   <td style="text-align:right;"> 7480.1 </td>
-   <td style="text-align:right;"> 3740.05 </td>
-   <td style="text-align:right;"> 2200 </td>
-   <td style="text-align:right;"> 0.9 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 2209 </td>
-  </tr>
-  <tr>
    <td style="text-align:left;"> SNB </td>
    <td style="text-align:right;"> 7 </td>
    <td style="text-align:right;"> 131.00 </td>
@@ -6113,42 +5946,6 @@ nitrates         11    NA
    <td style="text-align:right;"> 2.5 </td>
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 835 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Dairy </td>
-   <td style="text-align:right;"> 7 </td>
-   <td style="text-align:right;"> 1170.00 </td>
-   <td style="text-align:right;"> 7.5 </td>
-   <td style="text-align:right;"> 700.0 </td>
-   <td style="text-align:right;"> 5250.00 </td>
-   <td style="text-align:right;"> 4000 </td>
-   <td style="text-align:right;"> 8.0 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 4080 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Forest </td>
-   <td style="text-align:right;"> 7 </td>
-   <td style="text-align:right;"> 503.00 </td>
-   <td style="text-align:right;"> 157.0 </td>
-   <td style="text-align:right;"> 24.0 </td>
-   <td style="text-align:right;"> 3768.00 </td>
-   <td style="text-align:right;"> 3375 </td>
-   <td style="text-align:right;"> -11.0 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 3265 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Crop </td>
-   <td style="text-align:right;"> 7 </td>
-   <td style="text-align:right;"> 1444.05 </td>
-   <td style="text-align:right;"> 0.5 </td>
-   <td style="text-align:right;"> 7106.1 </td>
-   <td style="text-align:right;"> 3553.05 </td>
-   <td style="text-align:right;"> 2100 </td>
-   <td style="text-align:right;"> 0.9 </td>
-   <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 2109 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> SNB </td>
@@ -6164,6 +5961,90 @@ nitrates         11    NA
   </tr>
   <tr>
    <td style="text-align:left;"> Dairy </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 1662.50 </td>
+   <td style="text-align:right;"> 7.5 </td>
+   <td style="text-align:right;"> 1503.0 </td>
+   <td style="text-align:right;"> 11272.50 </td>
+   <td style="text-align:right;"> 9500 </td>
+   <td style="text-align:right;"> 11.0 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 9610 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Dairy </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 1467.50 </td>
+   <td style="text-align:right;"> 7.5 </td>
+   <td style="text-align:right;"> 1283.0 </td>
+   <td style="text-align:right;"> 9622.50 </td>
+   <td style="text-align:right;"> 8050 </td>
+   <td style="text-align:right;"> 10.5 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 8155 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Dairy </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 1357.25 </td>
+   <td style="text-align:right;"> 7.5 </td>
+   <td style="text-align:right;"> 1174.3 </td>
+   <td style="text-align:right;"> 8807.25 </td>
+   <td style="text-align:right;"> 7350 </td>
+   <td style="text-align:right;"> 10.0 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 7450 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Dairy </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 1330.50 </td>
+   <td style="text-align:right;"> 7.5 </td>
+   <td style="text-align:right;"> 923.4 </td>
+   <td style="text-align:right;"> 6925.50 </td>
+   <td style="text-align:right;"> 5500 </td>
+   <td style="text-align:right;"> 9.5 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 5595 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Dairy </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 1292.75 </td>
+   <td style="text-align:right;"> 7.5 </td>
+   <td style="text-align:right;"> 877.7 </td>
+   <td style="text-align:right;"> 6582.75 </td>
+   <td style="text-align:right;"> 5200 </td>
+   <td style="text-align:right;"> 9.0 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 5290 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Dairy </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 1258.50 </td>
+   <td style="text-align:right;"> 7.5 </td>
+   <td style="text-align:right;"> 845.8 </td>
+   <td style="text-align:right;"> 6343.50 </td>
+   <td style="text-align:right;"> 5000 </td>
+   <td style="text-align:right;"> 8.5 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 5085 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Dairy </td>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 1170.00 </td>
+   <td style="text-align:right;"> 7.5 </td>
+   <td style="text-align:right;"> 700.0 </td>
+   <td style="text-align:right;"> 5250.00 </td>
+   <td style="text-align:right;"> 4000 </td>
+   <td style="text-align:right;"> 8.0 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 4080 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Dairy </td>
    <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 882.50 </td>
    <td style="text-align:right;"> 7.5 </td>
@@ -6176,6 +6057,90 @@ nitrates         11    NA
   </tr>
   <tr>
    <td style="text-align:left;"> Forest </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 860.00 </td>
+   <td style="text-align:right;"> 157.0 </td>
+   <td style="text-align:right;"> 30.0 </td>
+   <td style="text-align:right;"> 4710.00 </td>
+   <td style="text-align:right;"> 4000 </td>
+   <td style="text-align:right;"> -15.0 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 3850 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Forest </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 695.00 </td>
+   <td style="text-align:right;"> 157.0 </td>
+   <td style="text-align:right;"> 29.0 </td>
+   <td style="text-align:right;"> 4553.00 </td>
+   <td style="text-align:right;"> 4000 </td>
+   <td style="text-align:right;"> -14.2 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 3858 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Forest </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 681.00 </td>
+   <td style="text-align:right;"> 157.0 </td>
+   <td style="text-align:right;"> 28.0 </td>
+   <td style="text-align:right;"> 4396.00 </td>
+   <td style="text-align:right;"> 3850 </td>
+   <td style="text-align:right;"> -13.5 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 3715 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Forest </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 668.00 </td>
+   <td style="text-align:right;"> 157.0 </td>
+   <td style="text-align:right;"> 27.0 </td>
+   <td style="text-align:right;"> 4239.00 </td>
+   <td style="text-align:right;"> 3700 </td>
+   <td style="text-align:right;"> -12.9 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 3571 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Forest </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 654.00 </td>
+   <td style="text-align:right;"> 157.0 </td>
+   <td style="text-align:right;"> 26.0 </td>
+   <td style="text-align:right;"> 4082.00 </td>
+   <td style="text-align:right;"> 3550 </td>
+   <td style="text-align:right;"> -12.2 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 3428 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Forest </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 541.00 </td>
+   <td style="text-align:right;"> 157.0 </td>
+   <td style="text-align:right;"> 25.0 </td>
+   <td style="text-align:right;"> 3925.00 </td>
+   <td style="text-align:right;"> 3500 </td>
+   <td style="text-align:right;"> -11.6 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 3384 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Forest </td>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 503.00 </td>
+   <td style="text-align:right;"> 157.0 </td>
+   <td style="text-align:right;"> 24.0 </td>
+   <td style="text-align:right;"> 3768.00 </td>
+   <td style="text-align:right;"> 3375 </td>
+   <td style="text-align:right;"> -11.0 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 3265 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Forest </td>
    <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 466.00 </td>
    <td style="text-align:right;"> 157.0 </td>
@@ -6185,6 +6150,90 @@ nitrates         11    NA
    <td style="text-align:right;"> -10.5 </td>
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 3145 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Crop </td>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:right;"> 1821.50 </td>
+   <td style="text-align:right;"> 0.5 </td>
+   <td style="text-align:right;"> 9667.0 </td>
+   <td style="text-align:right;"> 4833.50 </td>
+   <td style="text-align:right;"> 3000 </td>
+   <td style="text-align:right;"> 1.2 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 3012 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Crop </td>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:right;"> 1730.80 </td>
+   <td style="text-align:right;"> 0.5 </td>
+   <td style="text-align:right;"> 9183.6 </td>
+   <td style="text-align:right;"> 4591.80 </td>
+   <td style="text-align:right;"> 2850 </td>
+   <td style="text-align:right;"> 1.1 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 2861 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Crop </td>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:right;"> 1676.25 </td>
+   <td style="text-align:right;"> 0.5 </td>
+   <td style="text-align:right;"> 8724.5 </td>
+   <td style="text-align:right;"> 4362.25 </td>
+   <td style="text-align:right;"> 2675 </td>
+   <td style="text-align:right;"> 1.1 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 2686 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Crop </td>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 1634.10 </td>
+   <td style="text-align:right;"> 0.5 </td>
+   <td style="text-align:right;"> 8288.2 </td>
+   <td style="text-align:right;"> 4144.10 </td>
+   <td style="text-align:right;"> 2500 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 2510 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Crop </td>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 1526.90 </td>
+   <td style="text-align:right;"> 0.5 </td>
+   <td style="text-align:right;"> 7873.8 </td>
+   <td style="text-align:right;"> 3936.90 </td>
+   <td style="text-align:right;"> 2400 </td>
+   <td style="text-align:right;"> 1.0 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 2410 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Crop </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 1531.05 </td>
+   <td style="text-align:right;"> 0.5 </td>
+   <td style="text-align:right;"> 7480.1 </td>
+   <td style="text-align:right;"> 3740.05 </td>
+   <td style="text-align:right;"> 2200 </td>
+   <td style="text-align:right;"> 0.9 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 2209 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Crop </td>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 1444.05 </td>
+   <td style="text-align:right;"> 0.5 </td>
+   <td style="text-align:right;"> 7106.1 </td>
+   <td style="text-align:right;"> 3553.05 </td>
+   <td style="text-align:right;"> 2100 </td>
+   <td style="text-align:right;"> 0.9 </td>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 2109 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Crop </td>
@@ -6221,15 +6270,10 @@ nitrates         11    NA
 <span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">data =</span> plot_data <span class="sc">|&gt;</span> <span class="fu">filter</span>(name <span class="sc">==</span> <span class="st">&quot;Profit&quot;</span>), </span>
 <span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>            <span class="fu">aes</span>(<span class="at">x =</span> LUC, <span class="at">y =</span> value, <span class="at">shape =</span> name), <span class="at">size =</span> <span class="dv">7</span>) <span class="sc">+</span></span>
 <span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_shape_manual</span>(<span class="at">values =</span> <span class="st">&quot;\u2014&quot;</span>, <span class="at">name =</span> <span class="st">&quot;&quot;</span>) <span class="sc">+</span> <span class="co"># \u2014 is an em-dash</span></span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># The below more correct, but doesn&#39;t extend the lines to the full width of the plot</span></span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># geom_step(data = plot_data |&gt; filter(name == &quot;Profit&quot;), </span></span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  <span class="co">#           aes(x = LUC, y = value, group = farm_type, colour = name), </span></span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  <span class="co">#           direction = &quot;mid&quot;, lwd = 0.65) +</span></span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># scale_colour_manual(values = c(&quot;black&quot;), name = &quot;&quot;) +</span></span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">&quot;Landuse Capability (LUC)&quot;</span>) <span class="sc">+</span></span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">&quot;Profit, $ per ha.&quot;</span>) <span class="sc">+</span></span>
-<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> farm_type) <span class="sc">+</span></span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">&quot;Landuse Capability (LUC)&quot;</span>) <span class="sc">+</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">&quot;Profit, $ per ha.&quot;</span>) <span class="sc">+</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> farm_type) <span class="sc">+</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
@@ -6264,28 +6308,32 @@ Update History
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">2025-02-19</td>
-<td style="text-align: left;">Split out from previous ‘core loop’ document.</td>
+<td style="text-align: left;">2024-07-02</td>
+<td style="text-align: left;">Initial post.</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">2024-07-28</td>
-<td style="text-align: left;">Correction in equation summarising full calculation of profit. Added note to consider the nudge calculation’s possible bias favouring changes <em>after</em> bad years.</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">2024-07-05</td>
-<td style="text-align: left;">Corrected relative change from a percentage to a proportion.</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">2024-07-04</td>
-<td style="text-align: left;">Added detail on calculation of relative change noting that profit can’t be handled this way because it is <span class="math inline">\pm</span> and relative change is meaningless for such variables.</td>
-</tr>
-<tr class="odd">
 <td style="text-align: left;">2024-07-03</td>
 <td style="text-align: left;">Added bar chart of farm income/costs estimates.</td>
 </tr>
+<tr class="odd">
+<td style="text-align: left;">2024-07-04</td>
+<td style="text-align: left;">Added detail on calculation of relative change noting that profit can’t be handled this way because it is <span class="math inline">\pm</span> and relative change is meaningless for such variables.</td>
+</tr>
 <tr class="even">
-<td style="text-align: left;">2024-07-02</td>
-<td style="text-align: left;">Initial post.</td>
+<td style="text-align: left;">2024-07-05</td>
+<td style="text-align: left;">Corrected relative change from a percentage to a proportion.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2024-07-28</td>
+<td style="text-align: left;">Correction in equation summarising full calculation of profit. Added note to consider the nudge calculation’s possible bias favouring changes <em>after</em> bad years.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2025-02-19</td>
+<td style="text-align: left;">Split out from previous ‘core loop’ document.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2025-10-17</td>
+<td style="text-align: left;">Corrected code to cope with new formatting of various datasets.</td>
 </tr>
 </tbody>
 </table>

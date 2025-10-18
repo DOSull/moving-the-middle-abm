@@ -1,0 +1,39 @@
+---
+title: "Farmer exit market (succession)"
+subtitle: "MtM ABM description"
+author: David O'Sullivan
+date: 18 October 2025
+lightbox: true
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-title: "Contents"
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+    mermaid:
+      theme: neutral
+knitr:
+  opts_chunk: 
+    warning: false
+    message: false
+    # echo: false
+    R.options: 
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+&nbsp;
+
+When under high debt stress (debt service ratio &geq;1) farmers will exit the market, and are succeeded by a new farmer. The new farmer is initialised exactly as occurs under [age driven succession](01c-farmer-aging-and-succession.qmd).
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date       | Changes
+|:-          |:--
+| 2025-10-18 | Changing to account for DSR-baed decision loop.
+| 2024-12-19 | Initial post.                       
+
+:::
+

@@ -88,7 +88,7 @@ to-report get-landuse-luc-profile [poly]
   let ncol length farm-types
   let farm-profile matrix:make-constant nrow ncol 0
   (foreach luc-i lu-j [ [i j] ->
-    matrix:set farm-profile i j (matrix:get farm-profile i j) + hectares-per-patch
+    matrix:set farm-profile i j (matrix:get farm-profile i j) + 1
   ])
   report farm-profile
 end
@@ -226,7 +226,7 @@ to-report get-holding-income [include-variance?]
         landuse-luc-profile
         ( yield-means matrix:+ get-holding-yield-variance )
         get-yield-after-interventions ) matrix:* prices
-      ) * years-per-tick
+      )
   ]
   [ 
     report round matrix-sum-elements (
@@ -234,7 +234,7 @@ to-report get-holding-income [include-variance?]
         landuse-luc-profile
         yield-means  ;; no variance
         get-yield-after-interventions ) matrix:* prices
-      ) * years-per-tick
+      )
   ]
 end
 
@@ -250,7 +250,7 @@ to-report get-holding-costs [include-variance?]
       ( matrix:map * landuse-luc-profile (cost-means matrix:+ get-holding-cost-variance) )
       matrix:+
       get-net-environmental-taxes )
-    ) * years-per-tick
+    )
   ]
   [ 
     report round ( get-cost-after-interventions + 
@@ -258,7 +258,7 @@ to-report get-holding-costs [include-variance?]
       ( matrix:map * landuse-luc-profile cost-means )
       matrix:+ 
       get-net-environmental-taxes ) 
-    ) * years-per-tick
+    )
   ]
 end
 

@@ -70,18 +70,27 @@ A range of possible interventions $I=\{i_1,i_2,\ldots i_n\}$ may be undertaken b
 
 The currently adopted interventions on a particular holding we denote $A$ which will be a subset of the available interventions $I$. Not all interventions will make sense on each holding, so it might be more accurate to think of there being a number of intervention sets $I_F$ and on a particular holding of type $F$, the adopted interventions $A$ are some subset of $I_F$, with the potential new interventions to be considered in each time interval given by $I_F\setminus A$, that is the possible interventions on this land use not yet adopted.
 
-For each intervention $i_i$ there are associated impacts, in terms of added costs $\Delta x_{iFL}$, and changes in yields $\Delta q_{iFL}$ and emissions $\Delta e_{iFL}$, where the $F$ and $L$ subscripts indicate the dependence of these impacts on farm type $F$ and land use capability $L$. The impacts of various interventions are stored in the `intervention-impacts.csv` file:
+For each intervention $i_i$ there are associated impacts, in terms of added costs $\Delta x_{iFL}$, and changes in yields $\Delta q_{iFL}$ and emissions $\Delta e_{iFL}$, where the $F$ and $L$ subscripts indicate the dependence of these impacts on farm type $F$ and land use capability $L$. The impacts of various interventions are stored in a series of `<factor>-intervention-impacts.csv` files. For example, the `costs` file looks like this:
 
 ```{r}
-interventions <- read.csv(str_glue("{base_dir}/intervention-impacts.csv"), 
-                          header = T)
+interventions <- read.csv(str_glue("{base_dir}/costs-intervention-impacts.csv"), 
+                          header = TRUE)
 interventions |> 
   kable() |> 
   kable_styling("striped", full_width = F) |>
   scroll_box(height = "250px")
 ```
 
-&nbsp;
+and the `yields` file like this:
+
+```{r}
+interventions <- read.csv(str_glue("{base_dir}/yields-intervention-impacts.csv"), 
+                          header = TRUE)
+interventions |> 
+  kable() |> 
+  kable_styling("striped", full_width = F) |>
+  scroll_box(height = "250px")
+```
 
 The adopted interventions on a particular holding, change its yield to
 $$
@@ -153,8 +162,8 @@ ggplot(df) +
 A positive calculated change in income $\Delta Y_i$ pushes the farmer's probability of adoption of intervention $i$ higher (to the right), and any increase in total costs $\Delta X_i$ pushes it lower (to the left). We start with initial probabilities of adoption in the `farmer-threshold-matrix.csv` file:
 
 ```{r}
-probabilities <- read.csv(str_glue("{base_dir}farmer-threshold-matrix.csv"), 
-                          header = T, row.names = 1)
+probabilities <- read.csv(str_glue("{base_dir}/farmer-threshold-matrix.csv"), 
+                          header = TRUE)
 probabilities |> 
   kable() |> 
   kable_styling("striped", full_width = F)
@@ -224,6 +233,7 @@ A more involved matrix formulation is required for the impact of adoption of int
 
 | Date | Changes
 |:-|:------
+| 2025-10-18 | Fixed for some changes to input file names.
 | 2025-02-19 | Split out from original 'core loop' document.
 | 2024-07-28 | Correction in equation summarising full calculation of profit. Added note to consider the nudge calculation's possible bias favouring changes _after_ bad years.
 | 2024-07-05 | Corrected relative change from a percentage to a proportion.

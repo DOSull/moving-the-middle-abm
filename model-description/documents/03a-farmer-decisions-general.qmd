@@ -1,0 +1,74 @@
+---
+title: "Farmer decision making: general"
+subtitle: "MtM ABM description"
+author: David O'Sullivan
+date: 18 October 2025
+lightbox: true
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-title: "Contents"
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+    mermaid:
+      theme: neutral
+knitr:
+  opts_chunk: 
+    warning: false
+    message: false
+    # echo: false
+    R.options: 
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+## Top level farmer decision flowchart
+The overall farmer decision making process is shown below. Each farmer goes through this sequence each model time step. **Note** that the [aging and succession](01c-farmer-aging-and-succession.qmd) step may also result in all of farm land use change, which follows the same general procedure described in [Farmer decisions about land use](04-farmer-decisions-land-use.qmd). Click on the red text to find out what happens in each 'behavioural mode'.
+
+```{mermaid}
+flowchart TB
+  A((START))
+  B[Age farmers and<br>replace any that exit]
+  C[Update income, costs, and<br>profit of holdings and farms]
+  E[/For each<br>farmer.../]
+  F[Debt-service ratio DSR &larr;<br><span style='font-family:monospace;'>current-debt / current-income</span>]
+  G1{DSR &geq;<br>1.00 ?}
+  G2{DSR &geq;<br>0.50 ?}
+  G3{DSR &geq;<br>0.25 ?}
+  H1[<span style='color:red;'>Exit<br>market]
+  H2[<span style='color:red;'>Survival<br>mode</span>]
+  H3[<span style='color:red;'>Constrained<br>mode</span>]
+  H4[<span style='color:red;'>Optimisation<br>mode</span>]
+  N{More<br>farmers?}
+  Z((END))
+  A --> B
+  B --> C
+  C --> E
+  E --> F
+  F --> G1
+  G1 -->|N| G2
+  G1 -->|Y| H1
+  G2 -->|N| G3
+  G2 -->|Y| H2
+  G3 -->|N| H4
+  G3 -->|Y| H3
+  H1 --> N
+  H2 --> N
+  H3 --> N
+  H4 --> N
+  N -->|Y| E
+  N -->|N| Z
+  click H1 "03b-exit-market-succession.html" "Click for details"
+```
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date       | Changes
+|:-          |:--
+| 2025-10-18 | Changing to account for DSR-baed decision loop.
+| 2024-12-19 | Initial post.                       
+
+:::
+

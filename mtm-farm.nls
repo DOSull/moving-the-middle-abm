@@ -59,44 +59,57 @@ end
 ;; farm profit is simple sum of the contributions from its holdings
 to finalise-profit-of-farm
   let gross-profit current-income - current-costs
-  if total-loans > 0 [
-    ifelse gross-profit >= debt-payments [
+  let debt-payments-owing get-debt-payments-owing
+  ifelse total-loans > 0 [
+    ifelse gross-profit >= debt-payments-owing [
       service-debt
-      set current-profit gross-profit - debt-payments
+      set current-profit gross-profit - debt-payments-owing
     ]
     [
-      add-to-debt (debt-payments - gross-profit)
+      add-to-debt (debt-payments-owing - gross-profit)
       set current-profit 0
     ]
+  ]
+  [
+    set current-profit gross-profit
   ]
   set dsr debt-payments / current-income
 end
 
-to set-initial-debt-of-farm
+to set-initial-debt-of-farm [maturity]
   let m table:get table:get initial-debt-service-ratios farm-type "mean"
   let s table:get table:get initial-debt-service-ratios farm-type "sd"
   set debt-payments precision (random-normal m s * current-income) 0
-  set total-loans get-principal-from-payment debt-payments interest-rate mortgage-term years-per-tick
-  set debt-maturity one-of range round (mortgage-term / years-per-tick)
-  set current-debt get-principal-remaining total-loans interest-rate mortgage-term years-per-tick debt-maturity
+  set total-loans get-principal-from-payment debt-payments interest-rate mortgage-term
+  set debt-maturity maturity
+  set current-debt get-principal-remaining total-loans interest-rate mortgage-term debt-maturity
+end
+
+to-report get-debt-payments-owing
+  if debt-maturity >= mortgage-term [ report 0 ]
+  let x debt-maturity + years-per-tick
+  let proportion-owing
+    ifelse-value x > mortgage-term [ 1 + (mortgage-term - x) / years-per-tick ] [ 1 ]
+  report round (debt-payments * proportion-owing)
 end
 
 to add-to-debt [x]
-  set total-loans round ((get-principal-remaining total-loans interest-rate mortgage-term years-per-tick debt-maturity) + x)
-  set debt-payments get-loan-repayments total-loans interest-rate mortgage-term years-per-tick
+  set total-loans round ((get-principal-remaining total-loans interest-rate mortgage-term debt-maturity) + x)
+  set debt-payments get-loan-repayments total-loans interest-rate mortgage-term
   set debt-maturity 0
   set current-debt total-loans
 end
 
 to service-debt
-  set debt-maturity debt-maturity + 1
-  ifelse debt-maturity >= (mortgage-term / years-per-tick) [
+  set debt-maturity debt-maturity + years-per-tick
+  ifelse debt-maturity >= mortgage-term [
     set total-loans 0
     set current-debt 0
     set debt-payments 0
+    set debt-maturity 0
   ]
   [
-    set current-debt get-principal-remaining total-loans interest-rate mortgage-term years-per-tick debt-maturity
+    set current-debt get-principal-remaining total-loans interest-rate mortgage-term debt-maturity
   ]
 end
 

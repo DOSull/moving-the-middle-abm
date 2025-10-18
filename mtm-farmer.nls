@@ -109,13 +109,12 @@ to succeed-farmer
   let ft-now farm-type
   ;; new farmer considers changing the farm type if any holdings are loss-making
   ;; without regard to how long losses have been happening, and with no 'down-weight'
-  if landuse-change-on-succession? and (any? my-holdings with [current-profit < 0] or not ([current-profit] of my-farm > 0)) [
+  if landuse-change-on-succession? and (any? my-holdings with [current-profit < 0] or [current-profit] of my-farm <= 0) [
     let options consider-farm-type-change 1 "Succession: "
     if length options > 0 [ make-farm-type-changes options ]
   ]
   ask my-farm [
-    set-initial-debt-of-farm
-    set debt-maturity 0
+    set-initial-debt-of-farm 0
   ]
 end
 

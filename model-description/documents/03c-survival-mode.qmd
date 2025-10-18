@@ -1,0 +1,56 @@
+---
+title: "Survival mode"
+subtitle: "MtM ABM description"
+author: David O'Sullivan
+date: 18 October 2025
+lightbox: true
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-title: "Contents"
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+    mermaid:
+      theme: neutral
+knitr:
+  opts_chunk: 
+    warning: false
+    message: false
+    # echo: false
+    R.options: 
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+## Survival mode
+When the debt service ratio is greater than 0.5, farmers focus on making money and do not consider any management interventions.
+
+```{mermaid}
+flowchart TB
+  A((START))
+  F{Any<br>loss-making<br>holdings?}
+  G["<span style='font-family:monospace'>options</span> &larr; <span style='font-family:monospace'> #123;#125; </span>"]
+  H[SOME<br>FINANCIAL<br>OPTION?]
+  J[Add all possible<br>per holding land use<br>changes to <span style="font-family:monospace;">options</span>]
+  K[Choose among choices<br>in  <span style="font-family:monospace;">options</span>]
+  Z((END))
+  A --> F
+  F -->|Y| G
+  F -->|N| H
+  H --> Z
+  G --> J
+  J --> K
+  K --> Z
+  click L "05-farmer-decisions-interventions.html" "Click for details"
+```
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date       | Changes
+|:-          |:--
+| 2025-10-18 | Initial post.                       
+
+:::
+

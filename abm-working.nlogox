@@ -204,7 +204,7 @@ to burn-in-step
   ask farms [
     update-environmental-metrics-of-farm
     update-income-and-costs-of-farm
-    set-initial-debt-of-farm
+    set-initial-debt-of-farm one-of map [x -> x - 5] range mortgage-term
     finalise-profit-of-farm
   ]
   reset-ticks
@@ -269,17 +269,25 @@ to go
 ;      )
       let debt-service-ratio [dsr] of my-farm
       (
-        ifelse 
+        ifelse
         debt-service-ratio >= 1 [ ;; severely distressed - exit?
+          ;; think about this further - 
+          ;; it's quite unlikely that anyone gets here
           succeed-farmer
         ]
         debt-service-ratio >= 0.5 [ ;; survival mode
+          ;; do not consider any interventions
+          ;; landuse change? would consider holding-level changes
           do-survival 
         ]
         debt-service-ratio >= 0.25 [ ;; limited options
+          ;; would consider holding-level changes
+          ;; would consider some ('tactical' / easy) interventions
           do-constrained-change
         ]
         [ ;; reasonable freedom of action
+          ;; would consider holding-level changes
+          ;; would consider any/all interventions
           do-optimisation
         ]
       )
@@ -466,8 +474,8 @@ end
 ;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ;; DEALINGS IN THE SOFTWARE.]]></code>
   <widgets>
-    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1004" showTickCounter="true" patchSize="3.0" fontSize="6" wrappingAllowedY="false" width="680" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="222" minPxcor="0"></view>
-    <switch x="10" y="10" height="33" on="true" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
+    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1003" showTickCounter="true" patchSize="3.0" fontSize="6" wrappingAllowedY="false" width="679" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="222" minPxcor="0"></view>
+    <switch x="10" y="10" height="33" on="false" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
     <switch x="10" y="48" height="33" on="false" variable="reinitialise?" display="reinitialise?" width="185" sizeVersion="0"></switch>
     <button x="10" y="86" height="33" disableUntilTicks="true" forever="false" kind="Observer" display="reset" width="90" sizeVersion="0">restore-initial-values
 </button>
@@ -499,16 +507,16 @@ LUC values (better land).</note>
     <button x="10" y="731" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-disposition-links" width="185" sizeVersion="0">ask disposition-links [ set hidden? not hidden? ]</button>
     <slider x="10" step="1" y="769" max="12" display="n-local-links" height="33" min="0" direction="Horizontal" default="4.0" variable="n-local-links" width="185" sizeVersion="0"></slider>
     <slider x="10" step="1" y="807" max="20" display="n-catchment-links" height="33" min="0" direction="Horizontal" default="6.0" variable="n-catchment-links" width="185" sizeVersion="0"></slider>
-    <slider x="10" step="1" y="845" max="20" display="n-disposition-links" height="33" min="0" direction="Horizontal" default="5.0" variable="n-disposition-links" width="185" sizeVersion="0"></slider>
+    <slider x="10" step="1" y="845" max="20" display="n-disposition-links" height="33" min="0" direction="Horizontal" default="3.0" variable="n-disposition-links" width="185" sizeVersion="0"></slider>
     <slider x="10" step="0.01" y="883" max="1" display="rel-weight-locals" height="33" min="0" direction="Horizontal" default="0.5" variable="rel-weight-locals" width="185" sizeVersion="0"></slider>
     <slider x="10" step="0.01" y="921" max="1" display="rel-weight-catchment" height="33" min="0" direction="Horizontal" default="0.1" variable="rel-weight-catchment" width="185" sizeVersion="0"></slider>
-    <slider x="10" step="0.01" y="959" max="1" display="rel-weight-disposition" height="33" min="0" direction="Horizontal" default="0.1" variable="rel-weight-disposition" width="185" sizeVersion="0"></slider>
+    <slider x="10" step="0.01" y="959" max="1" display="rel-weight-disposition" height="33" min="0" direction="Horizontal" default="0.0" variable="rel-weight-disposition" width="185" sizeVersion="0"></slider>
     <chooser x="890" y="10" height="45" variable="scenario" current="0" display="scenario" width="180" sizeVersion="0">
       <choice type="string" value="default"></choice>
       <choice type="string" value="luc-dependent"></choice>
       <choice type="string" value="null-market"></choice>
     </chooser>
-    <chooser x="890" y="60" height="45" variable="region" current="1" display="region" width="180" sizeVersion="0">
+    <chooser x="890" y="60" height="45" variable="region" current="0" display="region" width="180" sizeVersion="0">
       <choice type="string" value="Oreti"></choice>
       <choice type="string" value="Waihou-Piako"></choice>
       <choice type="string" value="Rangitaiki"></choice>
@@ -584,8 +592,8 @@ set-histogram-num-bars 10
 histogram [dsr] of farms</update>
       </pen>
     </plot>
-    <slider x="1315" step="5" y="827" max="30" display="mortgage-term" height="33" min="5" direction="Horizontal" default="20.0" variable="mortgage-term" width="225" sizeVersion="0"></slider>
-    <slider x="1080" step="0.1" y="827" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="2.5" variable="interest-rate" width="225" sizeVersion="0"></slider>
+    <slider x="1315" step="5" y="827" max="30" display="mortgage-term" height="33" min="5" direction="Horizontal" default="20.0" variable="mortgage-term" units="years" width="225" sizeVersion="0"></slider>
+    <slider x="1080" step="0.1" y="827" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="3.0" variable="interest-rate" units="%" width="225" sizeVersion="0"></slider>
     <switch x="1080" y="789" height="33" on="true" variable="apply-suitability?" display="apply-suitability?" width="225" sizeVersion="0"></switch>
   </widgets>
   <info>## WHAT IS IT?

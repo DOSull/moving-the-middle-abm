@@ -1,9 +1,0 @@
-statistic,landuse,Build_Wetland,Riparian_Planting,Clean_Races,Farm_Plan,Join_ETS
-init_proportion,SNB,0.1,0.1,0.04,0.1,0.05
-init_proportion,Dairy,0.1,0.1,0.1,0.1,0.05
-init_proportion,Forest,0.3,0.02,0,0.04,0.5
-init_proportion,Crop,0.5,0.04,0,0.06,0.25
-max_proportion,SNB,1,1,1,1,1
-max_proportion,Dairy,1,1,1,1,1
-max_proportion,Forest,1,1,1,1,1
-max_proportion,Crop,1,1,1,1,1

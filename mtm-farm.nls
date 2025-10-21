@@ -12,7 +12,7 @@ farms-own [
   current-income          ;; most recent income of farm summed across patches
   current-costs           ;; most recent costs of farm summed across patches
   my-metrics
-  total-loans
+  loan-principal
   current-debt
   debt-payments
   debt-maturity
@@ -22,7 +22,7 @@ farms-own [
   current-income-0
   current-costs-0
   my-metrics-0
-  total-loans-0
+  loan-principal-0
   current-debt-0
   debt-payments-0
   debt-maturity-0
@@ -59,8 +59,12 @@ end
 ;; farm profit is simple sum of the contributions from its holdings
 to finalise-profit-of-farm
   let gross-profit current-income - current-costs
-  let debt-payments-owing get-debt-payments-owing
-  ifelse total-loans > 0 [
+  ifelse debt-maturity = nobody [
+    ;; no payments required
+    set current-profit gross-profit
+  ]
+  [ ;; some amount is still owed
+    let debt-payments-owing get-debt-payments-owing
     ifelse gross-profit >= debt-payments-owing [
       service-debt
       set current-profit gross-profit - debt-payments-owing
@@ -70,19 +74,16 @@ to finalise-profit-of-farm
       set current-profit 0
     ]
   ]
-  [
-    set current-profit gross-profit
-  ]
   set dsr debt-payments / current-income
 end
 
 to set-initial-debt-of-farm [maturity]
-  let m table:get table:get initial-debt-service-ratios farm-type "mean"
-  let s table:get table:get initial-debt-service-ratios farm-type "sd"
-  set debt-payments precision (random-normal m s * current-income) 0
-  set total-loans get-principal-from-payment debt-payments interest-rate mortgage-term
+  let m table:get table:get debt-service-ratios farm-type "mean"
+  let s table:get table:get debt-service-ratios farm-type "sd"
+  set debt-payments round (random-normal m s * current-income)
+  set loan-principal get-principal-from-payment debt-payments interest-rate mortgage-term
   set debt-maturity maturity
-  set current-debt get-principal-remaining total-loans interest-rate mortgage-term debt-maturity
+  set current-debt get-principal-remaining loan-principal interest-rate mortgage-term debt-maturity
 end
 
 to-report get-debt-payments-owing
@@ -93,24 +94,26 @@ to-report get-debt-payments-owing
   report round (debt-payments * proportion-owing)
 end
 
-to add-to-debt [x]
-  set total-loans round ((get-principal-remaining total-loans interest-rate mortgage-term debt-maturity) + x)
-  set debt-payments get-loan-repayments total-loans interest-rate mortgage-term
-  set debt-maturity 0
-  set current-debt total-loans
-end
-
 to service-debt
   set debt-maturity debt-maturity + years-per-tick
   ifelse debt-maturity >= mortgage-term [
-    set total-loans 0
+    set loan-principal 0
     set current-debt 0
     set debt-payments 0
-    set debt-maturity 0
+    set debt-maturity nobody
   ]
   [
-    set current-debt get-principal-remaining total-loans interest-rate mortgage-term debt-maturity
+    set current-debt get-principal-remaining loan-principal interest-rate mortgage-term debt-maturity
   ]
+end
+
+to add-to-debt [x]
+  set loan-principal round (
+    (get-principal-remaining loan-principal interest-rate mortgage-term debt-maturity) + x
+  )
+  set debt-payments get-loan-repayments loan-principal interest-rate mortgage-term
+  set current-debt loan-principal
+  set debt-maturity 0
 end
 
 ;; The MIT License (MIT)

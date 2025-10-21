@@ -40,7 +40,7 @@ flowchart TB
   H2[<span style='color:red;'>Survival<br>mode</span>]
   H3[<span style='color:red;'>Constrained<br>mode</span>]
   H4[<span style='color:red;'>Optimisation<br>mode</span>]
-  N{More<br>farmers?}
+  N[/More<br>farmers?/]
   Z((END))
   A --> B
   B --> C

@@ -66,10 +66,11 @@ globals [
 
   ;; these tables are only used in setup - the data are passed into matrix copies for use in calculations
   mgmt-interventions         ;; table of tables of management intervention impacts
-  intervention-adoption      ;; table of lists of proportion of holdings where interventions have been adopted
-                             ;; at model initialisation, and maximum rate of adoption possible by landuse
+  intervention-properties    ;; table of tables of proportion of holdings where interventions have been adopted
+                             ;; at model initialisation, maximum rate of adoption by landuse, and capital cost
+                             ;; of intervention by landuse
   base-thresholds            ;; farmer adoption probabilities for interventions by landuse and disposition
-  initial-debt-service-ratios;; table of DSRs by landuse
+  debt-service-ratios        ;; table of DSRs by landuse
   
   ;; data stored as matrices for use in calculations; rows - cols entries for LUC - farm-type respectively
   ;; rows order LUC1 to LUC8, cols ordered alphabetically by farm-type
@@ -101,7 +102,7 @@ globals [
   intervention-cost-impacts
   intervention-yield-impacts
   intervention-env-impacts   ;; table of intervention impact matrices indexed by 'ghg-emissions', 'nitrates' etc.
-
+  
   ;; colour settings - these can be changed in one place, see mtm-render::setup-key-colours procedure
   colour-key                 ;; table of colour settings
 ]
@@ -160,36 +161,31 @@ to setup
   set run-seed ifelse-value user-run-seed? [run-rng-seed] [new-seed]
 
   if reinitialise? or geography-from-files? [
-    carefully [
-      if geography-from-files? [
-        set spatial-data-folder join-list (list spatial-data-folder region) pathdir:get-separator
-      ]
-      setup-world-dimensions
-      set market-data-folder join-list (list market-data-folder scenario) pathdir:get-separator
-
-      setup-farmer-parameters ;; see mtm-read-files.nls
-      set reinitialise? false
+    if geography-from-files? [
+      set spatial-data-folder join-list (list spatial-data-folder region) pathdir:get-separator
     ]
-    [
-      user-message (word "An initialisation error occurred.\n"
-                         "Check that you picked geography and scenario\n"
-                         "folders that contain all necessary files.")
-      stop
-    ]
+    carefully 
+    [ setup-world-dimensions ] 
+    [ user-message "Problem setting up world-dimensions" stop ]
+    set market-data-folder join-list (list market-data-folder scenario) pathdir:get-separator
+    carefully 
+    [ setup-farmer-parameters ]  
+    [ user-message "Problem setting up farmer parameters" stop ]
+    set reinitialise? false
   ]
   setup-colours ;; must come AFTER reading farmer parameters since it depends on farm types
   ask patches [ set pcolor table:get colour-key "background" ]
+  
+;  carefully 
+;  [ setup-geography ] 
+;  [ user-message "Problem setting up geography" stop ]
+  setup-geography
+  carefully 
+  [ setup-economic-parameters ] 
+  [ user-message "Problem setting up economic parameters" stop ]
+  
+  make-matrix-copies-of-some-data-2
 
-  carefully [
-    setup-geography                  ;; see mtm-geography.nls
-    setup-economic-parameters        ;;     mtm-read-files.nls
-    make-matrix-copies-of-some-data  ;;     mtm-read-files.nls
-  ]
-  [
-    user-message (word "Have you initialised the model correctly?\n"
-                       "Set the initialised? switch On and try setup again making sure to\n"
-                       "pick a folder with a complete set of initialisation .csv files.")
-  ]
   setup-results-tables   ;; see mtm-results.nls
   burn-in-step
 end
@@ -204,7 +200,7 @@ to burn-in-step
   ask farms [
     update-environmental-metrics-of-farm
     update-income-and-costs-of-farm
-    set-initial-debt-of-farm one-of map [x -> x - 5] range mortgage-term
+    set-initial-debt-of-farm one-of range mortgage-term
     finalise-profit-of-farm
   ]
   reset-ticks
@@ -378,7 +374,7 @@ to store-initial-values
     set current-profit-0 current-profit
     set current-income-0 current-income
     set current-costs-0 current-costs
-    set total-loans-0 total-loans
+    set loan-principal-0 loan-principal
     set current-debt-0 current-debt
     set debt-payments-0 debt-payments
     set debt-maturity-0 debt-maturity
@@ -420,7 +416,7 @@ to restore-initial-values
     set current-profit current-profit-0
     set current-income current-income-0
     set current-costs current-costs-0
-    set total-loans total-loans-0
+    set loan-principal loan-principal-0
     set current-debt current-debt-0
     set debt-payments debt-payments-0
     set debt-maturity debt-maturity-0
@@ -474,7 +470,7 @@ end
 ;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ;; DEALINGS IN THE SOFTWARE.]]></code>
   <widgets>
-    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1003" showTickCounter="true" patchSize="3.0" fontSize="6" wrappingAllowedY="false" width="679" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="222" minPxcor="0"></view>
+    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1003" showTickCounter="true" patchSize="3.0" fontSize="12" wrappingAllowedY="false" width="679" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="222" minPxcor="0"></view>
     <switch x="10" y="10" height="33" on="false" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
     <switch x="10" y="48" height="33" on="false" variable="reinitialise?" display="reinitialise?" width="185" sizeVersion="0"></switch>
     <button x="10" y="86" height="33" disableUntilTicks="true" forever="false" kind="Observer" display="reset" width="90" sizeVersion="0">restore-initial-values

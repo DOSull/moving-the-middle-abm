@@ -17,27 +17,27 @@ end
 ;; farmer (behavioural) parameter setup
 ;; ----------------------------------------------------------------------------
 to setup-farmer-parameters
-  set env-metrics                 read-multi-row-table join-string (list market-data-folder "environmental-metrics.csv")      pathdir:get-separator false
-  set farm-types                 sort get-column-names join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator 2
-  set dispositions table:to-list    read-one-row-table join-string (list market-data-folder "farmer-dispositions.csv")        pathdir:get-separator false
-  set initial-debt-service-ratios read-multi-row-table join-string (list market-data-folder "debt-service-ratios.csv")        pathdir:get-separator false
-  set mgmt-intervention-types    sort get-column-names join-string (list market-data-folder "intervention-initial-props.csv") pathdir:get-separator 2
-  set intervention-adoption       read-three-way-table join-string (list market-data-folder "intervention-initial-props.csv") pathdir:get-separator false
-  set base-thresholds             read-three-way-table join-string (list market-data-folder "farmer-threshold-matrix.csv")    pathdir:get-separator false
-  set farm-type-change-probs     read-transition-table join-string (list market-data-folder "conversion-probabilities.csv")   pathdir:get-separator
-  read-intervention-impacts-from-files
+  set env-metrics              read-multi-row-table join-string (list market-data-folder "environmental-metrics.csv")    pathdir:get-separator false
+  set farm-types              sort get-column-names join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator 2
+  set dispositions table:to-list read-one-row-table join-string (list market-data-folder "farmer-dispositions.csv")      pathdir:get-separator false
+  set debt-service-ratios      read-multi-row-table join-string (list market-data-folder "debt-service-ratios.csv")      pathdir:get-separator false
+  set mgmt-intervention-types sort get-column-names join-string (list market-data-folder "intervention-details.csv")     pathdir:get-separator 2
+  set intervention-properties  read-three-way-table join-string (list market-data-folder "intervention-details.csv")     pathdir:get-separator false
+  set base-thresholds          read-three-way-table join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator false
+  set farm-type-change-probs  read-transition-table join-string (list market-data-folder "conversion-probabilities.csv") pathdir:get-separator
+;  read-intervention-impacts-from-files
   foreach mgmt-intervention-types [ i -> output-print i ]
 end
 
 
 to read-intervention-impacts-from-files
-  set mgmt-interventions table:make 
+  set mgmt-interventions table:make
   let impacts-to-read (sentence ["costs" "yields"] table:keys env-metrics)
   foreach impacts-to-read [ impact ->
     let fname join-list (list market-data-folder (word impact "-intervention-impacts.csv")) pathdir:get-separator
     let impacts read-multi-row-table fname false
     table:put mgmt-interventions impact impacts
-  ] 
+  ]
 end
 
 
@@ -110,6 +110,15 @@ end
 ;; initialised with the supplied SD. The SD is applied to patches each round BUT AT HOLDING LEVEL. That is,
 ;; every patch on a given holding with given LU/LUC experiences same deviation from mean outcomes in a 
 ;; particular year. But a neighbouring holding might experience quite different deviations.
+to make-matrix-copies-of-some-data-2
+  set intervention-cost-impacts  intervention-farm-type-tbl-to-mtx-2 intervention-properties "costs" false
+  set intervention-yield-impacts intervention-farm-type-tbl-to-mtx-2 intervention-properties "yields" true
+  set intervention-env-impacts table:make
+  foreach sort table:keys env-metrics [ metric ->
+    table:put intervention-env-impacts metric intervention-farm-type-tbl-to-mtx-2 intervention-properties metric true
+  ]
+end
+
 to make-matrix-copies-of-some-data
   set intervention-cost-impacts  intervention-farm-type-tbl-to-mtx mgmt-interventions "costs" false
   set intervention-yield-impacts intervention-farm-type-tbl-to-mtx mgmt-interventions "yields" true
@@ -117,6 +126,22 @@ to make-matrix-copies-of-some-data
   foreach sort table:keys env-metrics [ metric ->
     table:put intervention-env-impacts metric intervention-farm-type-tbl-to-mtx mgmt-interventions metric true
   ]
+end
+
+to-report intervention-farm-type-tbl-to-mtx-2 [tbl impact multiplicative?]
+  ;; impact will be one of 'costs', 'yields', 'ghg-emissions' or any of the environmental-impacts
+  let impacts table:get tbl impact
+  let cols []
+  foreach farm-types [ ft ->
+    let impacts-by-intervention table:get impacts ft
+    let effects map [i -> table:get impacts-by-intervention i] mgmt-intervention-types
+    set effects map [x -> replace x na-value 0] effects
+    if multiplicative? [
+      set effects map [x -> x + 1] effects
+    ]
+    set cols lput effects cols
+  ]
+  report matrix:from-column-list cols
 end
 
 to-report intervention-farm-type-tbl-to-mtx [tbl impact multiplicative?]

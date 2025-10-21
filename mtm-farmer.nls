@@ -130,42 +130,48 @@ end
 
 
 to do-survival
-  ;; if things are really bad then consider exit / change of landuse
+  ;; do not consider any interventions
+  ;; landuse change? would consider holding-level changes
   let ft-now farm-type
   let farm-conversion-options []
   let loss-making-holdings get-loss-making-holdings
-  if any? loss-making-holdings [
-    if [current-profit] of my-farm <= 0 [ ;; losing lots of money so consider complete change
-      let down-weight ifelse-value apply-severity-of-losses?
-        [ 1 - (sum [count the-land] of loss-making-holdings) / count the-land ] [ 1 ]
-      set farm-conversion-options consider-farm-type-change down-weight "Losing money: "
-    ]
-    ;; only some holdings are losing money so consider forestry on those
+  ifelse any? loss-making-holdings [
     let holding-change-options consider-holdings-farm-type-change loss-making-holdings prioritise-forestry?
     make-farm-type-changes (sentence farm-conversion-options holding-change-options)
+  ]
+  [
+    show "Doing do-survival but no loss-making holdings... what else can be tried?!"
   ]
 end
 
 
 to do-constrained-change
-  ;; consider landuse change on loss-making holdings
-  ;; consider tactical changes
-  ;; if things are really bad then consider exit / change of landuse
+  ;; would consider holding-level changes
+  ;; would consider some ('tactical' / easy) interventions
   let ft-now farm-type
-  let farm-conversion-options []
   let loss-making-holdings get-loss-making-holdings
   if any? loss-making-holdings [
-    ;; only some holdings are losing money so consider forestry on those
     let holding-change-options consider-holdings-farm-type-change loss-making-holdings prioritise-forestry?
     make-farm-type-changes holding-change-options
+  ]
+  if any? my-holdings with [any-interventions-to-do?] [
+    ;; this reports a [holding [intervention-type probability]] list
+    let potential-changes consider-management-changes "Management change: "
+    ;; which we pass to make-management-changes
+    if length potential-changes > 0 [ make-management-changes potential-changes ]
   ]
 end
 
 
 to do-optimisation
-  ;; consider all possible management interventions
-  ;; if things are really bad then consider exit / change of landuse
+  ;; would consider holding-level changes
+  ;; would consider any/all interventions
   let ft-now farm-type
+  let loss-making-holdings get-loss-making-holdings
+  if any? loss-making-holdings [
+    let holding-change-options consider-holdings-farm-type-change loss-making-holdings prioritise-forestry?
+    make-farm-type-changes holding-change-options
+  ]
   if any? my-holdings with [any-interventions-to-do?] [
     ;; this reports a [holding [intervention-type probability]] list
     let potential-changes consider-management-changes "Management change: "

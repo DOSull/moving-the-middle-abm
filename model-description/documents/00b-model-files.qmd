@@ -49,19 +49,18 @@ A key idea underpinning model development was to avoid hard coding dozens, or ev
 ### Market
 Each `./data/market/<scenario-name>` subfolder contains a collection of files that configure aspects of the market, which together form a scenario.
 
-Filename                            | Purpose
+Filename (all `.csv`s)          | Purpose
 :-                                  | :-----
-`conversion-probabilities.csv`      | Relative probability of conversion between the different land uses.
-`environmental-metrics.csv`         | A list of environmental metrics which the modeller wishes to explore in this scenario. Each metric should have a name, and a limit and price associated (where either may be NA), which are regulatory limits and taxes associated with that metric. **This is now where the carbon price in the model is set.** Files called `<factor>.csv` and `<factor>-intervention-impacts.csv` must also be present in the folder for all listed metrics. Metrics can be 'commented out' by preceding them with a `#` in this file, when they will then have no impact on a model run (this is for ease of making variant scenarios).
-`<factor>.csv`                      | Where `<factor>` may be `costs`, `yields`, or any of the active _environmental-metrics_ listed in the `environmental-metrics.csv` file. Mean and st dev. of `<factor>` per ha. by land use and land use capability.
-`<factor>-intervention-impacts.csv` | Where `<factor>` may be `costs`, `yields`, or any of the active _environmental-metrics_ listed in the `environmental-metrics.csv` file. Impacts on yields, costs, and environmental metrics per ha. by management intervention and land use. 
-`farmer-threshold-matrix.csv`       | Baseline probabilities of adoption by farmers of available management interventions by land use.
-`intervention-initial-props`        | Initial proportions of holdings of each landuse on which each intervention should already have been implemented at model initialisation; also includes a maximum proportion for each of these on each landuse type reflecting possible obstacles to implementation.
-`farmer-dispositions.csv`           | The farmer dispositions in the model including their relative proportions.
-`suitabilities.csv`                 | Lists of land use that are allowed on each land use capability class.
-`prices.csv`                        | Market price of commodities (per unit of output) by land use.
-`debt-service-ratios.csv`           | Mean and standard deviation of the debt service ratios of each farm type.[^1]
-`costs-yields-time-series.csv` and `prices-time-series.csv` | Time series multipliers for costs, yields, and prices.
+`conversion-probabilities`      | Relative probability of conversion between the different land uses.
+`environmental-metrics`         | A list of environmental metrics which the modeller wishes to explore in this scenario. Each metric should have a name, and a limit and price associated (where either may be NA), which are regulatory limits and taxes associated with that metric. **This is now where the carbon price in the model is set.** Files called `<factor>.csv` and corresponding rows in `intervention-details` must also be present for all listed metrics. Metrics can be 'commented out' by preceding them with a `#` in `ēnvironmental-metrics` file, when they will then have no impact on a model run (this is for ease of making variant scenarios).
+`<factor>`                      | Where `<factor>` may be `costs`, `yields`, or any of the active _environmental-metrics_ listed in the `environmental-metrics` file. Mean and st dev. of `<factor>` per ha. by land use and land use capability.
+`farmer-threshold-matrix`       | Baseline probabilities of adoption by farmers of available management interventions by land use.
+`intervention-details`          | Impact interventions on costs, yields, capital costs, and the various environmental metrics, by landuse; initial proportions of holdings of each landuse on which intervention should be implemented at model initialisation; a maximum proportion for each of these on each landuse type reflecting possible obstacles to implementation.
+`farmer-dispositions`           | The farmer dispositions in the model including their relative proportions.
+`suitabilities`                 | Lists of land use that are allowed on each land use capability class.
+`prices`                        | Market price of commodities (per unit of output) by land use.
+`debt-service-ratios`           | Mean and standard deviation of the debt service ratios of each farm type.[^1]
+`costs-yields-time-series` and `prices-time-series` | Time series multipliers for costs, yields, and prices.
 
 [^1]: See Ma W, A Renwick and X Zhou. (2020). [The relationship between farm debt and dairy productivity and profitability in New Zealand](https://dx.doi.org/10.3168/jds.2019-17506). _Journal of Dairy Science_ **103**(9), 8251-8256.
 

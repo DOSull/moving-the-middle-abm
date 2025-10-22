@@ -4814,14 +4814,32 @@ vertical-align: -.125em;
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../model-description/documents/03-farmer-decisions-general.html" class="sidebar-item-text sidebar-link">
+  <a href="../../model-description/documents/03a-farmer-decisions-general.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Farmer decision making: general</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../model-description/documents/04-farmer-decisions-land-use.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Farmer decisions about land use</span></a>
+  <a href="../../model-description/documents/03b-exit-market-succession.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Farmer exit market (succession)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../model-description/documents/03c-survival-mode.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Survival mode</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../model-description/documents/03d-constrained-mode.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Constrained mode</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../model-description/documents/03e-optimisation-mode.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Optimisation mode</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -4981,53 +4999,49 @@ vertical-align: -.125em;
 <table class="caption-top table">
 <thead>
 <tr class="header">
-<th style="text-align: left;">Filename</th>
+<th style="text-align: left;">Filename (all <code>.csv</code>s)</th>
 <th style="text-align: left;">Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;"><code>conversion-probabilities.csv</code></td>
+<td style="text-align: left;"><code>conversion-probabilities</code></td>
 <td style="text-align: left;">Relative probability of conversion between the different land uses.</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;"><code>environmental-metrics.csv</code></td>
-<td style="text-align: left;">A list of environmental metrics which the modeller wishes to explore in this scenario. Each metric should have a name, and a limit and price associated (where either may be NA), which are regulatory limits and taxes associated with that metric. <strong>This is now where the carbon price in the model is set.</strong> Files called <code>&lt;factor&gt;.csv</code> and <code>&lt;factor&gt;-intervention-impacts.csv</code> must also be present in the folder for all listed metrics. Metrics can be ‘commented out’ by preceding them with a <code>#</code> in this file, when they will then have no impact on a model run (this is for ease of making variant scenarios).</td>
+<td style="text-align: left;"><code>environmental-metrics</code></td>
+<td style="text-align: left;">A list of environmental metrics which the modeller wishes to explore in this scenario. Each metric should have a name, and a limit and price associated (where either may be NA), which are regulatory limits and taxes associated with that metric. <strong>This is now where the carbon price in the model is set.</strong> Files called <code>&lt;factor&gt;.csv</code> and corresponding rows in <code>intervention-details</code> must also be present for all listed metrics. Metrics can be ‘commented out’ by preceding them with a <code>#</code> in <code>ēnvironmental-metrics</code> file, when they will then have no impact on a model run (this is for ease of making variant scenarios).</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;"><code>&lt;factor&gt;.csv</code></td>
-<td style="text-align: left;">Where <code>&lt;factor&gt;</code> may be <code>costs</code>, <code>yields</code>, or any of the active <em>environmental-metrics</em> listed in the <code>environmental-metrics.csv</code> file. Mean and st dev. of <code>&lt;factor&gt;</code> per ha. by land use and land use capability.</td>
+<td style="text-align: left;"><code>&lt;factor&gt;</code></td>
+<td style="text-align: left;">Where <code>&lt;factor&gt;</code> may be <code>costs</code>, <code>yields</code>, or any of the active <em>environmental-metrics</em> listed in the <code>environmental-metrics</code> file. Mean and st dev. of <code>&lt;factor&gt;</code> per ha. by land use and land use capability.</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;"><code>&lt;factor&gt;-intervention-impacts.csv</code></td>
-<td style="text-align: left;">Where <code>&lt;factor&gt;</code> may be <code>costs</code>, <code>yields</code>, or any of the active <em>environmental-metrics</em> listed in the <code>environmental-metrics.csv</code> file. Impacts on yields, costs, and environmental metrics per ha. by management intervention and land use.</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;"><code>farmer-threshold-matrix.csv</code></td>
+<td style="text-align: left;"><code>farmer-threshold-matrix</code></td>
 <td style="text-align: left;">Baseline probabilities of adoption by farmers of available management interventions by land use.</td>
 </tr>
-<tr class="even">
-<td style="text-align: left;"><code>intervention-initial-props</code></td>
-<td style="text-align: left;">Initial proportions of holdings of each landuse on which each intervention should already have been implemented at model initialisation; also includes a maximum proportion for each of these on each landuse type reflecting possible obstacles to implementation.</td>
-</tr>
 <tr class="odd">
-<td style="text-align: left;"><code>farmer-dispositions.csv</code></td>
+<td style="text-align: left;"><code>intervention-details</code></td>
+<td style="text-align: left;">Impact interventions on costs, yields, capital costs, and the various environmental metrics, by landuse; initial proportions of holdings of each landuse on which intervention should be implemented at model initialisation; a maximum proportion for each of these on each landuse type reflecting possible obstacles to implementation.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>farmer-dispositions</code></td>
 <td style="text-align: left;">The farmer dispositions in the model including their relative proportions.</td>
 </tr>
-<tr class="even">
-<td style="text-align: left;"><code>suitabilities.csv</code></td>
+<tr class="odd">
+<td style="text-align: left;"><code>suitabilities</code></td>
 <td style="text-align: left;">Lists of land use that are allowed on each land use capability class.</td>
 </tr>
-<tr class="odd">
-<td style="text-align: left;"><code>prices.csv</code></td>
+<tr class="even">
+<td style="text-align: left;"><code>prices</code></td>
 <td style="text-align: left;">Market price of commodities (per unit of output) by land use.</td>
 </tr>
-<tr class="even">
-<td style="text-align: left;"><code>debt-service-ratios.csv</code></td>
+<tr class="odd">
+<td style="text-align: left;"><code>debt-service-ratios</code></td>
 <td style="text-align: left;">Mean and standard deviation of the debt service ratios of each farm type.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></td>
 </tr>
-<tr class="odd">
-<td style="text-align: left;"><code>costs-yields-time-series.csv</code> and <code>prices-time-series.csv</code></td>
+<tr class="even">
+<td style="text-align: left;"><code>costs-yields-time-series</code> and <code>prices-time-series</code></td>
 <td style="text-align: left;">Time series multipliers for costs, yields, and prices.</td>
 </tr>
 </tbody>

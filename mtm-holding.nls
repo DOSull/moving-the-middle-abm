@@ -139,9 +139,8 @@ end
 
 ;; returns impact by farm-type, effect-type, and intervention-type
 ;; not a holding reporter but most often run by a holding turtle
-to-report get-impact [f-type e-type i-type]
-;  report table:get (table:get (table:get mgmt-interventions e-type) i-type) f-type
-  report table:get (table:get (table:get intervention-properties e-type) f-type) i-type
+to-report get-impact [fm-type effect-type intervention-type]
+  report table:get (table:get (table:get intervention-properties effect-type) fm-type) intervention-type
 end
 
 

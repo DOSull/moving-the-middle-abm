@@ -28,9 +28,8 @@ extensions [
 ]
 
 globals [
-  ;; convenient to set these and forget them
-  years-per-tick
-  hectares-per-patch
+  years-per-tick             ;; probably 5 years per tick
+  hectares-per-patch         ;; probably 16 ha. (40 acres) per cell
   
   output-data-folder
   market-data-folder
@@ -64,42 +63,36 @@ globals [
   farm-type-change-probs     ;; table of probability of conversion between farm types
   env-metrics                ;; table of environmental metrics with policy limits on per ha. emissions
 
-  ;; these tables are only used in setup - the data are passed into matrix copies for use in calculations
-  mgmt-interventions         ;; table of tables of management intervention impacts
   intervention-properties    ;; table of tables of proportion of holdings where interventions have been adopted
-                             ;; at model initialisation, maximum rate of adoption by landuse, and capital cost
-                             ;; of intervention by landuse
+                             ;; at model initialisation, maximum rate of adoption by landuse, capital cost
+                             ;; of intervention by landuse, and impact of interventions on costs/yields/env metrics
   base-thresholds            ;; farmer adoption probabilities for interventions by landuse and disposition
   debt-service-ratios        ;; table of DSRs by landuse
   
   ;; data stored as matrices for use in calculations; rows - cols entries for LUC - farm-type respectively
   ;; rows order LUC1 to LUC8, cols ordered alphabetically by farm-type
-  cost-means                 ;; costs per cell (16 ha approx)
+  cost-means                 ;; costs per ha.
   cost-sds
-  yield-means                ;; yields in units in which commodities are priced per cell
+  yield-means                ;; yields per ha. in units in which commodities are priced
   yield-sds
 
   cost-means-time-series     ;; multipliers of starting cost/yield means/SDs as lists indexed by tick
   cost-sds-time-series
   yield-means-time-series
   yield-sds-time-series
+  prices                     ;; column matrix of product prices per unit ordered by farm-types list
+  prices-time-series         ;; multipliers for initial prices listed by tick
 
-  cost-means-0
-  cost-sds-0
+  cost-means-0               ;; -0 versions of variables are stored at model initialisation to allow
+  cost-sds-0                 ;; rapid reset of model to start conditions
   yield-means-0
   yield-sds-0
-
-  prices                     ;; column matrix of product prices (per cell) ordered by farm-types list
-  prices-time-series         ;; multipliers for initial prices listed by tick
   prices-0
 
-  ;; Similar matrices to costs/yields in a table indexed by metric name
   env-metric-means           ;; table of matrices of means of environmental metrics by LUC (row) and farm-type (col)
   env-metric-sds             ;; table of matrices of sd of environmental metrics by LUC (row) and farm-type (col)
 
-  ;; matrices with rows-cols entries for intervention-type - farm-type respectively
-  ;; ordered by intervention-types and farm-types lists
-  intervention-cost-impacts
+  intervention-cost-impacts  ;; matrices with rows-cols entries for intervention-type-farm-type respectively
   intervention-yield-impacts
   intervention-env-impacts   ;; table of intervention impact matrices indexed by 'ghg-emissions', 'nitrates' etc.
   
@@ -184,7 +177,7 @@ to setup
   [ setup-economic-parameters ] 
   [ user-message "Problem setting up economic parameters" stop ]
   
-  make-matrix-copies-of-some-data-2
+  make-matrix-copies-of-some-data
 
   setup-results-tables   ;; see mtm-results.nls
   burn-in-step
@@ -527,7 +520,7 @@ this many patches</note>
     <monitor x="890" precision="0" y="343" height="45" fontSize="11" display="geography-seed" width="180" sizeVersion="0">word geography-seed
 ;; this is a workaround per
 ;; https://github.com/NetLogo/NetLogo/issues/2562#issuecomment-3353992160</monitor>
-    <slider x="890" step="5" y="393" max="250" display="luc-aggregation-steps" height="33" min="0" direction="Horizontal" default="50.0" variable="luc-aggregation-steps" width="180" sizeVersion="0"></slider>
+    <slider x="890" step="5" y="393" max="250" display="luc-aggregation-steps" height="33" min="0" direction="Horizontal" default="90.0" variable="luc-aggregation-steps" width="180" sizeVersion="0"></slider>
     <slider x="890" step="5" y="431" max="1000" display="number-of-farms" height="33" min="10" direction="Horizontal" default="250.0" variable="number-of-farms" width="180" sizeVersion="0"></slider>
     <switch x="890" y="469" height="33" on="true" variable="correlated-landuse?" display="correlated-landuse?" width="180" sizeVersion="0"></switch>
     <slider x="890" step="1" y="507" max="20" display="landuse-aggregation-steps" height="33" min="0" direction="Horizontal" default="4.0" variable="landuse-aggregation-steps" width="180" sizeVersion="0"></slider>

@@ -25,19 +25,7 @@ to setup-farmer-parameters
   set intervention-properties  read-three-way-table join-string (list market-data-folder "intervention-details.csv")     pathdir:get-separator false
   set base-thresholds          read-three-way-table join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator false
   set farm-type-change-probs  read-transition-table join-string (list market-data-folder "conversion-probabilities.csv") pathdir:get-separator
-;  read-intervention-impacts-from-files
   foreach mgmt-intervention-types [ i -> output-print i ]
-end
-
-
-to read-intervention-impacts-from-files
-  set mgmt-interventions table:make
-  let impacts-to-read (sentence ["costs" "yields"] table:keys env-metrics)
-  foreach impacts-to-read [ impact ->
-    let fname join-list (list market-data-folder (word impact "-intervention-impacts.csv")) pathdir:get-separator
-    let impacts read-multi-row-table fname false
-    table:put mgmt-interventions impact impacts
-  ]
 end
 
 
@@ -110,54 +98,38 @@ end
 ;; initialised with the supplied SD. The SD is applied to patches each round BUT AT HOLDING LEVEL. That is,
 ;; every patch on a given holding with given LU/LUC experiences same deviation from mean outcomes in a 
 ;; particular year. But a neighbouring holding might experience quite different deviations.
-to make-matrix-copies-of-some-data-2
-  set intervention-cost-impacts  intervention-farm-type-tbl-to-mtx-2 intervention-properties "costs" false
-  set intervention-yield-impacts intervention-farm-type-tbl-to-mtx-2 intervention-properties "yields" true
-  set intervention-env-impacts table:make
-  foreach sort table:keys env-metrics [ metric ->
-    table:put intervention-env-impacts metric intervention-farm-type-tbl-to-mtx-2 intervention-properties metric true
-  ]
-end
-
 to make-matrix-copies-of-some-data
-  set intervention-cost-impacts  intervention-farm-type-tbl-to-mtx mgmt-interventions "costs" false
-  set intervention-yield-impacts intervention-farm-type-tbl-to-mtx mgmt-interventions "yields" true
-  set intervention-env-impacts table:make
-  foreach sort table:keys env-metrics [ metric ->
-    table:put intervention-env-impacts metric intervention-farm-type-tbl-to-mtx mgmt-interventions metric true
-  ]
+  ;; a list of modifier function that have to be applied to data in tables for use in matrices
+  let fns (list
+    [x -> replace x na-value 0] ;; replace NAs with 0 
+    [x -> 1 + x]                ;; add 1 to cases where the numbers are multipliers
+    [x -> precision x 3]        ;; reduce precision to something reasonable
+  )
+  set intervention-cost-impacts 
+    table-as-matrix table:get intervention-properties "costs" farm-types mgmt-intervention-types remove-item 1 fns
+  set intervention-yield-impacts 
+    table-as-matrix table:get intervention-properties "yields" farm-types mgmt-intervention-types fns
+  let metrics sort table:keys env-metrics
+  set intervention-env-impacts table:from-list (map list
+    metrics 
+    map [m -> table-as-matrix table:get intervention-properties m farm-types mgmt-intervention-types fns] metrics
+  )
 end
 
-to-report intervention-farm-type-tbl-to-mtx-2 [tbl impact multiplicative?]
-  ;; impact will be one of 'costs', 'yields', 'ghg-emissions' or any of the environmental-impacts
-  let impacts table:get tbl impact
+;; reports a two-way table indexed by row-names and col-names as a matrix
+;; optionally 'post-processed' by applying a list of supplied anonymous functions
+to-report table-as-matrix [tbl row-names col-names modifiers]
   let cols []
-  foreach farm-types [ ft ->
-    let impacts-by-intervention table:get impacts ft
-    let effects map [i -> table:get impacts-by-intervention i] mgmt-intervention-types
-    set effects map [x -> replace x na-value 0] effects
-    if multiplicative? [
-      set effects map [x -> x + 1] effects
-    ]
-    set cols lput effects cols
+  foreach row-names [ r ->
+    let col-table table:get tbl r
+    let values map [c -> table:get col-table c] col-names
+    set cols lput values cols
   ]
-  report matrix:from-column-list cols
-end
-
-to-report intervention-farm-type-tbl-to-mtx [tbl impact multiplicative?]
-  ;; impact will be one of 'costs', 'yields', 'ghg-emissions' or any of the environmental-impacts
-  let impacts table:get tbl impact
-  let rows []
-  foreach mgmt-intervention-types [ intervention ->
-    let impacts-by-farm-type table:get impacts intervention
-    let effects map [ft -> table:get impacts-by-farm-type ft] farm-types
-    set effects map [x -> replace x na-value 0] effects
-    if multiplicative? [
-      set effects map [x -> x + 1] effects
-    ]
-    set rows lput effects rows
+  let mtx matrix:from-column-list cols
+  foreach modifiers [ m ->
+    set mtx matrix:map [x -> (runresult m x)] mtx
   ]
-  report matrix:from-row-list rows
+  report mtx
 end
 
 

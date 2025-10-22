@@ -7251,7 +7251,7 @@ z-index: 1000;
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../model-description/documents/00a-model-elements.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Elements of the model</span></a>
+ <span class="menu-text">Model elements</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -7320,12 +7320,6 @@ z-index: 1000;
  <span class="menu-text">Farmer decisions about management interventions</span></a>
   </div>
 </li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../model-description/documents/06-possible-extensions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Possible extensions of the model</span></a>
-  </div>
-</li>
       </ul>
   </li>
     </ul>
@@ -7377,7 +7371,7 @@ z-index: 1000;
 </header>
 
 
-<p>The steps in model initialisation are shown in the flow chart below. Although almost all code between these two initialisation pathways is shared, they are executed in separate sequences to ensure that random seed initialisation works correctly in the random geography case. The steps colour pink and blue below run differently depending on whether initialisation is random or from GIS files.</p>
+<p>The steps in model initialisation are shown in the flow chart below. Although almost all code between these two initialisation pathways is shared, they are executed in separate sequences to ensure that random seed initialisation works correctly in the random geography case. The steps coloured pink and blue below run differently depending on whether initialisation is random or from GIS files.</p>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
@@ -7405,14 +7399,14 @@ z-index: 1000;
   S((END))
   A --&gt; B
   B --&gt; C
-  C --&gt;|Y| D
+  C --&gt;|Yes| D
   D --&gt; E
   E --&gt; F
   F --&gt; G
   G --&gt; H
   H --&gt; I
   I --&gt; P
-  C --&gt;|N| J
+  C --&gt;|No| J
   J --&gt; K
   K --&gt; L
   L --&gt; M
@@ -7432,8 +7426,8 @@ z-index: 1000;
 </div>
 </div>
 </div>
-<p>An important detail is that initialisation completes with a run of a single cycle of the model. This means in the GIS initialisation case that the starting state of the model will not necessarily match exactly the data contained in the initialisation files, but will reflect one tick of model evolution. Using a random seed, this step is guaranteed to be the same every time so that repeatability is not affected. A single ‘burn-in’ step is needed to generate plausible prior year income and costs which the model requires to run.</p>
-<p>It is worth noting that there are some tricky sequencing issues in the setup which make the associated code a little ‘fragile’ with some obvious-seeming changes for ‘efficiency’ likely to break the model! (These are noted in code comments.)</p>
+<p>An important detail is that initialisation completes with a ‘burn-in’ run of a single cycle of the model. This means in the GIS initialisation case that the starting state of the model will not necessarily match exactly the data contained in the initialisation files (because some farms might change landuse during burn-in), but will reflect one tick of model evolution. Using a random seed, this step is guaranteed to be the same every time so that repeatability is still attained. A single ‘burn-in’ step is needed to generate plausible prior year income and costs which the model requires to run.</p>
+<p><strong>It is important to note that there are tricky sequencing issues in the setup which make the associated code rather ‘fragile’ with some apparently unproblematic changes likely to break the model!</strong> (These are noted in code comments.)</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">

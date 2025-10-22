@@ -47,18 +47,18 @@ flowchart TB
   C --> E
   E --> F
   F --> G1
-  G1 -->|N| G2
-  G1 -->|Y| H1
-  G2 -->|N| G3
-  G2 -->|Y| H2
-  G3 -->|N| H4
-  G3 -->|Y| H3
+  G1 -->|No| G2
+  G1 -->|Yes| H1
+  G2 -->|No| G3
+  G2 -->|Yes| H2
+  G3 -->|No| H4
+  G3 -->|Yes| H3
   H1 --> N
   H2 --> N
   H3 --> N
   H4 --> N
-  N -->|Y| E
-  N -->|N| Z
+  N -->|Yes| E
+  N -->|No| Z
   click H1 "03b-exit-market-succession.html" "Click for details"
 ```
 

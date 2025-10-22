@@ -25,11 +25,13 @@ knitr:
 ---
 
 ## Code
-To make managing model source code a little easier it is broken into a main `.nlogo` file and a number of NetLogo source `.nls` files. Unfortunately the built in IDE for NetLogo is rather primitive, so this breakdown is not perfect, but it at least keeps the size of each source file manageable (a few hundred lines at most), where a monolithic flat file would be an unwieldy 3000+ lines (and counting). The files are as follows:
+To make managing model source code a little easier it is broken into a main `.nlogox`[^2] file and a number of NetLogo source `.nls` files. Unfortunately the built in IDE for NetLogo is rather primitive, so this breakdown is not perfect, but it at least keeps the size of each source file manageable (a few hundred lines at most), where a monolithic flat file would be an unwieldy 3000+ lines (and counting). The files are as follows:
+
+[^2]: The `.nlogox` file format is new in the recently released (late 2025) version 7 of NetLogo. It is _not_ compatible with earlier versions of the platform.
 
 Filename             | Purpose
-:-                   |:-----
-`abm-working.nlogo`  | Definition of globals, setup and main model loop, model reset code
+:-                   |:----
+`abm-working.nlogox` | Definition of globals, setup and main model loop, model reset code
 `mtm-geography.nls`  | Setup of model geography, whether from GIS files or random
 `mtm-read-files.nls` | Reading of market setting files into tables and matrices...
 `mtm-tables.nls`     | ... using code in this file for reading tabular data in various formats
@@ -39,9 +41,9 @@ Filename             | Purpose
 `mtm-loans.nls`      | Code for calculation of loan payments, outstanding principal, etc.
 `mtm-plots.nls`      | Plotting of some model statistics for interactive exploration
 `mtm-results.nls`    | Recording and writing to files of model run results
-`mtm-profile.nls`    | Profiling of model performance (not much used)
 `mtm-render.nls`     | Visual rendering of model state
 `mtm-utils.nls`      | Various list, matrix, string, statistical distributions, and other utility functions, used throughout the model
+`mtm-profile.nls`    | Profiling of model performance (not much used)
 
 ## Data
 A key idea underpinning model development was to avoid hard coding dozens, or even hundreds of settings into the model code. To that end a `data` folder in the same directory as the model source code has subfolders `market` and `spatial` themselves with subfolders containing model input files that can specify scenarios whether catchment-based (the `spatial` folder) or market-based (the `market` folder).
@@ -49,14 +51,14 @@ A key idea underpinning model development was to avoid hard coding dozens, or ev
 ### Market
 Each `./data/market/<scenario-name>` subfolder contains a collection of files that configure aspects of the market, which together form a scenario.
 
-Filename (all `.csv`s)          | Purpose
-:-                                  | :-----
-`conversion-probabilities`      | Relative probability of conversion between the different land uses.
-`environmental-metrics`         | A list of environmental metrics which the modeller wishes to explore in this scenario. Each metric should have a name, and a limit and price associated (where either may be NA), which are regulatory limits and taxes associated with that metric. **This is now where the carbon price in the model is set.** Files called `<factor>.csv` and corresponding rows in `intervention-details` must also be present for all listed metrics. Metrics can be 'commented out' by preceding them with a `#` in `ēnvironmental-metrics` file, when they will then have no impact on a model run (this is for ease of making variant scenarios).
-`<factor>`                      | Where `<factor>` may be `costs`, `yields`, or any of the active _environmental-metrics_ listed in the `environmental-metrics` file. Mean and st dev. of `<factor>` per ha. by land use and land use capability.
+Filename `.csv`                 | Purpose
+:-                              | :-----
 `farmer-threshold-matrix`       | Baseline probabilities of adoption by farmers of available management interventions by land use.
-`intervention-details`          | Impact interventions on costs, yields, capital costs, and the various environmental metrics, by landuse; initial proportions of holdings of each landuse on which intervention should be implemented at model initialisation; a maximum proportion for each of these on each landuse type reflecting possible obstacles to implementation.
-`farmer-dispositions`           | The farmer dispositions in the model including their relative proportions.
+`conversion-probabilities`      | Relative probability of conversion between the different land uses.
+`environmental-metrics`         | A list of environmental metrics which the modeller wishes to explore in this scenario. Each metric should have a name, and a limit and price associated (where either may be NA), which are regulatory limits and taxes associated with that metric. **This is now where the carbon price in the model is set.** Files called `<factor>.csv` and corresponding rows in `intervention-details` must also be present for all listed metrics. Metrics can be 'commented out' by preceding them with a `#` in `environmental-metrics` file, when they will then have no impact on a model run (this is for ease of making variant scenarios).
+`<factor>`                      | Where `<factor>` may be `costs`, `yields`, or any of the active _environmental-metrics_ listed in the `environmental-metrics` file. Mean and st dev. of `<factor>` per ha. by land use and land use capability.
+`intervention-details`          | _Impact of interventions_ on costs, yields, capital costs, and the various environmental metrics, by landuse; _initial proportions_ of holdings of each landuse on which intervention should be implemented at model initialisation; a _maximum proportion_ for each of these on each landuse type reflecting possible obstacles to implementation.
+`farmer-dispositions`           | The farmer dispositions (e.g. `"pro_environmental"`) in the model including their relative proportions.
 `suitabilities`                 | Lists of land use that are allowed on each land use capability class.
 `prices`                        | Market price of commodities (per unit of output) by land use.
 `debt-service-ratios`           | Mean and standard deviation of the debt service ratios of each farm type.[^1]
@@ -70,25 +72,25 @@ The first of these files (`farmer-threshold-matrix.csv`) effectively defines the
 The geographical setting of the model can be initialised randomly or from GIS files (controlled by a switch in the model GUI). 
 
 #### Real world setting from GIS data
-Initialisation from GIS files uses a `parcels.shp` shapefile, and `luc.asc` and `landuse.asc` raster files to specify respectively the farms, LUC landscape, and land use in the model. Farms are again subdivided into holdings based on LUC. Different catchments can be applied by providing these files in a folder `./data/spatial/<region-name>`. Localisation of the model to a particular settings is relatively straightforward given appropriate files for a particular catchment. These files have attributes as follows:
+Initialisation from GIS files uses a `parcels.shp` shapefile, and `luc.asc` and `landuse.asc` raster files to specify respectively the farms, LUC landscape, and land use in the model. Farms are subdivided into holdings based on LUC. Different catchments can be applied by providing these files in a folder `./data/spatial/<region-name>`. Localisation of the model to a particular settings is relatively straightforward given appropriate files for a particular catchment. These files have attributes as follows:
 
-+ `parcels.shp` should have a unique `STR_ID` attribute per farm.
++ `parcels.shp` should have a unique `STR_ID` attribute per farm. This must be a string _not_ a number (numbers are subject to interpolation when assigned to patches by the NetLogo GIS extension).
 + `luc.asc` should contain integer values from 1 to 8 inclusive and -9999 values outside the study area.
 + `landuse.asc` should contain integer values encoded as follows:
 
 Value | Landuse
 -:|:----
-0 | Horticulture (referred to in model code as `Crop`)
-1 | Dairy
-2 | Forestry
-3 | Beef and lamb (referred to in the model code as `SNB`; includes also deer)
-1000 | Not farmed, but inside the catchment (scrub, indigenous forest, conservation land)
+0     | Horticulture (referred to in model code as `"Crop"`)
+1     | Dairy (`"Dairy"`)
+2     | Forestry (`"Forest"`)
+3     | Beef and lamb (`"SNB"`; includes also deer)
+1000  | Not farmed, but inside the catchment (scrub, indigenous forest, conservation land)
 -9999 | Outside the catchment
 
-The important thing here is not the specific encoding chosen, but that any changes made here match an alphabetical ordering of the corresponding landuses in the `farmer-threshold-matrix.csv` file. At present these are `Crop`, `Dairy`, `Forest`, and `SNB` corresponding to 0, 1, 2, 3 above. If a more detailed landuse classification is desired then the new landuses would need to be added in all initialisation files.
+The important thing here is not the specific encoding chosen, but that any changes made here match an alphabetical ordering of the corresponding landuses in the `farmer-threshold-matrix.csv` file. At present these are `"Crop"`, `"Dairy"`, `"Forest"`, and `"SNB"` corresponding to 0, 1, 2, 3 above. If a more detailed landuse classification is desired then the new landuses would need to be added in all initialisation files.
 
 #### Random geography
-Random initialisation first sets up a land use capability (LUC) landscape using iterative smoothing[^3] (number of iterations of smoothing set by `luc-aggregation-steps`), then randomly distributes farmers across the landscape assigning them a farm based on Voronoi polygons[^4] and breaking the farm into sub-farm level holdings based on contiguous areas of the same LUC. Additionally a voter model is iteratively run on the landuses so that regions of uniform landuse are produced (number of iterations of voter model set by `landuse-aggregation-steps`).
+Random initialisation first sets up a land use capability (LUC) landscape using iterative smoothing[^3] (the number of iterations of smoothing is set by `luc-aggregation-steps`), then randomly distributes farmers across the landscape assigning them a farm based on Voronoi polygons[^4] and breaking the farm into sub-farm level holdings based on contiguous areas of the same LUC. Additionally a voter model is iteratively run on the landuses so that regions of uniform landuse are produced (the number of iterations of the voter model set by `landuse-aggregation-steps`).
 
 [^3]: See pages 60-63 in O’Sullivan D and GLW Perry. 2013. _Spatial Simulation: Exploring Pattern and Process_. Chichester, UK: Wiley.
 [^4]: Okabe A, B Boots, K Sugihara, and SN Chiu. 2000. _Spatial Tessellations: Concepts and Applications of Voronoi Diagrams_. 2nd edn. Chichester, UK: Wiley.
@@ -98,8 +100,8 @@ Random initialisation first sets up a land use capability (LUC) landscape using 
 ::: {.callout-note collapse="true"}
 #### Update History
 
-| Date | Changes
-|:-|:------
+| Date       | Changes
+|:-          |:------
 | 2025-02-19 | Initial post.
 | 2025-08-05 | Split out to a separate model file config page.
 | 2025-10-17 | Updated to reflect addition of debt.

@@ -29,7 +29,7 @@ The spatial and temporal scales of the model require clarification.
 
 The notional time scale at present is one model time step per year. For a number of reasons it seems reasonable to change this to 5 years, with various model initialisation parameters changed accordingly.
 
-The notional model geographical scale is one cell per hectare, although this seems likely to be a problem looking ahead. For example, the Rangitaiki catchment used to test the spatial data import aspects of the model occupies about 2900 km<sup>2</sup> or 290,000 ha. The current (arbitrary)rescaling of the spatial data applied to this region, given its spatial extent, reads the data in at a scale of around 16 ha to the grid cell.
+The notional model geographical scale is one cell per hectare, although this seems likely to be a problem looking ahead. For example, the Rangitaiki catchment used to test the spatial data import aspects of the model occupies about 2900 km<sup>2</sup> or 290,000 ha. The current (arbitrary) rescaling of the spatial data applied to this region, given its spatial extent, reads the data in at a scale of around 16 ha to the grid cell.
 
 Including 290,000 grid cells in the model will likely stretch its computational capacity. We should certainly consider a coarser resolution than 1 ha. per cell. It may make sense to work with 9, 16, or even 25 ha. cells.
 
@@ -50,7 +50,7 @@ The current test data for parcels includes no information about actual land use.
 It is unclear if parcels data gives us 'holdings' information or not. If holdings become mixed-LUC then while the calculation of incomes, yields, etc. will still work, some more consideration may have to be given to how holdings are prioritised for land use change and/or adoption of management interventions to reflect this greater complexity.
 
 #### Farmer ages
-The initial distribution of farmer ages has been 'eyeballed' to fit data from survey data. More precise fitting of the initial age distribution, the age distribution of new entrants, and the rater at which farmers exit by age may be considered desirable.
+The initial distribution of farmer ages has been 'eyeballed' to fit data from survey data. More precise fitting of the initial age distribution, the age distribution of new entrants, and the rate at which farmers exit by age may be considered desirable.
 
 #### Output variables
 Model does not currently have any specific set of output variables any set of experiments will necessarily require that some such be tracked. As Nathan notes (late Feb) these could include
@@ -78,7 +78,7 @@ Activating the networks so that they impact model outcomes would not be difficul
 
 It is important to recognise that every choice made in answering these questions implies a theory of behaviour, and that we may not have good data to support any specific choices.
 
-#### Land use change decisions: potential impact of 
+#### Land use change decisions: potential impact of...
 In land use decision making, none of the following currently have an effect:
 
  + Policy settings; 

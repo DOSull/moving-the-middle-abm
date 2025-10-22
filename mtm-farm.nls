@@ -2,11 +2,10 @@
 ;; TO CONSIDER: Potentially should be moved to the farmer since this breed does not do much!
 
 farms-own [
+  my-farmer               ;; farmer who owns/runs farm
+
   the-land                ;; patch-set of patches of this farmer, this farm, or this holding
   farm-type               ;; farm type of farm - one of farm-types global
-  farm-type-0
-  
-  my-farmer               ;; farmer who owns/runs farm
 
   current-profit          ;; most recent profit of farm summed across patches
   current-income          ;; most recent income of farm summed across patches
@@ -18,6 +17,7 @@ farms-own [
   debt-maturity
   dsr
   
+  farm-type-0
   current-profit-0        ;; variables at model initialisation for quick reset
   current-income-0
   current-costs-0

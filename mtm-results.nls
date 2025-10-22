@@ -6,7 +6,7 @@
 to setup-results-tables
   set results table:make
   table:put results "income_costs"  table:from-list (map list (list "income" "costs" "debt") n-values 3 [i -> []]) 
-  table:put results "interventions" table:from-list (map list mgmt-intervention-types        n-values length mgmt-intervention-types [i -> []]) 
+  table:put results "interventions" table:from-list (map list interventions                  n-values length interventions [i -> []]) 
   table:put results "landuse"       table:from-list (map list farm-types                     n-values length farm-types [i -> []])
   table:put results "env_metrics"   table:from-list (map list table:keys env-metrics         n-values length table:keys env-metrics [i -> []])
 end
@@ -50,8 +50,8 @@ end
 
 ;; proportions of land on which various interventions have been implemented
 to update-interventions-results
-  (foreach range length mgmt-intervention-types [ i ->
-    let intervention item i mgmt-intervention-types
+  (foreach range length interventions [ i ->
+    let intervention item i interventions
     let time-series table:get table:get results "interventions" intervention
     set time-series lput sum [count the-land] of holdings with [matrix:get my-interventions 0 i = 1] time-series
     table:put table:get results "interventions" intervention time-series

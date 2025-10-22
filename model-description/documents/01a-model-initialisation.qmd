@@ -24,7 +24,7 @@ knitr:
       knitr.table.html.attr: "quarto-disable-processing=true"
 ---
 
-The steps in model initialisation are shown in the flow chart below. Although almost all code between these two initialisation pathways is shared, they are executed in separate sequences to ensure that random seed initialisation works correctly in the random geography case. The steps colour pink and blue below run differently depending on whether initialisation is random or from GIS files.
+The steps in model initialisation are shown in the flow chart below. Although almost all code between these two initialisation pathways is shared, they are executed in separate sequences to ensure that random seed initialisation works correctly in the random geography case. The steps coloured pink and blue below run differently depending on whether initialisation is random or from GIS files.
 
 ```{mermaid}
 flowchart TB
@@ -49,14 +49,14 @@ flowchart TB
   S((END))
   A --> B
   B --> C
-  C -->|Y| D
+  C -->|Yes| D
   D --> E
   E --> F
   F --> G
   G --> H
   H --> I
   I --> P
-  C -->|N| J
+  C -->|No| J
   J --> K
   K --> L
   L --> M
@@ -72,15 +72,15 @@ flowchart TB
   class J,K,M blue
 ```
 
-An important detail is that initialisation completes with a run of a single cycle of the model. This means in the GIS initialisation case that the starting state of the model will not necessarily match exactly the data contained in the initialisation files, but will reflect one tick of model evolution. Using a random seed, this step is guaranteed to be the same every time so that repeatability is not affected. A single 'burn-in' step is needed to generate plausible prior year income and costs which the model requires to run.
+An important detail is that initialisation completes with a 'burn-in' run of a single cycle of the model. This means in the GIS initialisation case that the starting state of the model will not necessarily match exactly the data contained in the initialisation files (because some farms might change landuse during burn-in), but will reflect one tick of model evolution. Using a random seed, this step is guaranteed to be the same every time so that repeatability is still attained. A single 'burn-in' step is needed to generate plausible prior year income and costs which the model requires to run.
 
-It is worth noting that there are some tricky sequencing issues in the setup which make the associated code a little 'fragile' with some obvious-seeming changes for 'efficiency' likely to break the model! (These are noted in code comments.)
+**It is important to note that there are tricky sequencing issues in the setup which make the associated code rather 'fragile' with some apparently unproblematic changes likely to break the model!** (These are noted in code comments.)
 
 ::: {.callout-note collapse="true"}
 #### Update History
 
-| Date | Changes
-|:-|:------
+| Date       | Changes
+|:-          |:------
 | 2025-02-19 | Initial post.
 | 2025-08-05 | Made differences between random and GIS initialisation clearer.
 | 2025-10-17 | Some blocks with overflow labels fixed.

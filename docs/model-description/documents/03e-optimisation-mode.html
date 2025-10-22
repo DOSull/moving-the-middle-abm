@@ -7251,7 +7251,7 @@ z-index: 1000;
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../model-description/documents/00a-model-elements.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Elements of the model</span></a>
+ <span class="menu-text">Model elements</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -7320,12 +7320,6 @@ z-index: 1000;
  <span class="menu-text">Farmer decisions about management interventions</span></a>
   </div>
 </li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../model-description/documents/06-possible-extensions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Possible extensions of the model</span></a>
-  </div>
-</li>
       </ul>
   </li>
     </ul>
@@ -7388,11 +7382,11 @@ z-index: 1000;
   L[&lt;span style=&#39;color:red;&#39;&gt;Consider &lt;i&gt;all&lt;/i&gt;&lt;br&gt;interventions&lt;/span&gt;]
   Z((END))
   A --&gt; F
-  F --&gt;|Y| G
-  F --&gt;|N| L
+  F --&gt;|Yes| G
+  F --&gt;|No| L
   G --&gt; H
-  H --&gt;|Y| I
-  H --&gt;|N| J
+  H --&gt;|Yes| I
+  H --&gt;|No| J
   I --&gt; J
   J --&gt; K
   K --&gt; Z

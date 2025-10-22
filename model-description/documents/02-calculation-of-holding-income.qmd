@@ -44,7 +44,7 @@ where $Y$ is gross income, and $X$ is total costs. These are in turn given by
 $$
 \begin{array}{rcl}
 Y &=& pq \\
-X &=& x+te
+X &=& x+\sum_it_ie_i
 \end{array}
 $$
 
@@ -56,6 +56,7 @@ where
 - $e_i$ are various environmental metrics per hectare, most obviously greenhouse gas emissions, and 
 - $t_i$ are any environmental taxes associated with each environmental metric.
 
+Environmental taxes are configured via the `environmental-metrics.csv` file and can be set to zero in any or all cases as required so that the tax component of costs might reduce down to the operating cost per ha. $x$.
 Each of these parameters may depend on the [farm type](00-overall-model-structure.qmd#land-use) $F$ and the land use capability (LUC), $L$, such that the full calculation of profit for each hectare of a holding is
 $$
 Z_{FL} = p_Fq_{FL} - x_{FL} - \sum_i t_ie_{i,FL}
@@ -71,21 +72,25 @@ $p_F$ is found in the `prices.csv` file:
 ```{r}
 #| label: prices
 prices <- read.csv(str_glue("{base_dir}/prices.csv"), 
-                   header = T, row.names = 1) |> 
+                   header = TRUE, row.names = 1) |> 
   slice(1:2) # only rows 1 & 2 relevant
 prices |> 
   kable() |> 
   kable_styling("striped", full_width = F)
 ```
 
-Environmental taxes $t_i$ are found in the `environmental-metrics.csv` file in the `price` column. In the example below the tax associated with greenhouse gas emissions is $10 per unit per ha and no tax is levied on nitrates. Other possible metrics are excluded from consideration by the file shown as they are 'commented out' with the `#` prefix.
+Environmental taxes $t_i$ are found in the `environmental-metrics.csv` file in the `price` column. In the example below the tax associated with greenhouse gas emissions is $10 per unit per ha and no tax is levied on nitrates. For ease of model configuration metrics are excluded from consideration if they are 'commented out' with a `#` prefix.
 
 ```{r}
 #| label: taxes
-print(read.csv(str_glue("{base_dir}/environmental-metrics.csv"), header = T, row.names = 1))
+metrics <- read.csv(str_glue("{base_dir}/environmental-metrics.csv"), 
+                    header = TRUE, row.names = 1)
+metrics |>
+  kable() |>
+  kable_styling("striped", full_width = FALSE)
 ```
 
-In the remainder of this page we assume only greenhouse gases are taxed and use the simplified form $te$ for the environmental tax burden in preference to the more complete  $\sum_i t_ie_{i,FL}$ shown above.
+In the remainder of this page we assume only greenhouse gases are taxed and use the simplified form $te$ for the environmental tax burden in preference to the more complete  $\sum_it_ie_{i,FL}$ shown above.
 
 #### Yields 
 Yields by farm type and land use capability, $q_{FL}$, are in the `commodity-yields.csv` file:
@@ -95,6 +100,7 @@ Yields by farm type and land use capability, $q_{FL}$, are in the `commodity-yie
 yields <- read.csv(str_glue("{base_dir}/yields.csv"), header = T)
 yields |> 
   mutate(across(3:6, ~ round(., 1))) |>
+  arrange(LUC) |>
   kable() |> 
   kable_styling("striped", full_width = F) |>
   scroll_box(height = "250px")

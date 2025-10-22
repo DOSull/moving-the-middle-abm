@@ -26,7 +26,7 @@ to initialise-farmer
   set hidden? true
   set disposition get-disposition
   set succession-stage 0
-  set my-interventions matrix:make-constant (length farm-types) (length mgmt-intervention-types) 0
+  set my-interventions matrix:make-constant (length farm-types) (length interventions) 0
 end
 
 
@@ -331,7 +331,7 @@ to-report consider-management-changes [prefix]
     ;; get nudge score for this intervention from the holding
     let nudges map [poss -> [get-intervention-score poss] of self] to-consider
     ;; the network nudge scores for the landuse on this holding 
-    let to-consider-idxs map [x -> position x mgmt-intervention-types] to-consider
+    let to-consider-idxs map [x -> position x interventions] to-consider
     let nwk-nudges map [i -> item i matrix:get-row network-nudges position ft farm-types] to-consider-idxs
     ;; get the base probabilities for this farmer (which might be changeable over time)
     let base-probs map [poss -> [ get-adoption-probability poss ] of myself] to-consider

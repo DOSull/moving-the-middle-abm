@@ -49,8 +49,8 @@ flowchart TB
 ::: {.callout-note collapse="true"}
 #### Update History
 
-| Date | Changes
-|:-|:------
+| Date       | Changes
+|:-          |:------
 | 2025-02-19 | Initial post.                       
 
 :::

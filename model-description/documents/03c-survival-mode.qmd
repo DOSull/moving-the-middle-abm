@@ -36,8 +36,8 @@ flowchart TB
   K[Choose among choices<br>in  <span style="font-family:monospace;">options</span>]
   Z((END))
   A --> F
-  F -->|Y| G
-  F -->|N| H
+  F -->|Yes| G
+  F -->|No| H
   H --> Z
   G --> J
   J --> K

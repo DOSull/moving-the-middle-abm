@@ -21,11 +21,11 @@ to setup-farmer-parameters
   set farm-types              sort get-column-names join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator 2
   set dispositions table:to-list read-one-row-table join-string (list market-data-folder "farmer-dispositions.csv")      pathdir:get-separator false
   set debt-service-ratios      read-multi-row-table join-string (list market-data-folder "debt-service-ratios.csv")      pathdir:get-separator false
-  set mgmt-intervention-types sort get-column-names join-string (list market-data-folder "intervention-details.csv")     pathdir:get-separator 2
+  set interventions           sort get-column-names join-string (list market-data-folder "intervention-details.csv")     pathdir:get-separator 2
   set intervention-properties  read-three-way-table join-string (list market-data-folder "intervention-details.csv")     pathdir:get-separator false
   set base-thresholds          read-three-way-table join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator false
   set farm-type-change-probs  read-transition-table join-string (list market-data-folder "conversion-probabilities.csv") pathdir:get-separator
-  foreach mgmt-intervention-types [ i -> output-print i ]
+  foreach interventions [ i -> output-print i ]
 end
 
 
@@ -106,13 +106,13 @@ to make-matrix-copies-of-some-data
     [x -> precision x 3]        ;; reduce precision to something reasonable
   )
   set intervention-cost-impacts 
-    table-as-matrix table:get intervention-properties "costs" farm-types mgmt-intervention-types remove-item 1 fns
+    table-as-matrix table:get intervention-properties "costs" farm-types interventions remove-item 1 fns
   set intervention-yield-impacts 
-    table-as-matrix table:get intervention-properties "yields" farm-types mgmt-intervention-types fns
+    table-as-matrix table:get intervention-properties "yields" farm-types interventions fns
   let metrics sort table:keys env-metrics
   set intervention-env-impacts table:from-list (map list
     metrics 
-    map [m -> table-as-matrix table:get intervention-properties m farm-types mgmt-intervention-types fns] metrics
+    map [m -> table-as-matrix table:get intervention-properties m farm-types interventions fns] metrics
   )
 end
 

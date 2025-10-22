@@ -3,7 +3,7 @@ title: "Farmer aging and succession"
 subtitle: "MtM ABM description"
 author: "David O'Sullivan"
 date: 19 February 2025
-date-modified: 17 October 2025
+date-modified: 22 October 2025
 lightbox: true
 filters:
   - nutshell
@@ -34,7 +34,7 @@ After aging, a farmer is tested for exiting the industry (or retiring or dying, 
 $$
 p_{\mathrm{exit}} = \left\{
   \begin{array}{cl} 
-    \frac{5}{91-\mathrm{age}} & \text{if age} <    91 \\
+    \frac{5}{91-\mathrm{age}} & \text{if age} \lt  91 \\
                             1 & \text{if age} \geq 91
   \end{array}
 \right.
@@ -43,7 +43,7 @@ $$
 This means that farmers are not guaranteed to exit until they are 90, reflecting the surprising numbers of older farmers in survey data.
 
 ## Age of farmers at model initialisation
-The age of farmers at model initialisation is drawn from a [:beta-binomial distribution](https://en.wikipedia.org/wiki/Beta-binomial_distribution), with $n=70$, $\alpha=5$, and $\beta=4$, and ages then offset by adding 20 (so that 20 is the youngest possible age). An example distribution for 250 farmers is shown below, with the red line showing the associated probability density function.
+The age of farmers at model initialisation is drawn from a [beta-binomial distribution](https://en.wikipedia.org/wiki/Beta-binomial_distribution), with $n=70$, $\alpha=5$, and $\beta=4$, and ages then offset by adding 20 (so that 20 is the youngest possible age). An example distribution for 250 farmers is shown below, with the red line showing the associated probability density function.
 
 ```{r}
 #| echo: false
@@ -90,7 +90,7 @@ ggplot(ages_succession) +
   theme_minimal()
 ```
 
-This distribution might appear to skew older than the model age initialisation, but note that the range of values tops out at 65 years as shown in the direct comparison of the probability density functions below.
+This distribution might appear to skew older than the model age initialisation, but note that the age range of the two distributions is different with the succession distribution topping out at 65 years as is clearer in the direct comparison of the probability density functions below.
 
 ```{r}
 #| echo: false
@@ -111,18 +111,18 @@ ggplot(ages_all) +
   theme(legend.title = element_blank())
 ```
 
-In any case, this paramterisation keeps the farmer age distribution fairly stable over time. 
+In any case, this parameterisation keeps the farmer age distribution fairly stable over time. 
 
-More detailed fitting and analysis of these (hard-coded) parameter settings around farmer ages is probably desirable.
+More detailed fitting and analysis of these (hard-coded) parameter settings around farmer ages would be desirable if farmer age is considered a critical variable influencing outcomes.
 
 ## Entrant farmers and landuse change
-A new farmer will consider whole-farm landuse change (see [Farmer decisions about land use](04-farmer-decisions-land-use.qmd) for details) **under conditions to be determined**. This pathway to land use is more likely to lead to land use change at the whole farm level than the more piecemeal changes that tend to be made by incumbent farmers.
+A new farmer will consider whole-farm landuse change (see [Farmer decisions about land use](04-farmer-decisions-land-use.qmd) for details) **under conditions to be determined but related to recent profitability and the debt status of the incoming farmer**. This pathway to land use is more likely to lead to land use change at the whole farm level than the more piecemeal changes that tend to be made by incumbent farmers.
 
 ::: {.callout-note collapse="true"}
 #### Update History
 
-| Date | Changes
-|:-|:------
+| Date       | Changes
+|:-          |:------
 | 2025-02-19 | Initial post. 
 | 2025-10-17 | Updated to reflect changing in aging by 5 years per tick.
 

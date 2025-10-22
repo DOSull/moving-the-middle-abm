@@ -14,8 +14,8 @@ to setup-model-plots
     table:from-list (map list (list "Income" "Costs" "Debt") (list black red blue))
   setup-extensible-plot 
     "Interventions" 
-    mgmt-intervention-types 
-    table:from-list (map list mgmt-intervention-types first-n pen-palette (length mgmt-intervention-types))
+    interventions 
+    table:from-list (map list interventions first-n pen-palette (length interventions))
   setup-extensible-plot 
     "Landuse composition" 
     farm-types 
@@ -81,8 +81,8 @@ end
 ;; update the interventions plot
 to update-interventions-plot [with-pen-down?]
   set-current-plot "Interventions"
-  foreach range length mgmt-intervention-types [ i ->
-    set-current-plot-pen item i mgmt-intervention-types
+  foreach range length interventions [ i ->
+    set-current-plot-pen item i interventions
     if not with-pen-down? [ plot-pen-up ]
     plot sum [count the-land] of holdings with [matrix:get my-interventions 0 i = 1]
     if not with-pen-down? [ plot-pen-down ]

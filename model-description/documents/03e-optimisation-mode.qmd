@@ -37,11 +37,11 @@ flowchart TB
   L[<span style='color:red;'>Consider <i>all</i><br>interventions</span>]
   Z((END))
   A --> F
-  F -->|Y| G
-  F -->|N| L
+  F -->|Yes| G
+  F -->|No| L
   G --> H
-  H -->|Y| I
-  H -->|N| J
+  H -->|Yes| I
+  H -->|No| J
   I --> J
   J --> K
   K --> Z

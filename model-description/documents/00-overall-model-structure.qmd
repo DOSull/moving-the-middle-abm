@@ -47,27 +47,28 @@ The map area shows land use capability (LUC; more intense colours are better lan
 [Farmers](#farmers) are shown as 'person' icons, with no additional information symbolised.
 
 ### Column 3
-Controls immediately to the right of the map area mostly affect model initialisation, in particular (i) allowing choice between a random map, or initialisation from GIS data (shown above), and (ii) allowing for initialisation from controlled [:random number seeds](https://en.wikipedia.org/wiki/Random_seed) to allow for repeatability of results and exploration of the details of any findings. For GIS initialisation a `region` is chosen from a drop-down list. For initialisation of 'market' settings a `scenario` is chosen from a drop-down list. More details on the requirements for these options are provided elsewhere in the documentation.
+Controls immediately to the right of the map area mostly affect model initialisation, in particular (i) allowing choice between a random map, or initialisation from GIS data (shown above), and (ii) allowing for initialisation from controlled [random number seeds](https://en.wikipedia.org/wiki/Random_seed) to allow for repeatability of results and exploration of the details of any findings. For GIS initialisation a `region` is chosen from a drop-down list. For initialisation of 'market' settings a `scenario` is chosen from a drop-down list. More details on the requirements for these options are provided elsewhere in the documentation.
 
-One other important setting is controlled by a 'slider': `sigmoid-slope` controls the rate of change of probabilities of adoption of intervention in response to push and pull factors. This is uncalibrated at present. A potential extension of the model would allow different levels of this control for different 'nudge' or market effects.
+One other important setting is controlled by a 'slider': `sigmoid-slope` controls the rate of change of probabilities of adoption of interventions in response to push and pull factors. Adjusting this setting is intended to allow for greater or lesser effectiveness of nudges. This is uncalibrated at present. A potential extension of the model would allow different levels of this control for different 'nudge' or market effects.
 
 ### Column 4
-The column of controls on the right of the model provides some tracking plots (overall income and costs, overall land on which different interventions have been adopted, overall land in different land uses, aggregate environmental impacts, age and debt profiles of famrs), and also some high level controls as follows:
+The column of controls on the right of the model provides some tracking plots (overall income and costs, overall land on which different interventions have been adopted, overall land in different land uses, aggregate environmental impacts, age and debt profiles of farmers), and also some high level controls as follows:
 
-+ `landuse-change-on-succession?`: If _On_ when a farmer is succeeded by a new entrant the new farmer considers a change in (all of farm) land use if any of the farm's holdings are losing money.
-+ `prioritise-forestry?`: If _On_ when a holding is unprofitable _only_ forestry is considered as new land use; other land uses are also considered if this option is _Off_.
-+ `apply-severity-of-losses?`: If _On_ losses occurring across more of the farm (by area) make whole of farm conversion of land use less unlikely.
-+ `apply-suitability?`: If _On_ suitability of LUC of holdings is taken into account when land use change is undertaken; if _Off_ land use change disregards LUC.
++ `landuse-change-on-succession?`: If **On** when a farmer is succeeded by a new entrant the new farmer considers a change in (all of farm) land use if any of the farm's holdings are losing money.
++ `prioritise-forestry?`: If **On** when a holding is unprofitable _only_ forestry is considered as new land use; other land uses are also considered if this option is **Off**.
++ `apply-severity-of-losses?`: If **On** losses occurring across more of the farm (by area) make whole of farm conversion of land use less unlikely.
++ `apply-suitability?`: If **On** suitability of LUC of holdings is taken into account when land use change is undertaken; if **Off** land use change disregards LUC.
 + `include-debt?` and `interest-rate`: If `include-debt?` is _On_ then farm debt accrues and has various impacts on farmer behaviour.
 
 
 ::: {.callout-note collapse="true"}
 #### Update History
 
-| Date | Changes
+| Date       | Changes
 |:-|:------
 | 2025-02-19 | Initial post.
-| 2025-08-05 | Original page broken out into 3 - overview, elements, files.         | 2025-10-17 | Updating to include debt aspects.
+| 2025-08-05 | Original page broken out into 3 - overview, elements, files.
+| 2025-10-17 | Updating to include debt aspects.
 
 :::
 

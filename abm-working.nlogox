@@ -161,6 +161,7 @@ to setup
     [ setup-world-dimensions ] 
     [ user-message "Problem setting up world-dimensions" stop ]
     set market-data-folder join-list (list market-data-folder scenario) pathdir:get-separator
+
     carefully 
     [ setup-farmer-parameters ]  
     [ user-message "Problem setting up farmer parameters" stop ]
@@ -169,15 +170,14 @@ to setup
   setup-colours ;; must come AFTER reading farmer parameters since it depends on farm types
   ask patches [ set pcolor table:get colour-key "background" ]
   
-;  carefully 
-;  [ setup-geography ] 
-;  [ user-message "Problem setting up geography" stop ]
-  setup-geography
   carefully 
   [ setup-economic-parameters ] 
   [ user-message "Problem setting up economic parameters" stop ]
-  
   make-matrix-copies-of-some-data
+
+  carefully 
+  [ setup-geography ] 
+  [ user-message "Problem setting up geography" stop ]
 
   setup-results-tables   ;; see mtm-results.nls
   burn-in-step
@@ -187,14 +187,13 @@ end
 to burn-in-step
   random-seed 0          ;; make the burn-in tick identical regardless of seed settings
   ask holdings [
-    update-environmental-metrics-of-holding
+    update-environmental-metrics-of-holding 
     update-profit-of-holding
   ]
   ask farms [
     update-environmental-metrics-of-farm
     update-income-and-costs-of-farm
-    set-initial-debt-of-farm one-of range mortgage-term
-    finalise-profit-of-farm
+    finalise-profit-of-farm true
   ]
   reset-ticks
   ask farms [redraw-farm]
@@ -230,7 +229,7 @@ to go
     ask farms [
       update-environmental-metrics-of-farm
       update-income-and-costs-of-farm
-      finalise-profit-of-farm
+      finalise-profit-of-farm false
     ]
     ask farmers [
 ;      let ft-now farm-type
@@ -364,6 +363,7 @@ to store-initial-values
   ]
   ask farms [
     set farm-type-0 farm-type
+    set gross-profit-0 gross-profit
     set current-profit-0 current-profit
     set current-income-0 current-income
     set current-costs-0 current-costs
@@ -371,6 +371,7 @@ to store-initial-values
     set current-debt-0 current-debt
     set debt-payments-0 debt-payments
     set debt-maturity-0 debt-maturity
+    set debt-free-0? debt-free?
     set dsr-0 dsr
     set my-metrics-0 table:from-json table:to-json my-metrics
   ]
@@ -380,6 +381,7 @@ to store-initial-values
     set age-0 age
     set succession-stage-0 succession-stage
     set my-interventions-0 matrix:copy my-interventions
+    set inherited-0? inherited?
   ]
 end
 
@@ -406,6 +408,7 @@ to restore-initial-values
   ]
   ask farms [
     set farm-type farm-type-0
+    set gross-profit gross-profit-0
     set current-profit current-profit-0
     set current-income current-income-0
     set current-costs current-costs-0
@@ -413,6 +416,7 @@ to restore-initial-values
     set current-debt current-debt-0
     set debt-payments debt-payments-0
     set debt-maturity debt-maturity-0
+    set debt-free? debt-free-0?
     set dsr dsr-0
     set my-metrics table:from-json table:to-json my-metrics-0
   ]
@@ -422,6 +426,8 @@ to restore-initial-values
     set age age-0
     set succession-stage succession-stage-0
     set my-interventions matrix:copy my-interventions-0
+    set inherited? inherited-0?
+    set color table:get table:get colour-key "farmer" inherited?
   ]
   redraw-farms-and-holdings
   update-model-plots false
@@ -515,19 +521,21 @@ LUC values (better land).</note>
     <note x="890" y="181" backgroundDark="0" fontSize="11" width="181" markdown="false" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Longer dimension of map will be
 this many patches</note>
     <note x="890" y="220" backgroundDark="0" fontSize="12" width="180" markdown="true" height="18" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Random landscape settings**</note>
-    <input x="890" multiline="false" y="240" height="60" variable="geography-rng-seed" type="number" width="180" sizeVersion="0">1.553817984E9</input>
+    <input x="890" multiline="false" y="240" height="60" variable="geography-rng-seed" type="number" width="180" sizeVersion="0">1.0</input>
     <switch x="890" y="305" height="33" on="true" variable="user-geography-seed?" display="user-geography-seed?" width="180" sizeVersion="0"></switch>
     <monitor x="890" precision="0" y="343" height="45" fontSize="11" display="geography-seed" width="180" sizeVersion="0">word geography-seed
 ;; this is a workaround per
 ;; https://github.com/NetLogo/NetLogo/issues/2562#issuecomment-3353992160</monitor>
-    <slider x="890" step="5" y="393" max="250" display="luc-aggregation-steps" height="33" min="0" direction="Horizontal" default="90.0" variable="luc-aggregation-steps" width="180" sizeVersion="0"></slider>
-    <slider x="890" step="5" y="431" max="1000" display="number-of-farms" height="33" min="10" direction="Horizontal" default="250.0" variable="number-of-farms" width="180" sizeVersion="0"></slider>
+    <slider x="890" step="5" y="393" max="250" display="luc-aggregation-steps" height="33" min="0" direction="Horizontal" default="55.0" variable="luc-aggregation-steps" width="180" sizeVersion="0"></slider>
+    <slider x="890" step="5" y="431" max="1000" display="number-of-farms" height="33" min="10" direction="Horizontal" default="1000.0" variable="number-of-farms" width="180" sizeVersion="0"></slider>
     <switch x="890" y="469" height="33" on="true" variable="correlated-landuse?" display="correlated-landuse?" width="180" sizeVersion="0"></switch>
     <slider x="890" step="1" y="507" max="20" display="landuse-aggregation-steps" height="33" min="0" direction="Horizontal" default="4.0" variable="landuse-aggregation-steps" width="180" sizeVersion="0"></slider>
     <note x="890" y="550" backgroundDark="0" fontSize="12" width="180" markdown="true" height="18" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Model run RNG**</note>
     <input x="890" multiline="false" y="570" height="60" variable="run-rng-seed" type="number" width="180" sizeVersion="0">1.0</input>
-    <switch x="890" y="635" height="33" on="true" variable="user-run-seed?" display="user-run-seed?" width="180" sizeVersion="0"></switch>
-    <monitor x="890" precision="0" y="673" height="45" fontSize="11" width="180" sizeVersion="0">run-seed</monitor>
+    <switch x="890" y="635" height="33" on="false" variable="user-run-seed?" display="user-run-seed?" width="180" sizeVersion="0"></switch>
+    <monitor x="890" precision="0" y="673" height="45" fontSize="11" display="run-seed" width="180" sizeVersion="0">word run-seed
+;; this is a workaround per
+;; https://github.com/NetLogo/NetLogo/issues/2562#issuecomment-3353992160</monitor>
     <slider x="890" step="0.01" y="723" max="20" display="sigmoid-slope" height="33" min="0.01" direction="Horizontal" default="10.0" variable="sigmoid-slope" width="180" sizeVersion="0"></slider>
     <note x="890" y="765" backgroundDark="0" fontSize="12" width="180" markdown="true" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Interventions**</note>
     <output x="890" y="785" height="175" fontSize="11" width="180"></output>

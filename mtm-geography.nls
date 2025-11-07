@@ -90,6 +90,8 @@ to setup-geography
     setup-farmer-networks
     setup-farms
     setup-holdings
+    initialise-farm-debt
+    initialise-interventions
   ]
   [ ;; note there is no 'not-farm-land' in the random case
     random-seed geography-seed
@@ -100,6 +102,8 @@ to setup-geography
     setup-farmer-networks
     setup-farms
     setup-holdings
+    initialise-farm-debt
+    initialise-interventions
   ]
   colour-all-patches true
 end
@@ -342,6 +346,16 @@ to setup-holdings
     ]
     set my-holdings these-holdings 
   ]
+end
+
+
+to initialise-farm-debt
+  ask farms [ set-initial-farm-debt ]
+end
+
+
+to initialise-interventions
+  ask holdings [ initialise-holding-interventions ]
 end
 
 

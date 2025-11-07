@@ -17,14 +17,14 @@ end
 ;; farmer (behavioural) parameter setup
 ;; ----------------------------------------------------------------------------
 to setup-farmer-parameters
-  set env-metrics              read-multi-row-table join-string (list market-data-folder "environmental-metrics.csv")    pathdir:get-separator false
-  set farm-types              sort get-column-names join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator 2
-  set dispositions table:to-list read-one-row-table join-string (list market-data-folder "farmer-dispositions.csv")      pathdir:get-separator false
-  set debt-service-ratios      read-multi-row-table join-string (list market-data-folder "debt-service-ratios.csv")      pathdir:get-separator false
-  set interventions           sort get-column-names join-string (list market-data-folder "intervention-details.csv")     pathdir:get-separator 2
-  set intervention-properties  read-three-way-table join-string (list market-data-folder "intervention-details.csv")     pathdir:get-separator false
-  set base-thresholds          read-three-way-table join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator false
-  set farm-type-change-probs  read-transition-table join-string (list market-data-folder "conversion-probabilities.csv") pathdir:get-separator
+  set env-metrics                   read-multi-row-table join-string (list market-data-folder "environmental-metrics.csv")    pathdir:get-separator false
+  set farm-types                   sort get-column-names join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator 2
+  set interventions sort remove-duplicates get-row-names join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator 1
+  set dispositions      table:to-list read-one-row-table join-string (list market-data-folder "farmer-dispositions.csv")      pathdir:get-separator false
+  set debt-service-ratios           read-multi-row-table join-string (list market-data-folder "debt-service-ratios.csv")      pathdir:get-separator false
+  set intervention-properties       read-three-way-table join-string (list market-data-folder "intervention-details.csv")     pathdir:get-separator false
+  set base-thresholds               read-three-way-table join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator false
+  set farm-type-change-probs       read-transition-table join-string (list market-data-folder "conversion-probabilities.csv") pathdir:get-separator
   foreach interventions [ i -> output-print i ]
 end
 

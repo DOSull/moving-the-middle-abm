@@ -10,8 +10,8 @@ to setup-model-plots
   let pen-palette [ black red orange green sky blue violet magenta ]
   setup-extensible-plot 
     "Income-costs" 
-    (list "Income" "Costs" "Debt")
-    table:from-list (map list (list "Income" "Costs" "Debt") (list black red blue))
+    (list "Income" "Costs" "Debt" "Debt-payments")
+    table:from-list (map list (list "Income" "Costs" "Debt" "Debt-payments") (list black red blue violet))
   setup-extensible-plot 
     "Interventions" 
     interventions 
@@ -59,6 +59,8 @@ to update-income-costs-plot [with-pen-down?]
     plot sum [current-costs] of farms
     set-current-plot-pen "Debt"
     plot sum [current-debt] of farms
+    set-current-plot-pen "Debt-payments"
+    plot sum [debt-payments] of farms
   ]
   [
     set-current-plot "Income-costs"
@@ -73,6 +75,10 @@ to update-income-costs-plot [with-pen-down?]
     set-current-plot-pen "Debt"
     plot-pen-up
     plot sum [current-debt] of farms
+    plot-pen-down
+    set-current-plot-pen "Debt-payments"
+    plot-pen-up
+    plot sum [debt-payments] of farms
     plot-pen-down
   ]
 end

@@ -9,24 +9,27 @@ farmers-own [
   
   my-farm          ;; farm turtle of this farmer's farm
   my-holdings      ;; turtle-set of holdings of this farmer
+  inherited?
   
   farm-type-0      ;; initial values stored to allow easy reset
   disposition-0
   age-0
   succession-stage-0
   my-interventions-0
+  inherited-0?
 ]
 
 
 ;; farmer 'constructor'
 to initialise-farmer
-  set size 2
-  set color table:get colour-key "farmer"
+  set size 4
   set shape "person"
   set hidden? true
   set disposition get-disposition
   set succession-stage 0
   set my-interventions matrix:make-constant (length farm-types) (length interventions) 0
+  set inherited? one-of [true false]
+  set color table:get table:get colour-key "farmer" inherited?
 end
 
 
@@ -36,8 +39,18 @@ to-report get-new-farmer-age [model-initialisation?]
   ;; this gives us a reasonable(ish) age distribution at least for now
   ifelse model-initialisation? 
   ;; age distribution of initial population skews older than that of new entrants
-  [ report 21 + random-beta-binomial 70 5 4 ]
-  [ report 21 + random-beta-binomial 45 4 2 ]
+  [ report get-incumbent-farmer-age ]
+  [ report get-entrant-farmer-age ]
+end
+
+
+to-report get-entrant-farmer-age
+  report 21 + random-beta-binomial 45 4 2
+end
+
+
+to-report get-incumbent-farmer-age
+  report 21 + random-beta-binomial 70 5 4
 end
 
 
@@ -103,18 +116,22 @@ to age-and-succeed-farmer
 end
 
 to succeed-farmer
+  set inherited? one-of [true false]
+  ;; note that it's possible the new farmer will be older than the previous
+  ;; even if they inherit - perhaps they are a cousin or sibling or...
+  ;; this avoids complex logic handling different ages of succession etc.
   set age get-new-farmer-age false
   set succession-stage succession-stage + 1
+  ;; if not inherited then new farmer must take out a mortgage
+  if not inherited? [ ask my-farm [ buy-farm ] ]
   set disposition get-disposition
   let ft-now farm-type
+  set color table:get table:get colour-key "farmer" inherited?
   ;; new farmer considers changing the farm type if any holdings are loss-making
   ;; without regard to how long losses have been happening, and with no 'down-weight'
-  if landuse-change-on-succession? and (any? my-holdings with [current-profit < 0] or [current-profit] of my-farm <= 0) [
+  if not inherited? and landuse-change-on-succession? and (any? my-holdings with [current-profit < 0] or [current-profit] of my-farm <= 0) [
     let options consider-farm-type-change 1 "Succession: "
     if length options > 0 [ make-farm-type-changes options ]
-  ]
-  ask my-farm [
-    set-initial-debt-of-farm 0
   ]
 end
 
@@ -413,6 +430,42 @@ end
 to-report nudged-probability [p nudge]
   let centre logit p sigmoid-slope
   report sigmoid (centre + nudge) sigmoid-slope
+end
+
+
+;;
+;; DEBUG FILE OUTPUT
+;; Note this preferred to using simpleR extension to avoid dependency on R installation
+to output-farmers-report [fname]
+  csv:to-file fname fput get-farmer-csv-header map [h -> [get-farmer-status] of h] sort farmers
+end
+
+to-report get-farmer-status
+  report flatten-list (list 
+    who
+    [who] of my-farm
+    farm-type 
+    (count the-land * hectares-per-patch)
+    disposition
+    age
+    (ifelse-value inherited? ["TRUE"] ["FALSE"])
+    succession-stage
+    (map [x -> ifelse-value x = 1 ["TRUE"] ["FALSE"]] matrix:get-row my-interventions 0)
+  )
+end
+
+to-report get-farmer-csv-header
+  report flatten-list (list
+    "farmer_id"
+    "farm_id"
+    "farm_type"
+    "size_ha"
+    "disposition"
+    "age"
+    "inherited"
+    "succession_stage"
+    interventions
+  )
 end
 
 

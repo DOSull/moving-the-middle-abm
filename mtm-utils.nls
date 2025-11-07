@@ -58,6 +58,11 @@ to-report percent-change [a b]
   report 100 * relative-change a b
 end
 
+;; round to int
+to-report round-to [x y]
+  report (int (x / y)) * y
+end
+
 ;; because the GIS extension makes NaNs and we need to detect them
 ;; see https://github.com/NetLogo/GIS-Extension/issues/5
 ;;     https://github.com/NetLogo/NetLogo/issues/894

@@ -102,7 +102,8 @@ end
 to setup-colours
   let landuse-colours (list (orange) (blue) (green) (list 204 51 153))
   set colour-key table:make
-  table:put colour-key "farmer" black
+  table:put colour-key "farmer"
+    table:from-list (map list [true false] [black yellow])
   table:put colour-key "farmer-label" black
   table:put colour-key "farm-type"
     table:from-list (map list ["SNB" "Dairy" "Forest" "Crop"] landuse-colours)

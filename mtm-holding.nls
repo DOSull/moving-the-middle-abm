@@ -37,24 +37,26 @@ to initialise-holding
   set hidden? false
   set label farm-type
   set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
-  ;; interventions are a 1 row matrix of 0s to start
-  set my-interventions matrix:make-constant 1 (length interventions) 0
-  set avail-interventions possible-interventions
-  let starter-props map [i -> table:get table:get table:get intervention-properties "init_proportion" farm-type i] interventions
-  (foreach interventions starter-props [ [m p] ->
-    if random-float 1 < p [ implement-intervention m ]
-  ]) 
   set metrics-details table:make
   set my-metrics table:make
 end
 
+to initialise-holding-interventions
+  ;; interventions are a 1 row matrix of 0s to start
+  set my-interventions matrix:make-constant 1 (length interventions) 0
+  set avail-interventions possible-interventions
+  let starter-props map [i -> table:get table:get table:get intervention-properties "init_proportion" farm-type i] interventions
+  (foreach interventions starter-props [ [i p] ->
+    if random-float 1 < p [ implement-intervention i ]
+  ]) 
+end
 
 ;; does the book keeping if the farm-type is changed
 to holding-change-farm-type [ft]
   set farm-type ft
   ask the-land [set landuse ft]
   set landuse-luc-profile get-landuse-luc-profile the-land
-  set my-interventions (matrix:map * possible-interventions my-interventions)
+  set my-interventions (matrix:map * possible-interventions my-interventions) 
   set avail-interventions matrix:map [x -> ifelse-value x < 1 [0] [1]] 
                           (possible-interventions matrix:- my-interventions) 
 end
@@ -110,9 +112,12 @@ to implement-intervention [i-type]
   matrix:set avail-interventions 0 col 0
   ;; also update the interventions of the parent farmer
   let row position farm-type farm-types
-  ask my-farmer [
-    matrix:set my-interventions row col 1
-  ]
+  ask my-farmer [ matrix:set my-interventions row col 1 ]
+  ;; and add to debt of farm
+  let cost hectares-per-patch * 
+           count the-land * 
+           table:get table:get table:get intervention-properties "capital_costs" farm-type i-type
+  ask my-farm [ add-to-debt cost]
 end
 
 
@@ -247,19 +252,23 @@ to-report get-holding-costs [include-variance?]
   ;; Cost of interventions + SUM [ LUC/LU * Costs + Taxes ]
   ;; Costs optionally include variance
   ifelse include-variance? [
-    report round ( get-cost-after-interventions + 
+    report round ( 
+      get-cost-after-interventions + 
       matrix-sum-elements (
-      ( matrix:map * landuse-luc-profile (cost-means matrix:+ get-holding-cost-variance) )
-      matrix:+
-      get-net-environmental-taxes )
+        ( matrix:map * landuse-luc-profile (cost-means matrix:+ get-holding-cost-variance) )
+        matrix:+
+        get-net-environmental-taxes
+      )
     )
   ]
   [ 
-    report round ( get-cost-after-interventions + 
+    report round ( 
+      get-cost-after-interventions + 
       matrix-sum-elements (
-      ( matrix:map * landuse-luc-profile cost-means )
-      matrix:+ 
-      get-net-environmental-taxes ) 
+        ( matrix:map * landuse-luc-profile cost-means )
+        matrix:+ 
+        get-net-environmental-taxes
+      ) 
     )
   ]
 end
@@ -362,6 +371,66 @@ to-report get-environmental-metric-after-interventions [metric]
                table:get intervention-env-impacts metric)
              )
            ) 8
+end
+
+to-report get-gross-income
+  report round (matrix-sum-elements ((matrix:map [[a b] -> a * b] landuse-luc-profile yield-means) matrix:* prices))
+end
+
+to-report get-gross-costs
+  report round (matrix-sum-elements (matrix:map [[a b] -> a * b] landuse-luc-profile cost-means))
+end
+
+to-report get-gross-return
+  report round (get-gross-income - get-gross-costs)
+end
+
+
+;;
+;; DEBUG FILE OUTPUT
+;; Note this preferred to using simpleR extension to avoid dependency on R installation
+to output-holdings-report [fname]
+  csv:to-file fname fput get-holding-csv-header map [h -> [get-holding-status] of h] sort holdings
+end
+
+to-report get-holding-status
+  report flatten-list (list 
+    who
+    [who] of my-farmer
+    [who] of my-farm
+    farm-type 
+    [luc-code] of one-of the-land
+    (count the-land * hectares-per-patch)
+    (map [x -> ifelse-value x = 1 ["TRUE"] ["FALSE"]] matrix:get-row my-interventions 0)
+    current-income 
+    current-costs 
+    current-profit
+    [get-holding-income false] of self
+    [get-holding-costs false] of self
+    [get-gross-income] of self
+    [get-gross-costs] of self
+    [get-gross-return] of self
+  )
+end
+
+to-report get-holding-csv-header
+  report flatten-list (list
+    "holding_id"
+    "farmer_id"
+    "farm_id"
+    "farm_type"
+    "LUC"
+    "size_ha"
+    interventions
+    "current_income"
+    "current_costs"
+    "current_profit"
+    "current_income_no_variance"
+    "current_costs_no_variance"
+    "gross_income"
+    "gross_costs"
+    "gross_return"
+  )
 end
 
 

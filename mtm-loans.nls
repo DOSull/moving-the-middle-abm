@@ -1,3 +1,5 @@
+;; reports annual repayments on a loan of given principal 
+;; amount ($), interest rate (%), and term (years)
 to-report get-loan-repayments [P i-rate loan-term]
   let r i-rate / 100
   ifelse r = 0 [
@@ -9,6 +11,11 @@ to-report get-loan-repayments [P i-rate loan-term]
   ]
 end
 
+;; reports princial amount based on the payment ($) of
+;; at a given interest rate (%) and term (years)
+;;
+;; this is required when setting inital indebtedness of
+;; farms based on a known debt-service-ratio
 to-report get-principal-from-payment [pmt i-rate loan-term]
   let r i-rate / 100
   ifelse r = 0 [
@@ -20,7 +27,11 @@ to-report get-principal-from-payment [pmt i-rate loan-term]
   ]
 end
 
+;; reports principal outstanding on a long og given
+;; principal ($), interest rate (%), loan term (years) and
+;; maturaity, i.e. years into paying off loan
 to-report get-principal-remaining [P i-rate loan-term m]
+  if m = nobody [ report 0 ]
   let r i-rate / 100
   ifelse r = 0 [
     report round (P * (loan-term - m) / loan-term)

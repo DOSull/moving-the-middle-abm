@@ -79,8 +79,7 @@ to set-initial-farm-debt
     buy-farm
     ;; but with some progress made on payments
     set debt-maturity ifelse-value time-in-business <= 0 
-                      [mortgage-term]
-                      [round-to time-in-business years-per-tick]
+                      [0] [round-to time-in-business years-per-tick]
   ]
 end
 
@@ -90,7 +89,7 @@ to clear-loans
   set loan-rate 0
   set current-debt 0
   set debt-payments 0
-  set debt-maturity nobody
+  set debt-maturity mortgage-term + 1
   set debt-free? true
 end
 
@@ -175,11 +174,12 @@ to service-debt
   ]
 end
 
-;; add to current debt by refinancing
+;; add to current debt by refinancing with same intended end date
 to add-to-debt [amount]
-  ifelse debt-free? [
+  ifelse debt-free? or debt-maturity >= mortgage-term [
     set loan-principal amount
     set debt-free? false
+    set debt-maturity 0
   ]
   [
     set loan-principal round (
@@ -187,9 +187,8 @@ to add-to-debt [amount]
     )
   ]
   set loan-rate interest-rate
-  set debt-payments get-loan-repayments loan-principal loan-rate mortgage-term
+  set debt-payments get-loan-repayments loan-principal loan-rate (mortgage-term - debt-maturity)
   set current-debt loan-principal
-  set debt-maturity 0
 end
 
 

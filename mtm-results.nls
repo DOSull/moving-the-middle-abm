@@ -43,7 +43,7 @@ to update-income-costs-debt-results
   table:put table:get results "income_costs" "costs" time-series
 
   set time-series table:get table:get results "income_costs" "debt"
-  set time-series lput sum [current-debt] of farms time-series
+  set time-series lput sum [current-debt] of farmers time-series
   table:put table:get results "income_costs" "debt" time-series
 end
 
@@ -74,7 +74,7 @@ to update-metrics-results
   foreach range length e-metrics [ i ->
     let metric item i e-metrics
     let time-series table:get table:get results "env_metrics" metric
-    set time-series lput (count farms with [in-breach? item i e-metrics] / count farms) time-series
+    set time-series lput (count farms with [is-in-breach? item i e-metrics] / count farms) time-series
     table:put table:get results "env_metrics" metric time-series
   ]
 end
@@ -160,8 +160,6 @@ to-report results-header
     (list "mortgate_term"                mortgage-term)
     (list "sigmoid_slope"                sigmoid-slope)
     (list "landuse_change_on_succession" landuse-change-on-succession?)
-    (list "prioritise_forestry"          prioritise-forestry?)
-    (list "apply_severity_of_losses"     apply-severity-of-losses?)
     (list "apply_suitability"            apply-suitability?)
   )
 end

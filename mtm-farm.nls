@@ -12,13 +12,6 @@ farms-own [
   current-income          ;; most recent income of farm summed across patches
   current-costs           ;; most recent costs of farm summed across patches
   my-metrics
-  loan-principal
-  loan-rate
-  current-debt
-  debt-payments
-  debt-maturity
-  debt-free?
-  dsr
   
   farm-type-0
   gross-profit-0
@@ -26,13 +19,6 @@ farms-own [
   current-income-0
   current-costs-0
   my-metrics-0
-  loan-principal-0
-  loan-rate-0
-  current-debt-0
-  debt-payments-0
-  debt-maturity-0
-  debt-free-0?
-  dsr-0
 ]
 
 ;; farm 'constructor'
@@ -46,63 +32,23 @@ to initialise-farm
   set my-metrics table:make
 end
 
-to update-environmental-metrics-of-farm
+to update-farm-environmental-metrics
   foreach sort table:keys env-metrics [ metric ->
     table:put my-metrics metric sum [table:get my-metrics metric] of [my-holdings] of my-farmer
   ]
 end
 
 ;; note that this is also runnable by a holding...
-to-report in-breach? [metric]
+to-report is-in-breach? [metric]
   report table:get my-metrics metric / count the-land > table:get (table:get env-metrics metric) "limit"
 end
 
 ;; calculates income and costs by summing holding contributions
 ;; calculate gross profit (before loan repayments) based on this
-to update-income-and-costs-of-farm
+to update-farm-income-and-costs
   set current-income sum [current-income] of [my-holdings] of my-farmer
   set current-costs sum [current-costs] of [my-holdings] of my-farmer
   set gross-profit current-income - current-costs
-end
-
-;; initialises farm-debt based on age of farmer and approx value of farm
-;; this does not include loans that might be added later for improvements
-to set-initial-farm-debt
-  ;; get a somewhat reasonable estimate of time in business
-  let age-now [age] of the-owner
-  let time-in-business age-now - get-entrant-farmer-age
-  ifelse time-in-business >= mortgage-term or [inherited?] of the-owner
-  [ ;; if in business long enough or inherited then no loans
-    clear-loans
-  ]
-  [ ;; else a loan based on buying the farm
-    buy-farm
-    ;; but with some progress made on payments
-    set debt-maturity ifelse-value time-in-business <= 0 
-                      [0] [round-to time-in-business years-per-tick]
-  ]
-end
-
-;; reset loans and all associated variables
-to clear-loans
-  set loan-principal 0
-  set loan-rate 0
-  set current-debt 0
-  set debt-payments 0
-  set debt-maturity mortgage-term + 1
-  set debt-free? true
-end
-
-;; set debt based on purchasing farm
-to buy-farm
-  let est-value get-estimated-value
-  ;; set up loan
-  set loan-principal round (est-value * (0.8 + random-float 0.2))
-  set loan-rate interest-rate
-  set debt-payments get-loan-repayments loan-principal loan-rate mortgage-term
-  set current-debt loan-principal
-  set debt-maturity 0
-  set debt-free? false
 end
 
 ;; estimate value based on base returns of holdings summed
@@ -110,85 +56,9 @@ end
 ;; NOTE: making est value dependent on interest rates tends to 
 ;; mean that aggregate loan payments are stable regardless of interest rates
 ;; because mortgages end up larger... this may need further consideration
-to-report get-estimated-value
+to-report get-estimated-farm-value
   let est-profit sum [get-gross-return] of [my-holdings] of my-farmer
-  report round (est-profit * 100 / (10 + interest-rate))
-end
-
-;; adjust gross profit in light of loan repayments
-to finalise-profit-of-farm [burn-in-step?]
-  ;; in the burn-in step or if debt free we don't advance the debt maturity
-  ifelse debt-free? [
-    ;; nothing to pay, current profit = gross profit
-    set current-profit gross-profit
-  ]
-  [ ;; determine payments owing
-    set-debt-payments-owing
-    ifelse debt-payments = 0 [
-      set current-profit gross-profit
-    ]
-    [ ;; if we have enough profit service debt
-      ifelse gross-profit >= debt-payments [
-        service-debt
-        set current-profit gross-profit - debt-payments
-      ]
-      [ ;; if not then increase debt by the shortfall
-        add-to-debt debt-payments - gross-profit
-        set current-profit 0
-      ]
-      if not burn-in-step? [set debt-maturity debt-maturity + years-per-tick]
-    ]
-  ]
-  set dsr precision (debt-payments / current-income) 3
-end
-
-;; update the debt payments variable reflecting changed interest rates if needed
-to set-debt-payments-owing
-  ;; if we've run over end of term or have done so previously
-  ;; should hopefully never end up here, but just in case payments = 0
-  (ifelse
-    debt-free? [ ;; just in case but this procedure shouldn't be called if debt-free
-      set debt-payments 0
-    ]
-    debt-maturity >= mortgage-term [
-      ;; this is important because it's when debt gets cleared!
-      clear-loans
-    ]
-    [ ;; check for a change in interest rate and adjust payments assuming end date will not change
-      if interest-rate != loan-rate [ 
-        set loan-principal get-principal-remaining loan-principal loan-rate mortgage-term debt-maturity
-        set loan-rate interest-rate
-        set debt-payments get-loan-repayments loan-principal loan-rate (mortgage-term - debt-maturity)
-        set current-debt loan-principal
-      ] 
-      ;; otherwise debt-payments are unchanged
-    ]
-  )
-end
-
-;; routine payments so adjust current debt and if we've reached term clear loans
-to service-debt
-  set current-debt get-principal-remaining loan-principal interest-rate mortgage-term debt-maturity
-  if debt-maturity = mortgage-term [
-    clear-loans
-  ]
-end
-
-;; add to current debt by refinancing with same intended end date
-to add-to-debt [amount]
-  ifelse debt-free? or debt-maturity >= mortgage-term [
-    set loan-principal amount
-    set debt-free? false
-    set debt-maturity 0
-  ]
-  [
-    set loan-principal round (
-      (get-principal-remaining loan-principal loan-rate mortgage-term debt-maturity) + amount
-    )
-  ]
-  set loan-rate interest-rate
-  set debt-payments get-loan-repayments loan-principal loan-rate (mortgage-term - debt-maturity)
-  set current-debt loan-principal
+  report round (est-profit * 100 / discount-rate)
 end
 
 
@@ -209,13 +79,6 @@ to-report get-farm-status
     current-profit
     current-income
     current-costs
-    loan-principal
-    loan-rate
-    current-debt
-    debt-payments
-    (ifelse-value debt-maturity = nobody ["NA"] [debt-maturity])
-    (ifelse-value debt-free? ["TRUE"] ["FALSE"])
-    dsr
     (map [m -> precision table:get my-metrics m 1] table:keys env-metrics)
   )
 end
@@ -230,34 +93,9 @@ to-report get-farm-csv-header
     "current_profit"
     "current_income"
     "current_costs"
-    "loan_principal"
-    "loan_rate"
-    "current_debt"
-    "debt_payments"
-    "debt_maturity"
-    "debt_free"
-    "debt_service_ratio"
     table:keys env-metrics
   )
 end
-
-
-
-;  my-farmer               ;; farmer who owns/runs farm
-;
-;  the-land                ;; patch-set of patches of this farmer, this farm, or this holding
-;  farm-type               ;; farm type of farm - one of farm-types global
-;
-;  gross-profit
-;  current-profit          ;; most recent profit of farm summed across patches
-;  current-income          ;; most recent income of farm summed across patches
-;  current-costs           ;; most recent costs of farm summed across patches
-;  my-metrics
-;  loan-principal
-;  current-debt
-;  debt-payments
-;  debt-maturity
-;  dsr
 
 
 ;; The MIT License (MIT)

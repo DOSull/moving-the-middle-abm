@@ -83,8 +83,8 @@ to redraw-holding
   [ set color table:get colour-key "loss" ]
   set label (word
     farm-type ": "
-    (length my-interventions-as-list) "/"
-    (length my-interventions-as-list + length available-interventions-as-list))
+    (length get-my-interventions-list) "/"
+    (length get-my-interventions-list + length get-available-interventions-list))
   colour-patches the-land show-landuse?
 end
 

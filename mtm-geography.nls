@@ -90,7 +90,7 @@ to setup-geography
     setup-farmer-networks
     setup-farms
     setup-holdings
-    initialise-farm-debt
+    initialise-farmer-debt
     initialise-interventions
   ]
   [ ;; note there is no 'not-farm-land' in the random case
@@ -102,7 +102,7 @@ to setup-geography
     setup-farmer-networks
     setup-farms
     setup-holdings
-    initialise-farm-debt
+    initialise-farmer-debt
     initialise-interventions
   ]
   colour-all-patches true
@@ -349,8 +349,8 @@ to setup-holdings
 end
 
 
-to initialise-farm-debt
-  ask farms [ set-initial-farm-debt ]
+to initialise-farmer-debt
+  ask farmers [ set-initial-farmer-debt ]
 end
 
 

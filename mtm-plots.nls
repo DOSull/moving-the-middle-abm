@@ -58,9 +58,9 @@ to update-income-costs-plot [with-pen-down?]
     set-current-plot-pen "Costs"
     plot sum [current-costs] of farms
     set-current-plot-pen "Debt"
-    plot sum [current-debt] of farms
+    plot sum [current-debt] of farmers
     set-current-plot-pen "Debt-payments"
-    plot sum [debt-payments] of farms
+    plot sum [debt-payments] of farmers
   ]
   [
     set-current-plot "Income-costs"
@@ -74,11 +74,11 @@ to update-income-costs-plot [with-pen-down?]
     plot-pen-down
     set-current-plot-pen "Debt"
     plot-pen-up
-    plot sum [current-debt] of farms
+    plot sum [current-debt] of farmers
     plot-pen-down
     set-current-plot-pen "Debt-payments"
     plot-pen-up
-    plot sum [debt-payments] of farms
+    plot sum [debt-payments] of farmers
     plot-pen-down
   ]
 end
@@ -115,7 +115,7 @@ to update-metrics-plot [with-pen-down?]
   foreach range length e-metrics [ i ->
     set-current-plot-pen item i e-metrics
     if not with-pen-down? [ plot-pen-up ]
-    plot count farms with [in-breach? item i e-metrics] / count farms
+    plot count farms with [is-in-breach? item i e-metrics] / count farms
     if not with-pen-down? [ plot-pen-down ]
   ]
 end

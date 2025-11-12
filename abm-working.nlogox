@@ -30,6 +30,7 @@ extensions [
 globals [
   years-per-tick             ;; probably 5 years per tick
   hectares-per-patch         ;; probably 16 ha. (40 acres) per cell
+  discount-rate
   
   output-data-folder
   market-data-folder
@@ -146,6 +147,7 @@ to setup
   ]
   set years-per-tick 5
   set hectares-per-patch 16
+  set discount-rate 8
   set epsilon 1e-16
   set na-value -999
   set show-labels? false
@@ -187,13 +189,15 @@ end
 to burn-in-step
   random-seed 0          ;; make the burn-in tick identical regardless of seed settings
   ask holdings [
-    update-environmental-metrics-of-holding 
-    update-profit-of-holding
+    update-holding-environmental-metrics 
+    update-holding-income-costs-profit
   ]
   ask farms [
-    update-environmental-metrics-of-farm
-    update-income-and-costs-of-farm
-    finalise-profit-of-farm true
+    update-farm-environmental-metrics
+    update-farm-income-and-costs
+  ]
+  ask farmers [
+    finalise-profit true
   ]
   reset-ticks
   ask farms [redraw-farm]
@@ -223,52 +227,30 @@ to go
       age-and-succeed-farmer
     ]
     ask holdings [
-      update-environmental-metrics-of-holding
-      update-profit-of-holding
+      update-holding-environmental-metrics
+      update-holding-income-costs-profit
     ]
     ask farms [
-      update-environmental-metrics-of-farm
-      update-income-and-costs-of-farm
-      finalise-profit-of-farm false
+      update-farm-environmental-metrics
+      update-farm-income-and-costs
     ]
     ask farmers [
-;      let ft-now farm-type
-;      let farm-conversion-options []
-;      let loss-making-holdings get-loss-making-holdings
-;      ( ;; first we check if there are any holdings losing money
-;        ifelse any? loss-making-holdings [
-;          if [current-profit] of my-farm <= 0 [ ;; losing lots of money so consider complete change
-;            let down-weight ifelse-value apply-severity-of-losses?
-;              [ 1 - (sum [count the-land] of loss-making-holdings) / count the-land ] [ 1 ]
-;            set farm-conversion-options consider-farm-type-change down-weight "Losing money: "
-;          ]
-;          ;; only some holdings are losing money so consider forestry on those
-;          let holding-change-options consider-holdings-farm-type-change loss-making-holdings prioritise-forestry?
-;          make-farm-type-changes (sentence farm-conversion-options holding-change-options)
-;        ]
-;        [ ;; we're doing OK so think about management interventions instead
-;          if any? my-holdings with [any-interventions-to-do?] [
-;            ;; this reports a [holding [intervention-type probability]] list
-;            let potential-changes consider-management-changes "Management change: "
-;            ;; which we pass to make-management-changes
-;            if length potential-changes > 0 [ make-management-changes potential-changes ]
-;          ]
-;        ]
-;      )
-      let debt-service-ratio [dsr] of my-farm
+      finalise-profit false
+    ]
+    ask farmers [
       (
         ifelse
-        debt-service-ratio >= 1 [ ;; severely distressed - exit?
+        dsr >= 1 [ ;; severely distressed - exit?
           ;; think about this further - 
           ;; it's quite unlikely that anyone gets here
           succeed-farmer
         ]
-        debt-service-ratio >= 0.5 [ ;; survival mode
+        dsr >= 0.5 [ ;; survival mode
           ;; do not consider any interventions
           ;; landuse change? would consider holding-level changes
           do-survival 
         ]
-        debt-service-ratio >= 0.25 [ ;; limited options
+        dsr >= 0.25 [ ;; limited options
           ;; would consider holding-level changes
           ;; would consider some ('tactical' / easy) interventions
           do-constrained-change
@@ -294,7 +276,7 @@ end
 
 ;; any desired model stop condition goes here
 to-report stop-model?
-  ifelse any? holdings with [any-interventions-to-do?] [
+  ifelse any? holdings with [any-interventions-left-to-do?] [
     report false
   ]
   [
@@ -367,12 +349,6 @@ to store-initial-values
     set current-profit-0 current-profit
     set current-income-0 current-income
     set current-costs-0 current-costs
-    set loan-principal-0 loan-principal
-    set current-debt-0 current-debt
-    set debt-payments-0 debt-payments
-    set debt-maturity-0 debt-maturity
-    set debt-free-0? debt-free?
-    set dsr-0 dsr
     set my-metrics-0 table:from-json table:to-json my-metrics
   ]
   ask farmers [
@@ -382,6 +358,12 @@ to store-initial-values
     set succession-stage-0 succession-stage
     set my-interventions-0 matrix:copy my-interventions
     set inherited-0? inherited?
+    set loan-principal-0 loan-principal
+    set current-debt-0 current-debt
+    set debt-payments-0 debt-payments
+    set debt-maturity-0 debt-maturity
+    set debt-free-0? debt-free?
+    set dsr-0 dsr
   ]
 end
 
@@ -412,12 +394,6 @@ to restore-initial-values
     set current-profit current-profit-0
     set current-income current-income-0
     set current-costs current-costs-0
-    set loan-principal loan-principal-0
-    set current-debt current-debt-0
-    set debt-payments debt-payments-0
-    set debt-maturity debt-maturity-0
-    set debt-free? debt-free-0?
-    set dsr dsr-0
     set my-metrics table:from-json table:to-json my-metrics-0
   ]
   ask farmers [
@@ -427,6 +403,12 @@ to restore-initial-values
     set succession-stage succession-stage-0
     set my-interventions matrix:copy my-interventions-0
     set inherited? inherited-0?
+    set loan-principal loan-principal-0
+    set current-debt current-debt-0
+    set debt-payments debt-payments-0
+    set debt-maturity debt-maturity-0
+    set debt-free? debt-free-0?
+    set dsr dsr-0
     set color table:get table:get colour-key "farmer" inherited?
   ]
   redraw-farms-and-holdings
@@ -526,7 +508,7 @@ this many patches</note>
     <monitor x="890" precision="0" y="343" height="45" fontSize="11" display="geography-seed" width="180" sizeVersion="0">word geography-seed
 ;; this is a workaround per
 ;; https://github.com/NetLogo/NetLogo/issues/2562#issuecomment-3353992160</monitor>
-    <slider x="890" step="5" y="393" max="250" display="luc-aggregation-steps" height="33" min="0" direction="Horizontal" default="55.0" variable="luc-aggregation-steps" width="180" sizeVersion="0"></slider>
+    <slider x="890" step="5" y="393" max="250" display="luc-aggregation-steps" height="33" min="0" direction="Horizontal" default="30.0" variable="luc-aggregation-steps" width="180" sizeVersion="0"></slider>
     <slider x="890" step="5" y="431" max="1000" display="number-of-farms" height="33" min="10" direction="Horizontal" default="1000.0" variable="number-of-farms" width="180" sizeVersion="0"></slider>
     <switch x="890" y="469" height="33" on="true" variable="correlated-landuse?" display="correlated-landuse?" width="180" sizeVersion="0"></switch>
     <slider x="890" step="1" y="507" max="20" display="landuse-aggregation-steps" height="33" min="0" direction="Horizontal" default="4.0" variable="landuse-aggregation-steps" width="180" sizeVersion="0"></slider>
@@ -537,8 +519,8 @@ this many patches</note>
 ;; this is a workaround per
 ;; https://github.com/NetLogo/NetLogo/issues/2562#issuecomment-3353992160</monitor>
     <slider x="890" step="0.01" y="723" max="20" display="sigmoid-slope" height="33" min="0.01" direction="Horizontal" default="10.0" variable="sigmoid-slope" width="180" sizeVersion="0"></slider>
-    <note x="890" y="765" backgroundDark="0" fontSize="12" width="180" markdown="true" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Interventions**</note>
-    <output x="890" y="785" height="175" fontSize="11" width="180"></output>
+    <note x="890" y="769" backgroundDark="0" fontSize="12" width="180" markdown="true" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Interventions**</note>
+    <output x="890" y="789" height="175" fontSize="11" width="180"></output>
     <monitor x="890" precision="1" y="970" height="45" fontSize="11" display="mean-farmer-age" width="180" sizeVersion="0">mean [age] of farmers</monitor>
     <input x="1080" multiline="false" y="10" height="60" variable="experiment-name" type="string" width="225" sizeVersion="0">scratch</input>
     <button x="1315" y="10" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="output-results" width="225" sizeVersion="0">output-results</button>
@@ -561,15 +543,12 @@ of **output-results** folder</note>
       <update></update>
     </plot>
     <switch x="1080" y="675" height="33" on="true" variable="landuse-change-on-succession?" display="landuse-change-on-succession?" width="225" sizeVersion="0"></switch>
-    <switch x="1080" y="713" height="33" on="false" variable="prioritise-forestry?" display="prioritise-forestry?" width="225" sizeVersion="0"></switch>
-    <note x="1305" y="715" backgroundDark="0" fontSize="10" width="225" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Off**: Consider all landuses for
-loss-making holdings</note>
-    <switch x="1080" y="751" height="33" on="false" variable="apply-severity-of-losses?" display="apply-severity-of-losses?" width="225" sizeVersion="0"></switch>
-    <note x="1305" y="753" backgroundDark="0" fontSize="10" width="225" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**On**: Severe losses make farm
-conversion more likely</note>
-    <note x="1305" y="791" backgroundDark="0" fontSize="10" width="225" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**On**: LUC suitability applied to
-farm change</note>
-    <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="865" xMin="20.0" height="150" legend="false" xMax="90.0" yMin="0.0" xAxis="Age" display="farmer ages" width="225" sizeVersion="0">
+    <switch x="1080" y="713" height="33" on="true" variable="apply-suitability?" display="apply-suitability?" width="225" sizeVersion="0"></switch>
+    <note x="1305" y="715" backgroundDark="0" fontSize="10" width="225" markdown="true" height="36" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**On**: LUC suitability applied to land use change
+decisions on holdings and farms</note>
+    <slider x="1080" step="0.1" y="751" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="3.0" variable="interest-rate" units="%" width="225" sizeVersion="0"></slider>
+    <slider x="1315" step="5" y="751" max="30" display="mortgage-term" height="33" min="5" direction="Horizontal" default="20.0" variable="mortgage-term" units="years" width="225" sizeVersion="0"></slider>
+    <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="789" xMin="20.0" height="226" legend="false" xMax="90.0" yMin="0.0" xAxis="Age" display="farmer ages" width="225" sizeVersion="0">
       <setup></setup>
       <update></update>
       <pen interval="1.0" mode="1" display="default" color="-16777216" legend="true">
@@ -579,19 +558,16 @@ set-histogram-num-bars 14
 histogram [age] of farmers</update>
       </pen>
     </plot>
-    <plot x="1315" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="865" xMin="0.0" height="150" legend="false" xMax="1.0" yMin="0.0" xAxis="Debt service ratio" display="debt" width="225" sizeVersion="0">
+    <plot x="1315" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="789" xMin="0.0" height="226" legend="false" xMax="1.0" yMin="0.0" xAxis="Debt service ratio" display="debt" width="225" sizeVersion="0">
       <setup></setup>
       <update></update>
       <pen interval="1.0" mode="1" display="default" color="-16777216" legend="true">
         <setup></setup>
         <update>set-plot-x-range 0 1
 set-histogram-num-bars 10
-histogram [dsr] of farms</update>
+histogram [dsr] of farmers</update>
       </pen>
     </plot>
-    <slider x="1315" step="5" y="827" max="30" display="mortgage-term" height="33" min="5" direction="Horizontal" default="20.0" variable="mortgage-term" units="years" width="225" sizeVersion="0"></slider>
-    <slider x="1080" step="0.1" y="827" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="3.0" variable="interest-rate" units="%" width="225" sizeVersion="0"></slider>
-    <switch x="1080" y="789" height="33" on="true" variable="apply-suitability?" display="apply-suitability?" width="225" sizeVersion="0"></switch>
   </widgets>
   <info>## WHAT IS IT?
 

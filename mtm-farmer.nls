@@ -555,7 +555,7 @@ to-report get-farmer-status
     (ifelse-value debt-free? ["TRUE"] ["FALSE"])
     dsr
     count my-holdings
-    matrix-column-sums my-interventions
+    matrix:get-row sum-matrices [my-interventions] of my-holdings 0
   )
 end
 

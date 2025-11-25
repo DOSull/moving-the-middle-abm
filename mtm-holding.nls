@@ -114,7 +114,7 @@ to do-intervention [i-type]
   matrix:set avail-interventions 0 col 0
   ;; also update the interventions of the parent farmer
   let row position farm-type farm-types
-  ask my-farmer [ matrix:set my-interventions row col 1 ]
+  ask my-farmer [ matrix:set my-interventions row col matrix:get my-interventions row col + 1 ]
   ;; and add to debt of farm
   let cost hectares-per-patch * 
            count the-land * 

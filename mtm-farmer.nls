@@ -554,7 +554,8 @@ to-report get-farmer-status
     (ifelse-value debt-maturity = nobody ["NA"] [debt-maturity])
     (ifelse-value debt-free? ["TRUE"] ["FALSE"])
     dsr
-    (map [x -> ifelse-value x = 1 ["TRUE"] ["FALSE"]] matrix:get-row my-interventions 0)
+    count my-holdings
+    matrix-column-sums my-interventions
   )
 end
 
@@ -575,6 +576,7 @@ to-report get-farmer-csv-header
     "debt_maturity"
     "debt_free"
     "debt_service_ratio"
+    "n_holdings"
     interventions
   )
 end

@@ -430,6 +430,7 @@ to-report get-intervention-options
     ;; by weighted random draw and return it to the calling context
     let management-changes (map list to-consider new-probs)
     set options lput (list self rnd:weighted-one-of-list management-changes [ [p] -> last p ]) options
+;    set options (sentence options map [x -> (list self (list item 0 x precision (item 1 x) 4))] management-changes)
   ]
   report options
 end

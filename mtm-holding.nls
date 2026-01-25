@@ -87,8 +87,8 @@ end
 ;; are undertaken.
 ;; not a holding reporter but usually run on the-land of holding turtles
 to-report get-landuse-luc-profile [poly]
-  let luc-i [position luc-code range-from-to 1 9] of poly
-  let lu-j  [position landuse farm-types] of poly
+  let luc-i map [x -> position [luc-code] of x range-from-to 1 9] sort poly
+  let lu-j  map [x -> position [landuse] of x farm-types] sort poly
   let nrow 8
   let ncol length farm-types
   let farm-profile matrix:make-constant nrow ncol 0

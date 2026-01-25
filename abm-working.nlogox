@@ -135,7 +135,6 @@ to setup
   ;; elements. So be VERY CAREFUL IF CHANGING THE SEQUENCE OF OPERATIONS in this procedure
   ifelse reinitialise? or geography-from-files? [
     clear-all
-    setup-folders  ;; mtm-read-files.nls
   ]
   [
     clear-turtles
@@ -155,6 +154,7 @@ to setup
   set geography-seed ifelse-value user-geography-seed? [geography-rng-seed] [new-seed]
   set run-seed ifelse-value user-run-seed? [run-rng-seed] [new-seed]
 
+  setup-folders  ;; mtm-read-files.nls
   if reinitialise? or geography-from-files? [
     if geography-from-files? [
       set spatial-data-folder join-list (list spatial-data-folder region) pathdir:get-separator
@@ -162,7 +162,6 @@ to setup
     carefully 
     [ setup-world-dimensions ] 
     [ user-message "Problem setting up world-dimensions" stop ]
-    set market-data-folder join-list (list market-data-folder scenario) pathdir:get-separator
 
     carefully 
     [ setup-farmer-parameters ]  
@@ -518,7 +517,7 @@ this many patches</note>
     <monitor x="890" precision="0" y="673" height="45" fontSize="11" display="run-seed" width="180" sizeVersion="0">word run-seed
 ;; this is a workaround per
 ;; https://github.com/NetLogo/NetLogo/issues/2562#issuecomment-3353992160</monitor>
-    <slider x="890" step="0.01" y="723" max="20" display="sigmoid-slope" height="33" min="0.01" direction="Horizontal" default="10.0" variable="sigmoid-slope" width="180" sizeVersion="0"></slider>
+    <slider x="890" step="0.01" y="723" max="19.99" display="sigmoid-slope" height="33" min="0.01" direction="Horizontal" default="19.98" variable="sigmoid-slope" width="180" sizeVersion="0"></slider>
     <note x="890" y="769" backgroundDark="0" fontSize="12" width="180" markdown="true" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Interventions**</note>
     <output x="890" y="789" height="175" fontSize="11" width="180"></output>
     <monitor x="890" precision="1" y="970" height="45" fontSize="11" display="mean-farmer-age" width="180" sizeVersion="0">mean [age] of farmers</monitor>
@@ -530,7 +529,7 @@ of **output-results** folder</note>
       <setup></setup>
       <update></update>
     </plot>
-    <plot x="1315" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="# Cells" y="75" xMin="0.0" height="295" legend="true" xMax="10.0" yMin="0.0" xAxis="Time" display="Interventions" width="225" sizeVersion="0">
+    <plot x="1315" autoPlotX="true" yMax="1.0" autoPlotY="false" yAxis="Fraction of land" y="75" xMin="0.0" height="295" legend="true" xMax="10.0" yMin="0.0" xAxis="Time" display="Interventions" width="225" sizeVersion="0">
       <setup></setup>
       <update></update>
     </plot>

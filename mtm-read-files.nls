@@ -6,10 +6,10 @@
 
 ;; initialise various folders - here for convenient modification in one place
 to setup-folders
-  let base-data-folder    join-string (list pathdir:get-model-path "data") pathdir:get-separator
-  set output-data-folder  join-string (list base-data-folder "output")     pathdir:get-separator
-  set market-data-folder  join-string (list base-data-folder "market")     pathdir:get-separator
-  set spatial-data-folder join-string (list base-data-folder "spatial")    pathdir:get-separator
+  let base-data-folder    join-string (list pathdir:get-model-path "data")      pathdir:get-separator
+  set output-data-folder  join-string (list base-data-folder "output")          pathdir:get-separator
+  set market-data-folder  join-string (list base-data-folder "market" scenario) pathdir:get-separator
+  set spatial-data-folder join-string (list base-data-folder "spatial")         pathdir:get-separator
 end
 
 

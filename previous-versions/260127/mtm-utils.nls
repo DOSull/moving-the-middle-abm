@@ -1,0 +1,455 @@
+;; ----------------------------------------------------------------------------
+;; utilility functions
+;; ----------------------------------------------------------------------------
+
+;; ----------------------------------------------------------------------------
+;; primitive introspection stuff
+;; ----------------------------------------------------------------------------
+
+;; these are sufficiently opaque to make utility functions to access them useful
+;; note that using run and runresult on anonymous procedures is allegedly quicker 
+;; than on strings, although it is unclear to me if that is actually the case in 
+;; this application. In any case these are used infrequently, mainly in setup and 
+;; I'm not going to optimise too soon... (cf Knuth)
+
+;; report result of running anonymous reporter getter on x
+to-report get-var [x getter]
+  report (runresult getter x)
+end
+
+;; tests if the value of the named variable var matches between agents x1 and x2
+to-report x1-var-matches-x2-var? [x1 x2 getter]
+  report get-var x1 getter = get-var x2 getter
+end
+
+;; set value of a variable of agent x1 to that of x2 using anonymous procedure setter
+to set-x1-var-to-x2-var [x1 x2 setter]
+  (run setter x1 x2)
+end
+
+;;; set attribute of x to val using anonymous procedure setter
+;to set-var [x val setter]
+;  (run setter x val)
+;end
+
+
+;; ----------------------------------------------------------------------------
+;; math stuff
+;; ----------------------------------------------------------------------------
+
+;; this formulation of relative change avoids overflows when
+;; the base value is close to 0, and is symmetrical relative to the
+;; direction of change ie the absolute value when x0 and x1 are
+;; reversed will be the same. 
+;; x0 and x1 must be the same sign.
+;; see https://en.wikipedia.org/wiki/Relative_change
+to-report relative-change [x0 x1]
+  if x0 = 0 and x1 = 0 [ report 0 ]
+  if (x0 * x1) < 0 [
+    user-message  "Error attempting to determine relative change between numbers of opposite sign"
+    report nobody
+  ]
+  let change 2 * abs (x1 - x0) / (abs x1 + abs x0)
+  report ifelse-value x1 < x0 [(- change)] [change]
+end
+
+;; report relative change as a percentage value
+to-report percent-change [a b]
+  report 100 * relative-change a b
+end
+
+;; round to int
+to-report round-to [x y]
+  report (int (x / y)) * y
+end
+
+;; because the GIS extension makes NaNs and we need to detect them
+;; see https://github.com/NetLogo/GIS-Extension/issues/5
+;;     https://github.com/NetLogo/NetLogo/issues/894
+to-report is-nan? [x]
+  report not (x <= 0 or x >= 0)
+end
+
+;; linearly rescales x in the range xmin to xmax to the 
+;; range ymin to ymax. Will fail (division by 0) if xmin = xmax
+to-report rescale [x xmin xmax ymin ymax]
+  report ymin + (ymax - ymin) * (x - xmin) / (xmax - xmin)
+end
+
+;; see https://en.wikipedia.org/wiki/Beta_distribution#Random_variate_generation
+to-report random-beta [alpha beta]
+  let X random-gamma alpha 1
+  let Y random-gamma beta 1
+  report X / (X + Y)
+end
+
+;; we use this distribution to getnerate plausible farmer ages
+;; both at initialisation and of incoming new farmers
+;; see https://en.wikipedia.org/wiki/Beta-binomial_distribution#Generating_random_variates
+to-report random-beta-binomial [n alpha beta]
+  report random-binomial n random-beta alpha beta
+end
+
+;; This binomial algorithm from
+;; Devroye. L. 1960. Generating the maximum of independent identically
+;; distributed random variables. Computers and Mathematics with
+;; Applications 6, 305-315.
+;; Based on code from
+;; https://stackoverflow.com/questions/23561551/a-efficient-binomial-random-number-generator-code-in-java#23574723
+to-report random-binomial [n p]
+  if p > 1 [ user-message (word "WARNING: random-binomial p > 1 in random-binomial " n " " p ". Reporting " n ".") ]
+  if p < 0 [ user-message (word "WARNING: random-binomial p < 0 in random-binomial " n " " p ". Reporting 0.") ]
+  ;; ... forgive it!
+  if p >= 1 [ report n ]
+  if p <= 0 [ report 0 ]
+  let ln-q ln (1 - p)
+  let x 0
+  let s 0
+  ; also need to avoid x = n
+  while [x < n] [
+    set s s + ln (random-float 1) / (n - x)
+    if s < ln-q [
+      report x
+    ]
+    set x x + 1
+  ]
+  report x
+end
+
+
+;; ----------------------------------------------------------------------------
+;; matrix to lists and back stuff
+;; ----------------------------------------------------------------------------
+
+;; convenient to have this
+to print-matrix [m]
+  print matrix:pretty-print-text m
+end
+
+;; this is used by the emissions and yield impacts matrices which accumulate 
+;; MULTIPLICATIVELY. Uses the list product function in this source file
+to-report matrix-column-products [m]
+  report matrix:from-column-list (
+    (list map [r -> product r] matrix:to-column-list m)
+  )
+end
+
+; convenience function to get single row matrix from a list
+to-report row-matrix [lst]
+  report matrix:from-row-list (list lst)
+end
+
+;; convenience function to get single column matrix from a list
+to-report col-matrix [lst]
+  report matrix:from-column-list (list lst)
+end
+
+;; matrix row sums as a list
+to-report matrix-row-sums [m]
+  report map [r -> sum r] matrix:to-row-list m
+end
+
+;; matrix column sums as a list
+to-report matrix-column-sums [m]
+  report map [c -> sum c] matrix:to-column-list m
+end
+
+;; sum of all elements in a matrix as a scalar
+to-report matrix-sum-elements [m]
+  report sum matrix-row-sums m
+end
+
+;; reports a matrix duplicating the single row matrix m n times
+to-report matrix-duplicate-rows [m n]
+  if item 0 matrix:dimensions m != 1 [
+    user-message "ERROR: matrix supplied to matrix-duplicate-rows reporter has more than one row"
+    report nobody
+  ]
+  let row matrix:get-row m 0
+  report matrix:from-row-list map [r -> row] range n
+end
+
+;; reports a matrix duplicating the single column matrix m n times
+to-report matrix-duplicate-cols [m n]
+  if item 1 matrix:dimensions m != 1 [
+    user-message "ERROR: matrix supplied to matrix-duplicate-cols reporter has more than one column"
+    report nobody
+  ]
+  let col matrix:get-column m 0
+  report matrix:from-column-list map [c -> col] range n
+end
+
+to-report sum-matrices [lst]
+  report reduce [[a b] -> a matrix:+ b] lst
+end
+
+to-report mean-matrices [lst]
+  let n length lst
+  report map [x -> x / n] reduce [[a b] -> a matrix:+ b] lst
+end
+
+;; ----------------------------------------------------------------------------
+;; list stuff
+;; ----------------------------------------------------------------------------
+
+;; joins a list of strings by the supplied separator string
+to-report join-list [lst sep]
+  report reduce [ [a b] -> (word a sep b) ] lst
+end
+
+to-report range-from-to-by [start finish stepsize]
+  let n ceiling ((finish - start) / stepsize)
+  if (stepsize * (finish - start)) < 0 [
+    print "***WARNING: step size in sequence reporter is wrong sign. Returning empty list***"
+    report []
+  ]
+  ifelse finish > start
+  [ report n-values n [i -> start + stepsize * i] ]
+  [ report n-values n [i -> start + stepsize * i] ]
+end
+
+;; reports a range of values from start (incl.) to finish (excl.)
+;; in steps of either +1 or -1
+to-report range-from-to [start finish]
+  ifelse finish > start
+  [ report range-from-to-by start finish 1 ]
+  [ report range-from-to-by start finish -1 ]
+end
+
+;; converts a list of lists to a transposed list of lists, i.e.
+;; [[a b c] [d e f] [g h i] [j k l]] ->
+;; [[a d g j] [b e h k] [c f i l]]
+to-report transpose [lists]
+  let indexes n-values length first lists [i -> i]
+  report map [i -> map [lst -> item i lst] lists] indexes
+end
+
+;; gets a rough order of lst with respect to sorted-lst
+;; all elements in lst should appear somewhere in sorted-lst
+;; e.g. get-raw-order [4 7 3 2] [2 3 4 7] -> [3 2 0 1]
+to-report get-raw-order [lst sorted-lst]
+  report map [a -> position a lst] sorted-lst
+end
+
+;; reports a complete ordering of elements of lst in sorted-lst
+;; duplicates are ranked uniquely so we have
+;;
+;; > get-raw-order [4 2 2 1] [1 2 2 4]
+;; [3 1 1 0]
+;;
+;; but
+;;
+;; > get-order [4 2 2 1] [1 2 2 4]
+;; [3 1 2 0]
+;;
+;; since the duplicate elements are identical it doesn't matter
+;; what order they are reported in, but if, e.g. this is applied to a
+;; list of agentset counts, it is important that the returned order 
+;; references all elements in the list of agentsets
+;; NOTE: probably can use sort-on in some use cases...
+to-report get-order [lst sorted-lst]
+  let raw-order get-raw-order lst sorted-lst
+  let sublists map [i -> sublist raw-order 0 i] range length raw-order
+  let adjustments (map [[x s] -> ifelse-value member? x s [count-x-in-list x s] [0]] raw-order sublists)
+  report (map [[o a] -> o + a] raw-order adjustments)
+end
+
+;; reports how many times the value x appears in list lst
+to-report count-x-in-list [x lst]
+  report length filter [y -> y = x] lst
+end
+
+;; reports a copy of lst reordered according to the elements in order e.g.
+;; 
+;; > reorder [5 6 7 8] [1 3 2 0]
+;; [6 8 7 5]
+;;
+;; use in combination with get-order
+to-report reorder [lst order]
+  report map [i -> item i lst] order
+end
+
+to-report flatten-list [lst]
+  if length lst = 0 [ report [] ]
+  report reduce [[a b] -> sentence a b] lst
+end
+
+;; reports the cumulative product of elements in numbers list i.e.
+;; > product [1 2 3 4]
+;; 24
+to-report product [numbers]
+  ifelse length numbers = 0
+  [ report 0 ]
+  [ report reduce * numbers ]
+end
+
+;; reports entries in lst indexed by values in slice-indexes
+to-report slice [lst slice-indexes]
+  report map [i -> item i lst] slice-indexes
+end
+
+;; reports a filtered copy of lst with only items at positions where the
+;; correspinding item in ones equals 1
+;; e.g. slice-by-ones [1 2 3 4] [1 0 0 1] --> [1 4]
+to-report slice-by-ones [lst ones]
+  report map [t -> item 0 t] filter [t -> item 1 t = 1] (map list lst ones)
+end
+
+to-report first-n [lst n]
+  report sublist lst 0 n
+end
+
+to-report but-first-n [lst n]
+  report sublist lst n length lst
+end
+
+to-report last-n [lst n]
+  report sublist lst (length lst - n) length lst
+end
+
+to-report any-true? [lst]
+  report reduce [[a b] -> a or b] fput false lst
+end
+
+to-report all-true? [lst]
+  report reduce [[a b] -> a and b] fput true lst
+end
+
+;; ------------------------------------------------------------------------------
+;; string stuff
+;; ------------------------------------------------------------------------------
+
+;; reports string as a list of characters
+to-report string-as-list [str]
+  report n-values length str [i -> item i str]
+end
+
+;; reports a string formed by joining elements in list with the sep character
+;; analogous to pythons str.join(list) string method
+to-report join-string [lst sep]
+  report reduce [[a b] -> (word a sep b)] lst
+end
+
+;; splits a string str on the separator provided
+;; returns a list of strings
+to-report split-string [str sep]
+  let words []
+  let this-word ""
+  foreach (string-as-list str) [ c ->
+    ifelse c = sep
+    [ if this-word != ""
+      [ set words sentence words this-word
+        set this-word ""
+      ]
+    ]
+    [ set this-word word this-word c ]
+  ]
+  ifelse this-word = ""
+  [ report words ]
+  [ report sentence words this-word ]
+end
+
+to-report str-replace [s a b]
+  report join-string (split-string s a) b
+end
+
+;; ------------------------------------------------------------------------------
+;; set convenience stuff
+;; ------------------------------------------------------------------------------
+to-report set-difference [p q]
+  report p with [not member? self q]
+end
+
+to-report set-intersect [p q]
+  report p with [member? self q]
+end
+
+to-report set-union [p q]
+  ifelse is-turtle-set? p 
+  [ report (turtle-set p q) ]
+  [ report (patch-set p q) ]
+end
+
+
+;; ------------------------------------------------------------------------------
+;; drawing utilities (see netlogo-utils repo)
+;; ------------------------------------------------------------------------------
+
+;; draws a line colour col between patches in the supplied patchset pset
+;; that differ in the value of the reporter. Only borders internal to
+;; the supplied patch-set will be drawn
+to draw-borders [psets col reporter]
+  if not is-list? psets [
+    set psets (list psets)
+  ]
+  ;; make a 'pen' turtle to do the drawing
+  create-turtles 1 [
+    set color col
+    foreach psets [ pset ->
+      draw-border pset self reporter
+    ]
+    die
+  ]
+end    
+
+to draw-border [pset pen reporter]
+  with-local-randomness [
+    let borders pset with [
+      any? neighbors4 with [get-var self reporter != nobody and 
+                            not x1-var-matches-x2-var? self myself reporter]
+    ]
+    ask borders [
+      ask neighbors4 with [get-var self reporter != nobody] [
+        ;; only those with different owner need to draw a line
+        if not x1-var-matches-x2-var? self myself reporter [
+          draw-line-between self myself pen
+        ]
+      ]
+    ]
+  ]
+end
+
+;; draw line between two patches p1 and p2
+;; by sprouting a turtle and having it move
+;; to halfway point and draw the edge
+to draw-line-between [p1 p2 pen]
+  ;; ask supplied pen turtle to do the drawing
+  ask pen [
+    pen-up
+    move-to p1
+    ;; move to the boundary
+    face p2
+    jump 0.5
+    ;; face the corner and move there
+    rt 90
+    jump 0.4995
+    ;; turn around and draw the line
+    rt 180
+    pen-down
+    jump .999
+  ]
+end
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-25 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.

@@ -101,7 +101,7 @@ to update-interventions-plot [with-pen-down?]
   set-current-plot "Interventions"
   let max-interventions get-max-interventions
   let current-interventions get-current-interventions
-  let fraction-interventions (map [[x y] -> precision (x / y) 4] current-interventions max-interventions)
+  let fraction-interventions (map / current-interventions max-interventions)
   foreach range length fraction-interventions [ i ->
     set-current-plot-pen item i interventions
     if not with-pen-down? [ plot-pen-up ]

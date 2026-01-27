@@ -411,9 +411,9 @@ to restore-initial-values
     set color table:get table:get colour-key "farmer" inherited?
   ]
   redraw-farms-and-holdings
-  update-model-plots false
   update-model-results
   reset-results-tables
+  update-model-plots false
   reset-ticks
   set ticks-since-reset 0
   tick
@@ -451,7 +451,7 @@ end
 ;; DEALINGS IN THE SOFTWARE.]]></code>
   <widgets>
     <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1003" showTickCounter="true" patchSize="3.0" fontSize="12" wrappingAllowedY="false" width="422" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="137" minPxcor="0"></view>
-    <switch x="10" y="10" height="33" on="false" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
+    <switch x="10" y="10" height="33" on="true" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
     <switch x="10" y="48" height="33" on="false" variable="reinitialise?" display="reinitialise?" width="185" sizeVersion="0"></switch>
     <button x="10" y="86" height="33" disableUntilTicks="true" forever="false" kind="Observer" display="reset" width="90" sizeVersion="0">restore-initial-values
 </button>
@@ -513,11 +513,11 @@ this many patches</note>
     <slider x="890" step="1" y="507" max="20" display="landuse-aggregation-steps" height="33" min="0" direction="Horizontal" default="4.0" variable="landuse-aggregation-steps" width="180" sizeVersion="0"></slider>
     <note x="890" y="550" backgroundDark="0" fontSize="12" width="180" markdown="true" height="18" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Model run RNG**</note>
     <input x="890" multiline="false" y="570" height="60" variable="run-rng-seed" type="number" width="180" sizeVersion="0">1.0</input>
-    <switch x="890" y="635" height="33" on="false" variable="user-run-seed?" display="user-run-seed?" width="180" sizeVersion="0"></switch>
+    <switch x="890" y="635" height="33" on="true" variable="user-run-seed?" display="user-run-seed?" width="180" sizeVersion="0"></switch>
     <monitor x="890" precision="0" y="673" height="45" fontSize="11" display="run-seed" width="180" sizeVersion="0">word run-seed
 ;; this is a workaround per
 ;; https://github.com/NetLogo/NetLogo/issues/2562#issuecomment-3353992160</monitor>
-    <slider x="890" step="0.01" y="723" max="19.99" display="sigmoid-slope" height="33" min="0.01" direction="Horizontal" default="19.98" variable="sigmoid-slope" width="180" sizeVersion="0"></slider>
+    <slider x="890" step="0.01" y="723" max="19.99" display="sigmoid-slope" height="33" min="0.01" direction="Horizontal" default="5.0" variable="sigmoid-slope" width="180" sizeVersion="0"></slider>
     <note x="890" y="769" backgroundDark="0" fontSize="12" width="180" markdown="true" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Interventions**</note>
     <output x="890" y="789" height="175" fontSize="11" width="180"></output>
     <monitor x="890" precision="1" y="970" height="45" fontSize="11" display="mean-farmer-age" width="180" sizeVersion="0">mean [age] of farmers</monitor>

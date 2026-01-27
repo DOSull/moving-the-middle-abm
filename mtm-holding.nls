@@ -173,30 +173,30 @@ to-report get-available-interventions-list
   report slice-by-ones interventions (matrix:get-row avail-interventions 0)
 end
 
-;; scores a potential intervention by comparing expected income and costs
-;; were it to be implemented relative to current income and costs
-;; TODO: consider if this actually makes sense... in a good year when current
-;; income is high and current costs low the score might be lower which is
-;; slightly counter-intuitive.
-;; a holding reporter because cost and income reporters invoked are holding reporters
-to-report get-intervention-score [i-type]
-  let col (position i-type interventions)
-  matrix:set my-interventions 0 col 1
-  ;; get long-term expect costs and incomes, i.e. without variance
-  let new-costs    get-holding-costs false
-  let new-income   get-holding-income false
-  let delta-costs  relative-change current-costs new-costs
-  let delta-income relative-change current-income new-income
-  if show-events? [
-    show i-type
-    show (word "Current costs: " current-costs " Current income: " current-income)
-    show (word "New costs    : " new-costs     " New income    : " new-income)
-    show (word "Delta costs  : " delta-costs   " Delta income  : " delta-income)
-  ]
-  ;; undo the intervention... we are only trying them on for size here!
-  matrix:set my-interventions 0 col 0
-  report delta-income - delta-costs
-end
+;;; scores a potential intervention by comparing expected income and costs
+;;; were it to be implemented relative to current income and costs
+;;; TODO: consider if this actually makes sense... in a good year when current
+;;; income is high and current costs low the score might be lower which is
+;;; slightly counter-intuitive.
+;;; a holding reporter because cost and income reporters invoked are holding reporters
+;to-report get-intervention-score [i-type]
+;  let col (position i-type interventions)
+;  matrix:set my-interventions 0 col 1
+;  ;; get long-term expect costs and incomes, i.e. without variance
+;  let new-costs    get-holding-costs false
+;  let new-income   get-holding-income false
+;  let delta-costs  relative-change current-costs new-costs
+;  let delta-income relative-change current-income new-income
+;  if show-events? [
+;    show i-type
+;    show (word "Current costs: " current-costs " Current income: " current-income)
+;    show (word "New costs    : " new-costs     " New income    : " new-income)
+;    show (word "Delta costs  : " delta-costs   " Delta income  : " delta-income)
+;  ]
+;  ;; undo the intervention... we are only trying them on for size here!
+;  matrix:set my-interventions 0 col 0
+;  report delta-income - delta-costs
+;end
 
 ;; wrapper to invoke the various profit and loss reporters
 to update-holding-income-costs-profit

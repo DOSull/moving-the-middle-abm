@@ -1,4 +1,8 @@
 statistic,landuse,Build_Wetland,Riparian_Planting,Clean_Races,Farm_Plan
+nudge,SNB,0,0,0,0
+nudge,Dairy,0,0,0,0
+nudge,Forest,0,0,0,0
+nudge,Crop,0,0,0,0
 init_proportion,SNB,0.1,0.1,NA,0.1
 init_proportion,Dairy,0.1,0.1,0.1,0.1
 init_proportion,Forest,NA,NA,NA,NA

@@ -1,0 +1,608 @@
+farmers-own [
+  the-land         ;; patch-set of patches of this farmer, this farm, or this holding
+  farm-type        ;; farm-type - one of the global farm-types       
+  disposition      ;; for-profit, pro-environmental, pro-social (not used at present
+  age              ;; age controls succession probabilities see age-and-succeed-farmer
+  succession-stage ;; how many times this farmer has moved on... they don't die they
+                   ;; are just succeeded - this matters to the rapid reset functionality
+  my-interventions ;; 1-0 matrix of interventions adopted by landuse
+  
+  my-farm          ;; farm turtle of this farmer's farm
+  my-holdings      ;; turtle-set of holdings of this farmer
+  inherited?
+  loan-principal
+  loan-rate
+  current-debt
+  debt-payments
+  debt-maturity
+  debt-free?
+  dsr
+  
+  farm-type-0      ;; initial values stored to allow easy reset
+  disposition-0
+  age-0
+  succession-stage-0
+  my-interventions-0
+  inherited-0?
+  loan-principal-0
+  loan-rate-0
+  current-debt-0
+  debt-payments-0
+  debt-maturity-0
+  debt-free-0?
+  dsr-0
+]
+
+
+;; ------------------------------------
+;; SETUP procedures
+;; ------------------------------------
+
+;; farmer 'constructor'
+to initialise-farmer
+  set size 4
+  set shape "person"
+  set hidden? true
+  set disposition get-disposition
+  set succession-stage 0
+  set my-interventions matrix:make-constant (length farm-types) (length interventions) 0
+  set inherited? one-of [true false]
+  set color table:get table:get colour-key "farmer" inherited?
+end
+
+;; farmer age might be set by a relatively complex procedure so 
+;; delegate to this reporter
+to-report get-new-farmer-age [model-initialisation?]
+  ;; this gives us a reasonable(ish) age distribution at least for now
+  ifelse model-initialisation? 
+  ;; age distribution of initial population skews older than that of new entrants
+  [ report get-incumbent-farmer-age ]
+  [ report get-entrant-farmer-age ]
+end
+
+to-report get-entrant-farmer-age
+  report 21 + random-beta-binomial 45 4 2
+end
+
+to-report get-incumbent-farmer-age
+  report 21 + random-beta-binomial 70 5 4
+end
+
+to-report get-disposition
+  report first rnd:weighted-one-of-list dispositions [ [p] -> last p ]
+end
+
+;; make links between farmers based on proximity
+to make-farmer-local-links
+  ;; make twice as many as we need to choose from
+  let n-options n-local-links * 2  
+  let locals other (turtle-set [the-owner] of patch-set flatten-list [neighbors4] of the-land)
+  let r 0
+  ifelse any? locals
+  [ set r max [distance myself] of locals + 5 ]
+  [ set r 5 ]
+  ;; if we didn't get enough then widen the search until we do
+  if count locals < n-options [
+    while [count locals < n-options] [
+      set locals other (turtle-set locals farmers in-radius r)
+      set r r + 5
+    ]
+  ]
+  set locals n-of n-local-links locals
+  create-local-links-with locals [ 
+    set color table:get colour-key "local-link" 
+    set hidden? true
+  ]
+end
+
+;; make links between farmers in the catchment (don't care about similarities)
+to make-farmer-catchment-links
+  let colleagues n-of n-catchment-links (other farmers with [not member? self [link-neighbors] of myself])
+  create-catchment-links-with colleagues [ 
+    set color table:get colour-key "catchment-link"
+    set hidden? true
+  ]
+end
+
+;; make links between farmers in the catchment (don't care about similarities)
+to make-farmer-disposition-links
+  let colleagues n-of n-disposition-links (
+    other farmers with [not member? self [link-neighbors] of myself and 
+                        disposition = [disposition] of myself]
+  )
+  create-disposition-links-with colleagues [ 
+    set color table:get colour-key "disposition-link"
+    set hidden? true
+  ]
+end
+
+;; ------------------------------------
+;; SUCCESSION procedures
+;; ------------------------------------
+
+;; age farmer by 1 year, then determine if they die/leave/otherwise exit
+;; the 'new' farmer is not actually a new farmer, just the old one with a new age...
+to age-and-succeed-farmer
+  ;; don't create a new farmer, just change age and
+  ;; consider some other changes
+  set age ifelse-value age + years-per-tick > 90 [90] [age + years-per-tick] 
+  ;; they have five chances to leave at probability 1/(91-age) as they age
+  ;; which comes out to a single chance at probability 5/(91-age) 
+  if age > 90 or random-float 1 < (years-per-tick / (91 - age)) [ succeed-farmer ]
+end
+
+to succeed-farmer
+  set inherited? one-of [true false]
+  ;; note that it's possible the new farmer will be older than the previous
+  ;; even if they inherit - perhaps they are a cousin or sibling or...
+  ;; this avoids complex logic handling different ages of succession etc.
+  set age get-entrant-farmer-age
+  set succession-stage succession-stage + 1
+  ;; if not inherited then new farmer must take out a mortgage
+  if not inherited? [ buy-farm ]
+  set disposition get-disposition
+  let ft-now farm-type
+  set color table:get table:get colour-key "farmer" inherited?
+  ;; new farmer considers changing the farm type if any holdings are loss-making
+  ;; without regard to how long losses have been happening
+  if not inherited? and landuse-change-on-succession? and [current-profit] of my-farm <= 0 [
+    let options get-all-of-farm-landuse-change-options
+    if length options > 0 [ make-farm-type-changes options ]
+  ]
+end
+
+;; ------------------------------------
+;; FINANCIAL procedures
+;; ------------------------------------
+
+;; initialises farm-debt based on age of farmer and approx value of farm
+;; this does not include loans that might be added later for improvements
+to set-initial-farmer-debt
+  ;; get a somewhat reasonable estimate of time in business
+  let time-in-business age - get-entrant-farmer-age
+  ifelse time-in-business >= mortgage-term or inherited?
+  [ ;; if in business long enough or inherited then no loans
+    clear-loans
+  ]
+  [ ;; else a loan based on buying the farm
+    buy-farm
+    ;; but with some progress made on payments
+    set debt-maturity ifelse-value time-in-business <= 0 
+                      [0] [round-to time-in-business years-per-tick]
+  ]
+end
+
+;; reset loans and all associated variables
+to clear-loans
+  set loan-principal 0
+  set loan-rate 0
+  set current-debt 0
+  set debt-payments 0
+  set debt-maturity mortgage-term + 1
+  set debt-free? true
+end
+
+;; set debt based on purchasing farm
+to buy-farm
+  let est-value [get-estimated-farm-value] of my-farm
+  ;; set up loan
+  set loan-principal round (est-value * (0.2 + random-float 0.6))
+  set loan-rate interest-rate
+  set debt-payments get-loan-repayments loan-principal loan-rate mortgage-term
+  set current-debt loan-principal
+  set debt-maturity 0
+  set debt-free? false
+end
+
+;; adjust gross profit in light of loan repayments
+to finalise-profit [burn-in-step?]
+  ;; in the burn-in step or if debt free we don't advance the debt maturity
+  ifelse debt-free? [
+    ;; nothing to pay, current profit = gross profit
+    ask my-farm [ set current-profit gross-profit ]
+  ]
+  [ ;; determine payments owing
+    set-debt-payments-owing
+    ifelse debt-payments = 0 [
+      ask my-farm [ set current-profit gross-profit ]
+    ]
+    [ ;; if we have enough profit service debt
+      ifelse [gross-profit] of my-farm >= debt-payments [
+        service-debt
+        ask my-farm [ set current-profit gross-profit - [debt-payments] of myself ]
+      ]
+      [ ;; if not then increase debt by the shortfall
+        add-to-debt debt-payments - [gross-profit] of my-farm
+        ask my-farm [ set current-profit 0 ]
+      ]
+      if not burn-in-step? [set debt-maturity debt-maturity + years-per-tick]
+    ]
+  ]
+;  set dsr precision (debt-payments / current-income) 3 ;; change denominator to est-value?
+  set dsr precision (current-debt / [get-estimated-farm-value] of my-farm) 3 ;; change denominator to est-value?
+end
+
+;; update the debt payments variable reflecting changed interest rates if needed
+to set-debt-payments-owing
+  ;; if we've run over end of term or have done so previously
+  ;; should hopefully never end up here, but just in case payments = 0
+  (ifelse
+    debt-free? [ ;; just in case but this procedure shouldn't be called if debt-free
+      set debt-payments 0
+    ]
+    debt-maturity >= mortgage-term [
+      ;; this is important because it's when debt gets cleared!
+      clear-loans
+    ]
+    [ ;; check for a change in interest rate and adjust payments assuming end date will not change
+      if interest-rate != loan-rate [ 
+        set loan-principal get-principal-remaining loan-principal loan-rate mortgage-term debt-maturity
+        set loan-rate interest-rate
+        set debt-payments get-loan-repayments loan-principal loan-rate (mortgage-term - debt-maturity)
+        set current-debt loan-principal
+      ] 
+      ;; otherwise debt-payments are unchanged
+    ]
+  )
+end
+
+;; routine payments so adjust current debt and if we've reached term clear loans
+to service-debt
+  set current-debt get-principal-remaining loan-principal interest-rate mortgage-term debt-maturity
+  if debt-maturity = mortgage-term [
+    clear-loans
+  ]
+end
+
+;; add to current debt by refinancing with same intended end date
+to add-to-debt [amount]
+  ifelse debt-free? or debt-maturity >= mortgage-term [
+    set loan-principal amount
+    set debt-free? false
+    set debt-maturity 0
+  ]
+  [
+    set loan-principal round (
+      (get-principal-remaining loan-principal loan-rate mortgage-term debt-maturity) + amount
+    )
+  ]
+  set loan-rate interest-rate
+  set debt-payments get-loan-repayments loan-principal loan-rate (mortgage-term - debt-maturity)
+  set current-debt loan-principal
+end
+
+;; ------------------------------------
+;; MAIN DECISION LOOP procedures
+;; ------------------------------------
+;;
+;; First, the high-level groupings
+;;
+to do-survival
+  ;; do not consider any interventions
+  ;; landuse change? would consider holding-level changes
+  make-farm-type-changes get-limited-holdings-landuse-change-options my-holdings true
+end
+
+to do-constrained-change
+  ;; would consider holding-level changes
+  ;; would consider some ('tactical' / easy) interventions
+  make-farm-type-changes get-limited-holdings-landuse-change-options my-holdings false
+  if any? my-holdings with [any-interventions-left-to-do?] [
+    let potential-changes get-intervention-options
+    if length potential-changes > 0 [ make-management-changes potential-changes ]
+  ]
+end
+
+to do-optimisation
+  ;; would consider holding-level changes
+  ;; would consider any/all interventions
+  if any? my-holdings with [any-interventions-left-to-do?] [
+    let potential-changes get-intervention-options
+    if length potential-changes > 0 [ make-management-changes potential-changes ]
+  ]
+end
+
+;; Next...
+;; ------------------------------------
+;; LAND CONVERSION procedures
+;; ------------------------------------
+
+;; reports list of possible changes in landuse by holding and an associated probability
+;; the list items are
+;;
+;;   [[holdings-to-change-set "all-of-farm" from-farm-type to-farm-type] relative-probability]
+;; 
+;; The all-of-farm flag tells later steps to apply all these together
+to-report get-all-of-farm-landuse-change-options
+  let ft farm-type
+  ;; only other farm-types are options for change - and Forest is not an option
+  let options filter [new-ft -> new-ft != ft and ft != "Forest"] farm-types
+  if apply-suitability? [
+    ;; only landuses suitable for the typical land on the farm are considered
+    let luc-constraint round mean [luc-code] of (the-land with [landuse = ft])
+    set options get-farm-types-suitable-for-luc options luc-constraint
+  ]
+  let affected-holdings my-holdings with [farm-type = ft]
+  set options map [new-ft -> 
+    (list (list affected-holdings "all-of-farm" ft new-ft) 
+          (table:get table:get farm-type-change-probs ft new-ft))
+  ] options
+  report options
+end
+
+;; reports list of possible changes in landuse for the supplied set of holdings
+;; the list items are
+;;
+;;   [[holding-set-of-one "one-holding" from-farm-type to-farm-type] relative-probability]
+;;
+;; Change to Forest is an option and is the only option if forestry-only? is true
+to-report get-limited-holdings-landuse-change-options [holdings-under-consideration forestry-only?]
+  let options []
+  ask holdings-under-consideration [
+    let ft farm-type
+    ifelse forestry-only? [
+      set options lput (list (list (turtle-set self) "one-holding" farm-type "Forest") 
+                             (table:get table:get farm-type-change-probs farm-type "Forest")) options
+    ]
+    [
+      let new-possible-farm-types filter [nft -> nft != farm-type] farm-types
+      if apply-suitability? [
+        let luc-constraint round mean [luc-code] of (the-land with [landuse = ft]) 
+        set new-possible-farm-types get-farm-types-suitable-for-luc new-possible-farm-types luc-constraint
+      ]
+      foreach new-possible-farm-types [ nft ->
+        set options lput (list (list (turtle-set self) "one-holding" farm-type nft) 
+                               (table:get table:get farm-type-change-probs farm-type nft)) options
+      ]
+    ]
+  ]
+  report options
+end
+
+;; reports only farm-types/landuses suitable on the specified limiting LUC
+to-report get-farm-types-suitable-for-luc [fts limiting-luc]
+  report filter [nft -> table:get (table:get farm-type-suitabilities limiting-luc) nft = 1] fts
+end
+
+
+;; given a list of options per the consider-farm-type-change or consider-forestry reporters
+;; picks one and potentially applies it
+;;
+;; possible changes is a list of 'change specification' lists each of which is a list:
+;;
+;; [ [ holdings "all-of-farm"|"one-holding" current-landuse new-landuse ] probability ]
+;; 
+;; holdings will either be all the eligible holdings on the farm or a single holding
+to make-farm-type-changes [potential-changes] 
+  if show-events? [ show "Entered make-farm-type-changes" ]
+  let changes-to-make rnd:weighted-one-of-list potential-changes [ [p] -> last p ]
+  if random-float 1 < last changes-to-make [
+    let [holdings-to-change change-type current-farm-type new-farm-type] first changes-to-make
+    ask holdings-to-change [
+      change-holding-farm-type new-farm-type
+    ]
+    ifelse change-type = "all-of-farm" [
+      set farm-type new-farm-type
+      ask my-farm [ set farm-type new-farm-type ]
+    ]
+    [ ;; only a single holding so farm type will only change to
+      ;; the majority landuse if that has changed
+      set farm-type get-majority-farm-type
+      ask my-farm [ set farm-type [ farm-type ] of myself ]
+    ]  
+  ]
+end
+
+;; Lastly...
+;; ------------------------------------
+;; MANAGEMENT CHANGE procedures
+;; ------------------------------------
+
+;; loop through holdings with interventions remaining to be done
+;; calculate associated probability of adoption for all interventions remaining on each holding
+;; pick one by weighted probability and add it to the options output
+;; the list returned to the calling context will be
+;; [
+;;   [ holding1 [ intervention probability ] ]
+;;   [ holding2 [ intervention probability ] ]
+;;     ...
+;; ]
+to-report get-intervention-options
+  let options []
+  let network-nudges nobody
+  ifelse include-networks? 
+  [ set network-nudges get-network-nudges 1 rel-weight-locals rel-weight-catchment rel-weight-disposition]
+  [ set network-nudges get-network-nudges 1 0 0 0]
+  ask my-holdings with [any-interventions-left-to-do?] [
+    let ft farm-type
+    ;; list the interevention types that are to be considered
+    let to-consider get-available-interventions-list
+    ;; get nudge score for this intervention from the holding
+    let nudges map [poss -> [get-intervention-score poss] of self] to-consider
+    ;; the network nudge scores for the landuse on this holding 
+    let to-consider-idxs map [x -> position x interventions] to-consider
+    let nwk-nudges map [i -> item i matrix:get-row network-nudges position ft farm-types] to-consider-idxs
+    ;; get the base probabilities for this farmer (which might be changeable over time)
+    let base-probs map [poss -> [ get-adoption-probability poss ] of myself] to-consider
+    ;; adjust probabilities using the sigmoid function
+    let new-probs (map [[prob nudge nwk-nudge] -> get-nudged-probability prob (nudge + nwk-nudge)] base-probs nudges nwk-nudges)
+    ;; put results in a list of tuples [[<INTERVENTION> <PROBABILITY>]], select one
+    ;; by weighted random draw and return it to the calling context
+    let management-changes (map list to-consider new-probs)
+    set options lput (list self rnd:weighted-one-of-list management-changes [ [p] -> last p ]) options
+;    set options (sentence options map [x -> (list self (list item 0 x precision (item 1 x) 4))] management-changes)
+  ]
+  report options
+end
+
+;; reports a combined nudge based on the proportion of holdings that have taken
+;; up various interventions by landuse type weighted somehow
+to-report get-network-nudges [w1 w2 w3 w4]
+  ifelse include-networks? [
+    let farm-interventions        w1 matrix:* my-interventions
+    let local-interventions       w2 matrix:* sum-matrices [my-interventions] of local-link-neighbors
+    let catchment-interventions   w3 matrix:* sum-matrices [my-interventions] of catchment-link-neighbors
+    let disposition-interventions w4 matrix:* sum-matrices [my-interventions] of disposition-link-neighbors
+    report sum-matrices (list farm-interventions local-interventions catchment-interventions disposition-interventions)
+  ]
+  [ report w1 matrix:* my-interventions ]
+end
+
+;; probabilistically make changes in the supplied [holding [intervention prob]]
+;; list. All are considered but only applied on passing the associated probability test
+to make-management-changes [possible-changes] 
+  foreach possible-changes [ change ->
+    let [the-holding i-prob] change
+    let [i-type prob] i-prob
+    if random-float 1 < prob [
+      if show-events? [ show (word "Implementing " i-type " on " the-holding) ]
+      ask the-holding [ do-intervention i-type ]
+    ]
+  ]
+end
+
+;; ----------------------------------------------------------------------------
+;; sigmoid function related
+;; ----------------------------------------------------------------------------
+;; see https://en.wikipedia.org/wiki/Sigmoid_function
+;; the argument a increases the slope at (0, 0.5)
+to-report sigmoid [x a]
+  report 1 / (1 + exp (a * (- x)))
+end
+
+;; see https://en.wikipedia.org/wiki/Logit
+;; inverse of the sigmoid function - used to determine
+;; where on the sigmoid a given probability lies
+;; The 'epsilon correction' for 0 and 1 avoids errors from
+;; overflow/underflow even if introduces slight errors
+;; but hey! nothing is impossible, nor a sure thing!
+to-report logit [p a]
+  (ifelse
+    p = 0.5 [ report 0 ]
+    p = 1 [ report logit (1 - epsilon) a ]
+    p = 0 [ report logit epsilon a ]
+    [ report ln (p / (1 - p)) / a ])
+end
+
+;; reports revised probability from 'nudging' initial
+;; initial probability p along a sigmoid curve
+to-report get-nudged-probability [p nudge]
+  let centre logit p sigmoid-slope
+  report sigmoid (centre + nudge) sigmoid-slope
+end
+
+
+;; ------------------------------------
+;; REPORTING procedures
+;; ------------------------------------
+;; reporter to get the plurality landuse type of the farmer
+;; if two or more are equally prevalent pick one at random
+to-report get-majority-farm-type
+  let counts map [x -> sum x] transpose [matrix-column-sums landuse-luc-profile] of my-holdings
+  let max-count max counts
+  let max-indices filter [i -> item i counts = max-count] range length farm-types
+  report one-of slice farm-types max-indices
+end
+
+;; report turtle set of all holdings losing money
+to-report get-loss-making-holdings
+  report my-holdings with [current-profit < 0]
+end
+
+;; get a list of all the metrics which this farmer's farm is in breach of
+to-report get-breached-metrics
+  report filter [m -> [is-in-breach? m] of my-farm] table:keys env-metrics
+end
+
+;; get turtle-set of holdings in breach on this farm
+to-report get-holdings-in-breach [metrics]
+  let holdings-in-breach turtle-set nobody
+  foreach metrics [ m ->
+    set holdings-in-breach (turtle-set holdings-in-breach my-holdings with [is-in-breach? m])
+  ]
+  report holdings-in-breach
+end
+
+;; returns threshold for the supplied intervention
+;; this or a wrapper for this could include farmer demography 'shifts'
+;; or social/geographic network shifts
+to-report get-adoption-probability [i-type]
+  report table:get (table:get (table:get base-thresholds disposition) i-type) farm-type
+end
+
+
+;;
+;; DEBUG FILE OUTPUT
+;; Note this preferred to using simpleR extension to avoid dependency on R installation
+to output-farmers-report [fname]
+  csv:to-file fname fput get-farmer-csv-header map [h -> [get-farmer-status] of h] sort farmers
+end
+
+to-report get-farmer-status
+  report flatten-list (list 
+    who
+    [who] of my-farm
+    farm-type 
+    (count the-land * hectares-per-patch)
+    disposition
+    age
+    (ifelse-value inherited? ["TRUE"] ["FALSE"])
+    succession-stage
+    loan-principal
+    loan-rate
+    current-debt
+    debt-payments
+    (ifelse-value debt-maturity = nobody ["NA"] [debt-maturity])
+    (ifelse-value debt-free? ["TRUE"] ["FALSE"])
+    dsr
+    count my-holdings
+    matrix:get-row sum-matrices [my-interventions] of my-holdings 0
+  )
+end
+
+to-report get-farmer-csv-header
+  report flatten-list (list
+    "farmer_id"
+    "farm_id"
+    "farm_type"
+    "size_ha"
+    "disposition"
+    "age"
+    "inherited"
+    "succession_stage"
+    "loan_principal"
+    "loan_rate"
+    "current_debt"
+    "debt_payments"
+    "debt_maturity"
+    "debt_free"
+    "debt_service_ratio"
+    "n_holdings"
+    interventions
+  )
+end
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-25 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.
+

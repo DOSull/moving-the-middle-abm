@@ -84,36 +84,16 @@ to update-income-costs-plot [with-pen-down?]
 end
 
 
-to-report get-max-interventions
-  let landuse-counts col-matrix map [x -> count farm-land with [landuse = x]] farm-types
-  let implementable-interventions matrix:map [x -> ifelse-value x > 0 [1] [0]] intervention-cost-impacts
-  report matrix:get-column (implementable-interventions matrix:* landuse-counts) 0
-end
-
-
-to-report get-current-interventions
-  report map [x -> last x] table:values table:get results "interventions"
-end
-
-
 ;; update the interventions plot
 to update-interventions-plot [with-pen-down?]
   set-current-plot "Interventions"
-  let max-interventions get-max-interventions
-  let current-interventions get-current-interventions
-  let fraction-interventions (map / current-interventions max-interventions)
-  foreach range length fraction-interventions [ i ->
+  let prop-interventions map [v -> last v] table:values table:get results "intervention_props"
+  foreach range length prop-interventions [ i ->
     set-current-plot-pen item i interventions
     if not with-pen-down? [ plot-pen-up ]
-    plot item i fraction-interventions
+    plot item i prop-interventions
     if not with-pen-down? [ plot-pen-down ]
   ]
-;  foreach range length interventions [ i ->
-;    set-current-plot-pen item i interventions
-;    if not with-pen-down? [ plot-pen-up ]
-;    plot sum [count the-land] of holdings with [matrix:get my-interventions 0 i = 1]
-;    if not with-pen-down? [ plot-pen-down ]
-;  ]
 end
 
 
@@ -129,12 +109,6 @@ to update-landuse-plot [with-pen-down?]
 end
 
 
-to-report get-current-metrics
-  let landuse-luc get-landuse-luc-profile farm-land
-  report map [m -> matrix-sum-elements (matrix:map [[a b] -> precision (a * b) 0] landuse-luc table:get env-metric-means m)] sort table:keys env-metrics
-end
-
-
 ;; update the metrics plot
 to update-metrics-plot [with-pen-down?]
   let env-metrics-totals get-current-metrics
@@ -146,12 +120,6 @@ to update-metrics-plot [with-pen-down?]
     plot item i env-metrics-totals
     if not with-pen-down? [ plot-pen-down ]
   ]
-;  foreach range length e-metrics [ i ->
-;    set-current-plot-pen item i e-metrics
-;    if not with-pen-down? [ plot-pen-up ]
-;    plot count farms with [is-in-breach? item i e-metrics] / count farms
-;    if not with-pen-down? [ plot-pen-down ]
-;  ]
 end
 
 

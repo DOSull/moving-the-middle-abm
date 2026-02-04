@@ -451,7 +451,7 @@ end
 ;; DEALINGS IN THE SOFTWARE.]]></code>
   <widgets>
     <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1003" showTickCounter="true" patchSize="3.0" fontSize="12" wrappingAllowedY="false" width="422" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="137" minPxcor="0"></view>
-    <switch x="10" y="10" height="33" on="true" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
+    <switch x="10" y="10" height="33" on="false" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
     <switch x="10" y="48" height="33" on="false" variable="reinitialise?" display="reinitialise?" width="185" sizeVersion="0"></switch>
     <button x="10" y="86" height="33" disableUntilTicks="true" forever="false" kind="Observer" display="reset" width="90" sizeVersion="0">restore-initial-values
 </button>
@@ -517,7 +517,7 @@ this many patches</note>
     <monitor x="890" precision="0" y="673" height="45" fontSize="11" display="run-seed" width="180" sizeVersion="0">word run-seed
 ;; this is a workaround per
 ;; https://github.com/NetLogo/NetLogo/issues/2562#issuecomment-3353992160</monitor>
-    <slider x="890" step="0.01" y="723" max="19.99" display="sigmoid-slope" height="33" min="0.01" direction="Horizontal" default="5.0" variable="sigmoid-slope" width="180" sizeVersion="0"></slider>
+    <slider x="890" step="0.01" y="723" max="19.99" display="sigmoid-slope" height="33" min="0.01" direction="Horizontal" default="10.0" variable="sigmoid-slope" width="180" sizeVersion="0"></slider>
     <note x="890" y="769" backgroundDark="0" fontSize="12" width="180" markdown="true" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Interventions**</note>
     <output x="890" y="789" height="175" fontSize="11" width="180"></output>
     <monitor x="890" precision="1" y="970" height="45" fontSize="11" display="mean-farmer-age" width="180" sizeVersion="0">mean [age] of farmers</monitor>
@@ -1456,113 +1456,7 @@ histogram [dsr] of farmers</update>
   </linkShapes>
   <previewCommands>setup repeat 75 [ go ]</previewCommands>
   <experiments>
-    <experiment name="experiment" repetitions="1" sequentialRunOrder="false" runMetricsEveryStep="true">
-      <preExperiment>setup</preExperiment>
-      <go><![CDATA[let rng-seeds range 10
-foreach rng-seeds [ s ->
-  set run-rng-seed s
-  restore-initial-values
-  repeat 10 [ go ]
-  output-results
-]
-stop]]></go>
-      <constants>
-        <enumeratedValueSet variable="region">
-          <value value="&quot;Rangitaiki&quot;"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="scenario">
-          <value value="&quot;default&quot;"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="apply-severity-of-losses?">
-          <value value="false"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="rel-weight-locals">
-          <value value="0.5"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="prioritise-forestry?">
-          <value value="true"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="show-catchment-links?">
-          <value value="false"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="show-landuse?">
-          <value value="true"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="rel-weight-catchment">
-          <value value="0.1"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="reinitialise?">
-          <value value="true"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="number-of-farms">
-          <value value="250"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="correlated-landuse?">
-          <value value="true"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="luc-aggregation-steps">
-          <value value="90"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="sigmoid-slope">
-          <value value="10"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="force?">
-          <value value="true"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="apply-suitability?">
-          <value value="true"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="experiment-name">
-          <value value="&quot;scratch&quot;"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="run-rng-seed">
-          <value value="42"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="show-local-links?">
-          <value value="false"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="farm-type-colours?">
-          <value value="true"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="max-dimension">
-          <value value="301"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="landuse-change-on-succession?">
-          <value value="true"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="include-networks?">
-          <value value="false"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="bad-years-trigger">
-          <value value="1"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="user-run-seed?">
-          <value value="true"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="years-to-remember">
-          <value value="10"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="show-luc-codes?">
-          <value value="true"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="geography-from-files?">
-          <value value="true"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="user-geography-seed?">
-          <value value="true"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="geography-rng-seed">
-          <value value="1553817984"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="landuse-aggregation-steps">
-          <value value="5"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="show-events?">
-          <value value="false"></value>
-        </enumeratedValueSet>
-      </constants>
-    </experiment>
-    <experiment name="varying-sigmoid-slope" repetitions="1" sequentialRunOrder="true" runMetricsEveryStep="false">
+    <experiment name="base-experiment" repetitions="1" sequentialRunOrder="true" runMetricsEveryStep="false">
       <preExperiment>setup</preExperiment>
       <go><![CDATA[foreach range 30 [ s ->
   set run-rng-seed s
@@ -1582,7 +1476,7 @@ stop]]></go>
           <value value="true"></value>
         </enumeratedValueSet>
         <enumeratedValueSet variable="region">
-          <value value="&quot;Rangitaiki&quot;"></value>
+          <value value="&quot;Oreti&quot;"></value>
         </enumeratedValueSet>
         <enumeratedValueSet variable="scenario">
           <value value="&quot;default&quot;"></value>
@@ -1611,23 +1505,11 @@ stop]]></go>
         <enumeratedValueSet variable="run-rng-seed">
           <value value="0"></value>
         </enumeratedValueSet>
-        <enumeratedValueSet variable="bad-years-trigger">
-          <value value="1"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="years-to-remember">
-          <value value="10"></value>
-        </enumeratedValueSet>
         <enumeratedValueSet variable="force?">
           <value value="true"></value>
         </enumeratedValueSet>
         <enumeratedValueSet variable="show-landuse?">
           <value value="true"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="show-local-links?">
-          <value value="false"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="show-catchment-links?">
-          <value value="false"></value>
         </enumeratedValueSet>
         <enumeratedValueSet variable="farm-type-colours?">
           <value value="true"></value>
@@ -1647,9 +1529,6 @@ stop]]></go>
         <enumeratedValueSet variable="landuse-change-on-succession?">
           <value value="true"></value>
         </enumeratedValueSet>
-        <enumeratedValueSet variable="prioritise-forestry?">
-          <value value="true"></value>
-        </enumeratedValueSet>
         <enumeratedValueSet variable="include-networks?">
           <value value="false"></value>
         </enumeratedValueSet>
@@ -1659,13 +1538,11 @@ stop]]></go>
         <enumeratedValueSet variable="rel-weight-catchment">
           <value value="0.1"></value>
         </enumeratedValueSet>
+        <enumeratedValueSet variable="rel-weight-disposition">
+          <value value="0"></value>
+        </enumeratedValueSet>
         <enumeratedValueSet variable="sigmoid-slope">
           <value value="1"></value>
-          <value value="5"></value>
-        </enumeratedValueSet>
-        <enumeratedValueSet variable="apply-severity-of-losses?">
-          <value value="true"></value>
-          <value value="false"></value>
         </enumeratedValueSet>
       </constants>
     </experiment>

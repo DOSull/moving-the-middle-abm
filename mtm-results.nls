@@ -5,10 +5,12 @@
 ;; initialise a results table with a bunch of empty lists of lists
 to setup-results-tables
   set results table:make
-  table:put results "income_costs"  table:from-list (map list (list "income" "costs" "debt") n-values 3 [i -> []]) 
-  table:put results "interventions" table:from-list (map list interventions                  n-values length interventions [i -> []]) 
-  table:put results "landuse"       table:from-list (map list farm-types                     n-values length farm-types [i -> []])
-  table:put results "env_metrics"   table:from-list (map list table:keys env-metrics         n-values length table:keys env-metrics [i -> []])
+  table:put results "income_costs"        table:from-list (map list (list "income" "costs" "debt") n-values 3 [i -> []]) 
+  table:put results "interventions"       table:from-list (map list interventions n-values length interventions [i -> []]) 
+  table:put results "intervention_limits" table:from-list (map list interventions n-values length interventions [i -> []]) 
+  table:put results "intervention_props"  table:from-list (map list interventions n-values length interventions [i -> []]) 
+  table:put results "landuse"             table:from-list (map list farm-types n-values length farm-types [i -> []])
+  table:put results "env_metrics"         table:from-list (map list table:keys env-metrics n-values length table:keys env-metrics [i -> []])
 end
 
 
@@ -50,14 +52,47 @@ end
 
 ;; proportions of land on which various interventions have been implemented
 to update-interventions-results
-  (foreach range length interventions [ i ->
+  foreach range length interventions [ i ->
     let intervention item i interventions
     let time-series table:get table:get results "interventions" intervention
     set time-series lput sum [count the-land] of holdings with [matrix:get my-interventions 0 i = 1] time-series
     table:put table:get results "interventions" intervention time-series
-  ])
+  ]
+  update-intervention-limits
+  update-intervention-props
 end
 
+to update-intervention-limits
+  let limits get-intervention-limits
+  foreach range length interventions [ i ->
+    let intervention item i interventions
+    let time-series table:get table:get results "intervention_limits" intervention
+    set time-series lput item i limits time-series
+    table:put table:get results "intervention_limits" intervention time-series
+  ]
+end
+
+to-report get-intervention-limits
+  let landuse-counts col-matrix map [x -> count farm-land with [landuse = x]] farm-types
+  let implementable-interventions matrix:map [x -> ifelse-value x > 0 [1] [0]] intervention-cost-impacts
+  report matrix:get-column (implementable-interventions matrix:* landuse-counts) 0
+end
+
+to-report get-intervention-currents
+  report map [x -> last x] table:values table:get results "interventions"
+end
+
+to update-intervention-props
+  let limits get-intervention-limits
+  let currents get-intervention-currents
+  let props (map [[x y] -> precision (x / y) 4] currents limits)
+  foreach range length interventions [ i ->
+    let intervention item i interventions
+    let time-series table:get table:get results "intervention_props" intervention
+    set time-series lput item i props time-series
+    table:put table:get results "intervention_props" intervention time-series
+  ]
+end
 
 ;; proportions of land in each landuse
 to update-landuse-results
@@ -70,13 +105,21 @@ end
 
 ;; proportion of farms in breach of environmental limits
 to update-metrics-results
-  let e-metrics sort table:keys env-metrics
-  foreach range length e-metrics [ i ->
-    let metric item i e-metrics
+  let e-metrics get-current-metrics
+  (foreach sort table:keys env-metrics get-current-metrics [ [metric v] ->
     let time-series table:get table:get results "env_metrics" metric
-    set time-series lput (count farms with [is-in-breach? item i e-metrics] / count farms) time-series
+    set time-series lput v time-series
     table:put table:get results "env_metrics" metric time-series
-  ]
+  ])
+end
+
+to-report get-current-metrics
+  let landuse-luc get-landuse-luc-profile farm-land
+  report map [m -> matrix-sum-elements 
+    (matrix:map [[a b] -> precision (a * b) 0] 
+      landuse-luc 
+      table:get env-metric-means m)
+  ] sort table:keys env-metrics
 end
 
 

@@ -437,6 +437,10 @@ to-report get-intervention-options
   report options
 end
 
+to-report poll-network-interventions [w1 w2 w3 w4]
+  report but-last random-weighted-matrix-ij-element get-network-nudges w1 w2 w3 w4
+end
+
 ;; reports a combined nudge based on the proportion of holdings that have taken
 ;; up various interventions by landuse type weighted somehow
 to-report get-network-nudges [w1 w2 w3 w4]
@@ -449,6 +453,7 @@ to-report get-network-nudges [w1 w2 w3 w4]
   ]
   [ report farm-interventions ]
 end
+
 
 ;; probabilistically make changes in the supplied [holding [intervention prob]]
 ;; list. All are considered but only applied on passing the associated probability test

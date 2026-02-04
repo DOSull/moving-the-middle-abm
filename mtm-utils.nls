@@ -188,6 +188,33 @@ to-report mean-matrices [lst]
   report map [x -> x / n] reduce [[a b] -> a matrix:+ b] lst
 end
 
+to-report ij-of-max [mtx]
+  let [nr nc] matrix:dimensions mtx
+  let values flatten-list matrix:to-row-list mtx
+  let max-v max values
+  let max-positions matching-positions values max-v
+  report map [ij -> (list (floor (ij / nc)) (ij mod nc))] max-positions
+end
+
+to-report matrix-from-list [L nr nc]
+  let m matrix:make-constant nr nc 0
+  (foreach range length L L [ [i x] ->
+    matrix:set m (floor (i / nc)) (i mod nc) x
+  ])
+  report m
+end
+
+to-report random-weighted-matrix-ij-element [mtx]
+  let [nr nc] matrix:dimensions mtx
+  let r-s matrix:from-column-list n-values nc [i -> range nr]
+  let c-s matrix:from-row-list n-values nr [i -> range nc]
+  report rnd:weighted-one-of-list 
+           (map list flatten-list matrix:to-row-list r-s
+                     flatten-list matrix:to-row-list c-s 
+                     flatten-list matrix:to-row-list mtx)
+           [p -> last p]
+end
+
 ;; ----------------------------------------------------------------------------
 ;; list stuff
 ;; ----------------------------------------------------------------------------
@@ -313,6 +340,10 @@ end
 
 to-report all-true? [lst]
   report reduce [[a b] -> a and b] fput true lst
+end
+
+to-report matching-positions [lst x]
+  report map [ix -> last ix] filter [L -> item 0 L = x] (map list lst range length lst)
 end
 
 ;; ------------------------------------------------------------------------------

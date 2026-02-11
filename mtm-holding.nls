@@ -205,10 +205,12 @@ to update-holding-income-costs-profit
   set current-profit current-income - current-costs
 end
 
-to update-holding-environmental-metrics
+to update-holding-env-metrics
   foreach sort table:keys env-metrics [ metric ->
     table:put metrics-details metric matrix:map [x -> precision x 3]
-    get-holding-environmental-metric-incl-variance metric
+    ( matrix:map [[a b] -> a * b]
+        get-holding-env-metric-incl-variance metric
+        get-env-metric-impact-of-interventions metric )
     set-metric metric
   ]
 end
@@ -236,7 +238,7 @@ to-report get-holding-income [include-variance?]
       ( matrix:map [[a b c] -> a * b * c] 
           landuse-luc-profile
           get-holding-yield-incl-variance
-          get-yield-after-interventions 
+          get-yield-impact-of-interventions 
       ) matrix:* prices
     )
   ]
@@ -245,7 +247,7 @@ to-report get-holding-income [include-variance?]
       ( matrix:map [[a b c] -> a * b * c]
           landuse-luc-profile
           yield-means  ;; no variance
-          get-yield-after-interventions
+          get-yield-impact-of-interventions
       ) matrix:* prices
     )
   ]
@@ -258,7 +260,7 @@ to-report get-holding-costs [include-variance?]
   ;; Costs optionally include variance
   ifelse include-variance? [
     report round ( 
-      get-cost-after-interventions + 
+      get-cost-impact-of-interventions + 
       matrix-sum-elements (
         ( matrix:map * landuse-luc-profile get-holding-cost-incl-variance )
         matrix:+
@@ -268,7 +270,7 @@ to-report get-holding-costs [include-variance?]
   ]
   [ 
     report round ( 
-      get-cost-after-interventions + 
+      get-cost-impact-of-interventions + 
       matrix-sum-elements (
         ( matrix:map * landuse-luc-profile cost-means )
         matrix:+ 
@@ -328,7 +330,7 @@ end
 ;; reports a matrix of emissions deviates suppressed by the number of patches
 ;; in accordance with the central limit theorem...
 ;; holding reporter due to landuse-luc-profile
-to-report get-holding-environmental-metric-incl-variance [metric]
+to-report get-holding-env-metric-incl-variance [metric]
   report (
     matrix:map [[m s n] -> reduced-normal-deviate m s n] 
                   table:get env-metric-means metric 
@@ -338,7 +340,8 @@ to-report get-holding-environmental-metric-incl-variance [metric]
 end
 
 ;; holding reporter due to get-farm-landuse-profile
-to-report get-cost-after-interventions
+;; this is added to base costs in the get-holding-costs reporter
+to-report get-cost-impact-of-interventions
   ;; the calculation here is
   ;;                       [       costs        ]   [   col-matrix    ]
   ;; [interventions 0/1] * [ rows: intervention ] * [                 ]
@@ -357,7 +360,7 @@ end
 ;; have been adopted).
 ;;
 ;; holding reporter due to my-interventions
-to-report get-yield-after-interventions
+to-report get-yield-impact-of-interventions
   report matrix:transpose
     matrix-duplicate-cols (
       matrix-column-products ( ;; cumulative product of adopted impacts
@@ -371,7 +374,7 @@ end
 ;; as above but for emissions
 ;;
 ;; holding reporter due to my-interventions
-to-report get-environmental-metric-after-interventions [metric]
+to-report get-env-metric-impact-of-interventions [metric]
   report matrix:transpose
     matrix-duplicate-cols (
       matrix-column-products (

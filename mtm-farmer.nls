@@ -423,7 +423,7 @@ to-report get-intervention-options
     let nudges map [poss -> table:get table:get table:get intervention-properties "nudge" ft poss] to-consider
     ;; get network nudges 
     let to-consider-idxs map [x -> position x interventions] to-consider
-    let nwk-nudges map [i -> item i matrix:get-row network-nudges position ft farm-types] to-consider-idxs
+    let nwk-nudges map [i -> matrix:get network-nudges position ft farm-types i] to-consider-idxs
     ;; adjust probabilities using sigmoid function
     let probs (map [[prob nudge nwk-nudge] -> get-nudged-probability prob (nudge + nwk-nudge)] base-probs nudges nwk-nudges)
     set probs map [x -> precision x 4] probs
@@ -437,8 +437,23 @@ to-report get-intervention-options
   report options
 end
 
-to-report poll-network-interventions [w1 w2 w3 w4]
-  report but-last random-weighted-matrix-ij-element get-network-nudges w1 w2 w3 w4
+
+;; reports (list row col) of (farm-type intervention) of a
+to-report poll-network-interventions [ft]
+  report first rnd:weighted-one-of-list 
+                 (map list (range length interventions) (get-count-network-interventions ft)) 
+                 [p -> last p]
+end
+
+to-report get-count-network-interventions [ft]
+  let intervention-counts my-interventions
+  if include-networks? [
+    let local-interventions rel-weight-locals matrix:* sum-matrices [my-interventions] of local-link-neighbors
+    let catchment-interventions rel-weight-catchment matrix:* sum-matrices [my-interventions] of catchment-link-neighbors
+    let disposition-interventions rel-weight-disposition matrix:* sum-matrices [my-interventions] of disposition-link-neighbors
+    set intervention-counts sum-matrices (list intervention-counts local-interventions catchment-interventions disposition-interventions)
+  ]
+  report matrix:get-row intervention-counts position ft farm-types
 end
 
 ;; reports a combined nudge based on the proportion of holdings that have taken

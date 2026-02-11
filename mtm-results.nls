@@ -114,12 +114,13 @@ to update-metrics-results
 end
 
 to-report get-current-metrics
-  let landuse-luc get-landuse-luc-profile farm-land
-  report map [m -> matrix-sum-elements 
-    (matrix:map [[a b] -> precision (a * b) 0] 
-      landuse-luc 
-      table:get env-metric-means m)
-  ] sort table:keys env-metrics
+;  let landuse-luc get-landuse-luc-profile farm-land
+;  report map [m -> matrix-sum-elements 
+;    (matrix:map [[a b] -> precision (a * b) 0] 
+;      landuse-luc 
+;      table:get env-metric-means m)
+;  ] sort table:keys env-metrics
+  report map [m -> sum [table:get my-metrics m] of holdings] sort table:keys env-metrics
 end
 
 

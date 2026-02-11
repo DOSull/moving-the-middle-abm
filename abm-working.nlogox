@@ -188,7 +188,7 @@ end
 to burn-in-step
   random-seed 0          ;; make the burn-in tick identical regardless of seed settings
   ask holdings [
-    update-holding-environmental-metrics 
+    update-holding-env-metrics 
     update-holding-income-costs-profit
   ]
   ask farms [
@@ -226,7 +226,7 @@ to go
       age-and-succeed-farmer
     ]
     ask holdings [
-      update-holding-environmental-metrics
+      update-holding-env-metrics
       update-holding-income-costs-profit
     ]
     ask farms [

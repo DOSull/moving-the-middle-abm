@@ -414,44 +414,68 @@ to-report get-intervention-options
   [ set network-nudges get-network-nudges 1 rel-weight-locals rel-weight-catchment rel-weight-disposition]
   [ set network-nudges get-network-nudges 1 0 0 0]
   ask my-holdings with [any-interventions-left-to-do?] [
-    let ft farm-type
-    ;; get interevention types be considered
-    let to-consider get-available-interventions-list
-    ;; get base probability for this farmer
-    let base-probs map [poss -> [ get-adoption-probability poss ] of myself] to-consider
-    ;; get nudges for intervention
-    let nudges map [poss -> table:get table:get table:get intervention-properties "nudge" ft poss] to-consider
-    ;; get network nudges 
-    let to-consider-idxs map [x -> position x interventions] to-consider
-    let nwk-nudges map [i -> matrix:get network-nudges position ft farm-types i] to-consider-idxs
-    ;; adjust probabilities using sigmoid function
-    let probs (map [[prob nudge nwk-nudge] -> get-nudged-probability prob (nudge + nwk-nudge)] base-probs nudges nwk-nudges)
-    set probs map [x -> precision x 4] probs
-    ;; put results in a list of tuples [[<INTERVENTION> <PROBABILITY>]]
-    ;; by weighted random draw and return it to the calling context
-    let management-changes (map list to-consider probs)
-    ;; put one of them into the returned set of options
-    set options lput (list self rnd:weighted-one-of-list management-changes [ [p] -> last p ]) options
-;    set options (sentence options map [x -> (list self x)] management-changes)
+    let option get-poll-of-available-interventions
+    if length option > 0 [
+      let ft farm-type
+      let probability [get-adoption-probability first option] of myself
+      let nudge table:get table:get table:get intervention-properties "nudge" ft first option
+      set probability precision (get-nudged-probability probability nudge) 4
+      set option (list self (list first option probability))
+      set options lput option options
+    ]
   ]
+;    
+;    ;; get interevention types be considered
+;    let to-consider get-available-interventions-list
+;    ;; get base probability for this farmer
+;    let base-probs map [poss -> [ get-adoption-probability poss ] of myself] to-consider
+;    ;; get nudges for intervention
+;    let nudges map [poss -> table:get table:get table:get intervention-properties "nudge" ft poss] to-consider
+;    ;; get network nudges 
+;    let to-consider-idxs map [x -> position x interventions] to-consider
+;    let nwk-nudges map [i -> matrix:get network-nudges position ft farm-types i] to-consider-idxs
+;    ;; adjust probabilities using sigmoid function
+;    let probs (map [[prob nudge nwk-nudge] -> get-nudged-probability prob (nudge + nwk-nudge)] base-probs nudges nwk-nudges)
+;    set probs map [x -> precision x 4] probs
+;    ;; put results in a list of tuples [[<INTERVENTION> <PROBABILITY>]]
+;    ;; by weighted random draw and return it to the calling context
+;    let management-changes (map list to-consider probs)
+;    ;; put one of them into the returned set of options
+;    set options lput (list self rnd:weighted-one-of-list management-changes [ [p] -> last p ]) options
+;  ; set options (sentence options map [x -> (list self x)] management-changes)
+;  ]
   report options
 end
 
 
 ;; reports (list row col) of (farm-type intervention) of a
-to-report poll-network-interventions [ft]
-  report first rnd:weighted-one-of-list 
-                 (map list (range length interventions) (get-count-network-interventions ft)) 
-                 [p -> last p]
+;to-report poll-network-interventions [ft]
+;  report first rnd:weighted-one-of-list 
+;                 (map list (range length interventions) 
+;                           ((map [[x y] -> 1 + x] get-count-network-interventions ft
+;                                                  ))) 
+;                 [p -> last p]
+;end
+
+;; holding reporter
+to-report get-poll-of-available-interventions
+  let avail matrix:get-row avail-interventions 0
+  if sum avail = 0 [ report [] ]
+  let weights (map [[x y] -> (1 + x) * y] get-count-network-interventions my-farmer farm-type avail)
+;  show weights
+  report rnd:weighted-one-of-list (map list interventions weights) [p -> last p]
 end
 
-to-report get-count-network-interventions [ft]
-  let intervention-counts my-interventions
-  if include-networks? [
-    let local-interventions rel-weight-locals matrix:* sum-matrices [my-interventions] of local-link-neighbors
-    let catchment-interventions rel-weight-catchment matrix:* sum-matrices [my-interventions] of catchment-link-neighbors
-    let disposition-interventions rel-weight-disposition matrix:* sum-matrices [my-interventions] of disposition-link-neighbors
-    set intervention-counts sum-matrices (list intervention-counts local-interventions catchment-interventions disposition-interventions)
+to-report get-count-network-interventions [f ft]
+  let intervention-counts nobody
+  ask f [
+    set intervention-counts my-interventions
+    if include-networks? [
+      let local-interventions       rel-weight-locals      matrix:* sum-matrices [my-interventions] of local-link-neighbors
+      let catchment-interventions   rel-weight-catchment   matrix:* sum-matrices [my-interventions] of catchment-link-neighbors
+      let disposition-interventions rel-weight-disposition matrix:* sum-matrices [my-interventions] of disposition-link-neighbors
+      set intervention-counts sum-matrices (list intervention-counts local-interventions catchment-interventions disposition-interventions)
+    ]
   ]
   report matrix:get-row intervention-counts position ft farm-types
 end

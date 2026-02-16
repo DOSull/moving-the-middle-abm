@@ -149,7 +149,7 @@ to setup
   set discount-rate 8
   set epsilon 1e-16
   set na-value -999
-  set show-labels? false
+  set show-labels? false; true; 
 
   set geography-seed ifelse-value user-geography-seed? [geography-rng-seed] [new-seed]
   set run-seed ifelse-value user-run-seed? [run-rng-seed] [new-seed]
@@ -358,6 +358,7 @@ to store-initial-values
     set my-interventions-0 matrix:copy my-interventions
     set inherited-0? inherited?
     set loan-principal-0 loan-principal
+    set loan-rate-0 loan-rate
     set current-debt-0 current-debt
     set debt-payments-0 debt-payments
     set debt-maturity-0 debt-maturity
@@ -403,6 +404,7 @@ to restore-initial-values
     set my-interventions matrix:copy my-interventions-0
     set inherited? inherited-0?
     set loan-principal loan-principal-0
+    set loan-rate loan-rate-0
     set current-debt current-debt-0
     set debt-payments debt-payments-0
     set debt-maturity debt-maturity-0
@@ -450,7 +452,7 @@ end
 ;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ;; DEALINGS IN THE SOFTWARE.]]></code>
   <widgets>
-    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1003" showTickCounter="true" patchSize="3.0" fontSize="12" wrappingAllowedY="false" width="422" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="137" minPxcor="0"></view>
+    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1003" showTickCounter="true" patchSize="3.0" fontSize="7" wrappingAllowedY="false" width="422" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="137" minPxcor="0"></view>
     <switch x="10" y="10" height="33" on="false" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
     <switch x="10" y="48" height="33" on="false" variable="reinitialise?" display="reinitialise?" width="185" sizeVersion="0"></switch>
     <button x="10" y="86" height="33" disableUntilTicks="true" forever="false" kind="Observer" display="reset" width="90" sizeVersion="0">restore-initial-values

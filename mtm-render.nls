@@ -81,10 +81,11 @@ to redraw-holding
     [ set color table:get colour-key "profit" ]
   ]
   [ set color table:get colour-key "loss" ]
-  set label (word
-    farm-type ": "
-    (length get-my-interventions-list) "/"
-    (length get-my-interventions-list + length get-available-interventions-list))
+  set label sum matrix:get-row my-interventions 0
+;  set label (word
+;    farm-type ": "
+;    (length get-my-interventions-list) "/"
+;    (length get-my-interventions-list + length get-available-interventions-list))
   colour-patches the-land show-landuse?
 end
 

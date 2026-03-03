@@ -58,6 +58,8 @@ globals [
   farm-types                 ;; list of named farm types - likely fixed at 4: Crop Dairy Forestry SNB
   interventions              ;; list of named management interventions - more likely to change over time
   dispositions               ;; list of farmer dispositions
+  
+  apply-suitability?         ;; moved from a slider and set true
 
   ;; some model parameters are read into tables for relative ease of retrieval
   farm-type-suitabilities    ;; table of LUC levels suitable for each farm-type
@@ -150,6 +152,7 @@ to setup
   set epsilon 1e-16
   set na-value -999
   set show-labels? false; true; 
+  set apply-suitability? true
 
   set geography-seed ifelse-value user-geography-seed? [geography-rng-seed] [new-seed]
   set run-seed ifelse-value user-run-seed? [run-rng-seed] [new-seed]
@@ -453,7 +456,6 @@ end
 ;; DEALINGS IN THE SOFTWARE.]]></code>
   <widgets>
     <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1003" showTickCounter="true" patchSize="3.0" fontSize="7" wrappingAllowedY="false" width="422" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="137" minPxcor="0"></view>
-    <switch x="10" y="10" height="33" on="false" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
     <switch x="10" y="48" height="33" on="false" variable="reinitialise?" display="reinitialise?" width="185" sizeVersion="0"></switch>
     <button x="10" y="86" height="33" disableUntilTicks="true" forever="false" kind="Observer" display="reset" width="90" sizeVersion="0">restore-initial-values
 </button>
@@ -480,15 +482,10 @@ LUC values (better land).</note>
     <button x="10" y="541" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-farmers" width="185" sizeVersion="0">ask farmers [ set hidden? not hidden? ]</button>
     <button x="10" y="579" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-farms" width="185" sizeVersion="0">ask farms [set hidden? not hidden?]</button>
     <button x="10" y="617" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-holdings" width="185" sizeVersion="0">ask holdings [set hidden? not hidden?]</button>
-    <button x="10" y="655" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-local-links" width="185" sizeVersion="0">ask local-links [ set hidden? not hidden? ]</button>
-    <button x="10" y="693" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-catchment-links" width="185" sizeVersion="0">ask catchment-links [ set hidden? not hidden? ]</button>
-    <button x="10" y="731" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-disposition-links" width="185" sizeVersion="0">ask disposition-links [ set hidden? not hidden? ]</button>
-    <slider x="10" step="1" y="769" max="12" display="n-local-links" height="33" min="0" direction="Horizontal" default="4.0" variable="n-local-links" width="185" sizeVersion="0"></slider>
-    <slider x="10" step="1" y="807" max="20" display="n-catchment-links" height="33" min="0" direction="Horizontal" default="6.0" variable="n-catchment-links" width="185" sizeVersion="0"></slider>
-    <slider x="10" step="1" y="845" max="20" display="n-disposition-links" height="33" min="0" direction="Horizontal" default="3.0" variable="n-disposition-links" width="185" sizeVersion="0"></slider>
-    <slider x="10" step="0.01" y="883" max="1" display="rel-weight-locals" height="33" min="0" direction="Horizontal" default="0.5" variable="rel-weight-locals" width="185" sizeVersion="0"></slider>
-    <slider x="10" step="0.01" y="921" max="1" display="rel-weight-catchment" height="33" min="0" direction="Horizontal" default="0.1" variable="rel-weight-catchment" width="185" sizeVersion="0"></slider>
-    <slider x="10" step="0.01" y="959" max="1" display="rel-weight-disposition" height="33" min="0" direction="Horizontal" default="0.0" variable="rel-weight-disposition" width="185" sizeVersion="0"></slider>
+    <button x="10" y="750" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-local-links" width="185" sizeVersion="0">ask local-links [ set hidden? not hidden? ]</button>
+    <button x="10" y="788" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-catchment-links" width="185" sizeVersion="0">ask catchment-links [ set hidden? not hidden? ]</button>
+    <slider x="10" step="1" y="674" max="24" display="n-local-links" height="33" min="0" direction="Horizontal" default="4.0" variable="n-local-links" width="185" sizeVersion="0"></slider>
+    <slider x="10" step="1" y="712" max="24" display="n-catchment-links" height="33" min="0" direction="Horizontal" default="6.0" variable="n-catchment-links" width="185" sizeVersion="0"></slider>
     <chooser x="890" y="10" height="45" variable="scenario" current="0" display="scenario" width="180" sizeVersion="0">
       <choice type="string" value="default"></choice>
       <choice type="string" value="luc-dependent"></choice>
@@ -519,10 +516,9 @@ this many patches</note>
     <monitor x="890" precision="0" y="673" height="45" fontSize="11" display="run-seed" width="180" sizeVersion="0">word run-seed
 ;; this is a workaround per
 ;; https://github.com/NetLogo/NetLogo/issues/2562#issuecomment-3353992160</monitor>
-    <slider x="890" step="0.01" y="723" max="19.99" display="sigmoid-slope" height="33" min="0.01" direction="Horizontal" default="10.0" variable="sigmoid-slope" width="180" sizeVersion="0"></slider>
-    <note x="890" y="769" backgroundDark="0" fontSize="12" width="180" markdown="true" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Interventions**</note>
-    <output x="890" y="789" height="175" fontSize="11" width="180"></output>
-    <monitor x="890" precision="1" y="970" height="45" fontSize="11" display="mean-farmer-age" width="180" sizeVersion="0">mean [age] of farmers</monitor>
+    <note x="890" y="731" backgroundDark="0" fontSize="12" width="180" markdown="true" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Interventions**</note>
+    <output x="890" y="751" height="213" fontSize="11" width="180"></output>
+    <monitor x="980" precision="1" y="970" height="45" fontSize="11" display="mean-farmer-age" width="90" sizeVersion="0">mean [age] of farmers</monitor>
     <input x="1080" multiline="false" y="10" height="60" variable="experiment-name" type="string" width="225" sizeVersion="0">scratch</input>
     <button x="1315" y="10" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="output-results" width="225" sizeVersion="0">output-results</button>
     <note x="1315" y="43" backgroundDark="0" fontSize="11" width="220" markdown="true" height="56" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**experiment-name** should be subfolder
@@ -543,13 +539,10 @@ of **output-results** folder</note>
       <setup></setup>
       <update></update>
     </plot>
-    <switch x="1080" y="675" height="33" on="true" variable="landuse-change-on-succession?" display="landuse-change-on-succession?" width="225" sizeVersion="0"></switch>
-    <switch x="1080" y="713" height="33" on="true" variable="apply-suitability?" display="apply-suitability?" width="225" sizeVersion="0"></switch>
-    <note x="1305" y="715" backgroundDark="0" fontSize="10" width="225" markdown="true" height="36" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**On**: LUC suitability applied to land use change
-decisions on holdings and farms</note>
-    <slider x="1080" step="0.1" y="751" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="3.0" variable="interest-rate" units="%" width="225" sizeVersion="0"></slider>
-    <slider x="1315" step="5" y="751" max="30" display="mortgage-term" height="33" min="5" direction="Horizontal" default="20.0" variable="mortgage-term" units="years" width="225" sizeVersion="0"></slider>
-    <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="789" xMin="20.0" height="226" legend="false" xMax="90.0" yMin="0.0" xAxis="Age" display="farmer ages" width="225" sizeVersion="0">
+    <switch x="1080" y="675" height="33" on="false" variable="landuse-change-on-succession?" display="landuse-change-on-succession?" width="225" sizeVersion="0"></switch>
+    <slider x="1080" step="0.1" y="713" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="3.0" variable="interest-rate" units="%" width="225" sizeVersion="0"></slider>
+    <slider x="1315" step="5" y="713" max="30" display="mortgage-term" height="33" min="5" direction="Horizontal" default="20.0" variable="mortgage-term" units="years" width="225" sizeVersion="0"></slider>
+    <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="751" xMin="20.0" height="264" legend="false" xMax="90.0" yMin="0.0" xAxis="Age" display="farmer ages" width="225" sizeVersion="0">
       <setup></setup>
       <update></update>
       <pen interval="1.0" mode="1" display="default" color="-16777216" legend="true">
@@ -559,7 +552,7 @@ set-histogram-num-bars 14
 histogram [age] of farmers</update>
       </pen>
     </plot>
-    <plot x="1315" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="789" xMin="0.0" height="226" legend="false" xMax="1.0" yMin="0.0" xAxis="Debt service ratio" display="debt" width="225" sizeVersion="0">
+    <plot x="1315" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="751" xMin="0.0" height="264" legend="false" xMax="1.0" yMin="0.0" xAxis="Debt service ratio" display="debt" width="225" sizeVersion="0">
       <setup></setup>
       <update></update>
       <pen interval="1.0" mode="1" display="default" color="-16777216" legend="true">
@@ -569,6 +562,12 @@ set-histogram-num-bars 10
 histogram [dsr] of farmers</update>
       </pen>
     </plot>
+    <switch x="10" y="10" height="33" on="false" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
+    <slider x="10" step="0.01" y="845" max="4" display="nudge-efficacy" height="33" min="0.25" direction="Horizontal" default="1.0" variable="nudge-efficacy" width="185" sizeVersion="0"></slider>
+    <note x="38" y="879" backgroundDark="0" fontSize="12" width="59" markdown="true" height="25" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">medium</note>
+    <note x="156" y="879" backgroundDark="0" fontSize="12" width="39" markdown="false" height="25" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">high</note>
+    <note x="10" y="879" backgroundDark="0" fontSize="12" width="34" markdown="false" height="25" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">low</note>
+    <note x="10" y="907" backgroundDark="0" fontSize="11" width="185" markdown="true" height="101" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Note** nudge-efficacy controls the slope parameter of an S-curve and is non-linear in its effects. Small changes at the low end of the range may lead to large changes.</note>
   </widgets>
   <info>## WHAT IS IT?
 

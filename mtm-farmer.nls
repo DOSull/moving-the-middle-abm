@@ -104,17 +104,6 @@ to make-farmer-catchment-links
   ]
 end
 
-;; make links between farmers in the catchment (don't care about similarities)
-to make-farmer-disposition-links
-  let colleagues n-of n-disposition-links (
-    other farmers with [not member? self [link-neighbors] of myself and 
-                        disposition = [disposition] of myself]
-  )
-  create-disposition-links-with colleagues [ 
-    set color table:get colour-key "disposition-link"
-    set hidden? true
-  ]
-end
 
 ;; ------------------------------------
 ;; SUCCESSION procedures
@@ -409,10 +398,6 @@ end
 ;; ]
 to-report get-intervention-options
   let options []
-  let network-nudges nobody
-  ifelse include-networks? 
-  [ set network-nudges get-network-nudges 1 rel-weight-locals rel-weight-catchment rel-weight-disposition]
-  [ set network-nudges get-network-nudges 1 0 0 0]
   ask my-holdings with [any-interventions-left-to-do?] [
     let option get-poll-of-available-interventions
     if length option > 0 [
@@ -424,38 +409,9 @@ to-report get-intervention-options
       set options lput option options
     ]
   ]
-;    
-;    ;; get interevention types be considered
-;    let to-consider get-available-interventions-list
-;    ;; get base probability for this farmer
-;    let base-probs map [poss -> [ get-adoption-probability poss ] of myself] to-consider
-;    ;; get nudges for intervention
-;    let nudges map [poss -> table:get table:get table:get intervention-properties "nudge" ft poss] to-consider
-;    ;; get network nudges 
-;    let to-consider-idxs map [x -> position x interventions] to-consider
-;    let nwk-nudges map [i -> matrix:get network-nudges position ft farm-types i] to-consider-idxs
-;    ;; adjust probabilities using sigmoid function
-;    let probs (map [[prob nudge nwk-nudge] -> get-nudged-probability prob (nudge + nwk-nudge)] base-probs nudges nwk-nudges)
-;    set probs map [x -> precision x 4] probs
-;    ;; put results in a list of tuples [[<INTERVENTION> <PROBABILITY>]]
-;    ;; by weighted random draw and return it to the calling context
-;    let management-changes (map list to-consider probs)
-;    ;; put one of them into the returned set of options
-;    set options lput (list self rnd:weighted-one-of-list management-changes [ [p] -> last p ]) options
-;  ; set options (sentence options map [x -> (list self x)] management-changes)
-;  ]
   report options
 end
 
-
-;; reports (list row col) of (farm-type intervention) of a
-;to-report poll-network-interventions [ft]
-;  report first rnd:weighted-one-of-list 
-;                 (map list (range length interventions) 
-;                           ((map [[x y] -> 1 + x] get-count-network-interventions ft
-;                                                  ))) 
-;                 [p -> last p]
-;end
 
 ;; holding reporter
 to-report get-poll-of-available-interventions
@@ -471,26 +427,12 @@ to-report get-count-network-interventions [f ft]
   ask f [
     set intervention-counts my-interventions
     if include-networks? [
-      let local-interventions       rel-weight-locals      matrix:* sum-matrices [my-interventions] of local-link-neighbors
-      let catchment-interventions   rel-weight-catchment   matrix:* sum-matrices [my-interventions] of catchment-link-neighbors
-      let disposition-interventions rel-weight-disposition matrix:* sum-matrices [my-interventions] of disposition-link-neighbors
-      set intervention-counts sum-matrices (list intervention-counts local-interventions catchment-interventions disposition-interventions)
+      let local-interventions sum-matrices [my-interventions] of local-link-neighbors
+      let catchment-interventions sum-matrices [my-interventions] of catchment-link-neighbors
+      set intervention-counts sum-matrices (list intervention-counts local-interventions catchment-interventions)
     ]
   ]
   report matrix:get-row intervention-counts position ft farm-types
-end
-
-;; reports a combined nudge based on the proportion of holdings that have taken
-;; up various interventions by landuse type weighted somehow
-to-report get-network-nudges [w1 w2 w3 w4]
-  let farm-interventions          w1 matrix:* my-interventions matrix:* (1 / count my-holdings with [farm-type = [farm-type] of myself])
-  ifelse include-networks? [
-    let local-interventions       w2 matrix:* sum-matrices [my-interventions] of local-link-neighbors matrix:* (1 / count local-link-neighbors)
-    let catchment-interventions   w3 matrix:* sum-matrices [my-interventions] of catchment-link-neighbors matrix:* (1 / count catchment-link-neighbors)
-    let disposition-interventions w4 matrix:* sum-matrices [my-interventions] of disposition-link-neighbors matrix:* (1 / count disposition-link-neighbors)
-    report sum-matrices (list farm-interventions local-interventions catchment-interventions disposition-interventions)
-  ]
-  [ report farm-interventions ]
 end
 
 
@@ -533,8 +475,8 @@ end
 ;; reports revised probability from 'nudging' initial
 ;; initial probability p along a sigmoid curve
 to-report get-nudged-probability [p nudge]
-  let centre logit p sigmoid-slope
-  report sigmoid (centre + nudge) sigmoid-slope
+  let centre logit p nudge-efficacy
+  report sigmoid (centre + nudge) nudge-efficacy
 end
 
 

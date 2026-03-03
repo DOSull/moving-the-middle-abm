@@ -1,0 +1,157 @@
+;; ----------------------------------------------------------------------------
+;; many scenario and spatial setup parameters are in files not the UI
+;;
+;; most of the 'action' here now happens in table-utils
+;; ----------------------------------------------------------------------------
+
+;; initialise various folders - here for convenient modification in one place
+to setup-folders
+  let base-data-folder    join-string (list pathdir:get-model-path "data")      pathdir:get-separator
+  set output-data-folder  join-string (list base-data-folder "output")          pathdir:get-separator
+  set market-data-folder  join-string (list base-data-folder "market" scenario) pathdir:get-separator
+  set spatial-data-folder join-string (list base-data-folder "spatial")         pathdir:get-separator
+end
+
+
+;; ----------------------------------------------------------------------------
+;; farmer (behavioural) parameter setup
+;; ----------------------------------------------------------------------------
+to setup-farmer-parameters
+  set env-metrics                   read-multi-row-table join-string (list market-data-folder "environmental-metrics.csv")    pathdir:get-separator false
+  set farm-types                   sort get-column-names join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator 2
+  set interventions sort remove-duplicates get-row-names join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator 1
+  set dispositions      table:to-list read-one-row-table join-string (list market-data-folder "farmer-dispositions.csv")      pathdir:get-separator false
+  set debt-service-ratios           read-multi-row-table join-string (list market-data-folder "debt-service-ratios.csv")      pathdir:get-separator false
+  set intervention-properties       read-three-way-table join-string (list market-data-folder "intervention-details.csv")     pathdir:get-separator false
+  set base-thresholds               read-three-way-table join-string (list market-data-folder "farmer-threshold-matrix.csv")  pathdir:get-separator false
+  set farm-type-change-probs       read-transition-table join-string (list market-data-folder "conversion-probabilities.csv") pathdir:get-separator
+  foreach interventions [ i -> output-print i ]
+end
+
+
+;; ----------------------------------------------------------------------------
+;; economic setup procedures
+;; ----------------------------------------------------------------------------
+to setup-economic-parameters
+  set yield-means matrix:from-row-list map [t -> table:values t] table:values table:get get-yields "Mean"
+  set yield-sds   matrix:from-row-list map [t -> table:values t] table:values table:get get-yields "SD"
+  set cost-means  matrix:from-row-list map [t -> table:values t] table:values table:get get-costs  "Mean"
+  set cost-sds    matrix:from-row-list map [t -> table:values t] table:values table:get get-costs  "SD"
+  setup-costs-yields-time-series
+  set prices      col-matrix get-prices
+  set prices-time-series get-prices-time-series
+  setup-environmental-metrics
+end
+
+;;
+;; Note that these are all setup as reporters to make it easier to test them from the console
+;;
+to-report get-yields
+  report read-three-way-table join-string (list market-data-folder "yields.csv") pathdir:get-separator false
+end
+
+to-report get-costs
+  report read-three-way-table join-string (list market-data-folder "costs.csv") pathdir:get-separator false
+end
+
+to setup-costs-yields-time-series
+  let tbl read-three-way-table join-string (list market-data-folder "costs-yields-time-series.csv") pathdir:get-separator true
+  set cost-means-time-series  table:get table:get tbl "Mean" "costs"
+  set cost-sds-time-series    table:get table:get tbl "SD"   "costs"
+  set yield-means-time-series table:get table:get tbl "Mean" "yields"
+  set yield-sds-time-series   table:get table:get tbl "SD"   "yields"
+end
+
+
+to setup-environmental-metrics
+  set env-metric-means table:make
+  set env-metric-sds table:make
+  foreach sort table:keys env-metrics [ metric ->
+    let metric-vals read-three-way-table join-string (list market-data-folder (word metric ".csv")) pathdir:get-separator false
+    table:put env-metric-means metric matrix:from-row-list map [t -> table:values t] table:values table:get metric-vals "Mean"
+    table:put env-metric-sds   metric matrix:from-row-list map [t -> table:values t] table:values table:get metric-vals "SD"
+  ]
+end
+
+
+to-report get-prices
+  report read-one-row-table join-string (list market-data-folder "prices.csv") pathdir:get-separator true
+end
+
+to-report get-prices-time-series
+  let prices-ts get-table-transpose read-multi-row-table join-string (list market-data-folder "prices-time-series.csv") pathdir:get-separator false
+  report map [x -> col-matrix x] 
+         table:values 
+         table:from-list (map list table:keys prices-ts
+                                   map [tbl -> table:values tbl] table:values prices-ts)
+end
+
+
+;; There is potential in matrix approaches for speeding up the calculations, perhaps even making them more 
+;; 'sophisticated'. However some of this may come at the cost of 
+;;
+;;   (i) less readable code, and 
+;;  (ii) less variance in outcomes
+;; 
+;; On (ii) specifically there is now no base patch level variance, i.e. the mean yield, emissions
+;; and input costs of every patch of given landuse and LUC combination is effectively identical - not 
+;; initialised with the supplied SD. The SD is applied to patches each round BUT AT HOLDING LEVEL. That is,
+;; every patch on a given holding with given LU/LUC experiences same deviation from mean outcomes in a 
+;; particular year. But a neighbouring holding might experience quite different deviations.
+to make-matrix-copies-of-some-data
+  ;; a list of modifier function that have to be applied to data in tables for use in matrices
+  let fns (list
+    [x -> replace x na-value 0] ;; replace NAs with 0 
+    [x -> 1 + x]                ;; add 1 to cases where the numbers are multipliers
+    [x -> precision x 3]        ;; reduce precision to something reasonable
+  )
+  set intervention-cost-impacts 
+    table-as-matrix table:get intervention-properties "costs" farm-types interventions remove-item 1 fns
+  set intervention-yield-impacts 
+    table-as-matrix table:get intervention-properties "yields" farm-types interventions fns
+  let metrics sort table:keys env-metrics
+  set intervention-env-impacts table:from-list (map list
+    metrics 
+    map [m -> table-as-matrix table:get intervention-properties m farm-types interventions fns] metrics
+  )
+end
+
+;; reports a two-way table indexed by row-names and col-names as a matrix
+;; optionally 'post-processed' by applying a list of supplied anonymous functions
+to-report table-as-matrix [tbl row-names col-names modifiers]
+  let cols []
+  foreach row-names [ r ->
+    let col-table table:get tbl r
+    let values map [c -> table:get col-table c] col-names
+    set cols lput values cols
+  ]
+  let mtx matrix:from-column-list cols
+  foreach modifiers [ m ->
+    set mtx matrix:map [x -> (runresult m x)] mtx
+  ]
+  report mtx
+end
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-25 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.

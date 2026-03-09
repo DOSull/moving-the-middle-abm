@@ -427,9 +427,12 @@ to-report get-count-network-interventions [f ft]
   ask f [
     set intervention-counts my-interventions
     if include-networks? [
-      let local-interventions sum-matrices [my-interventions] of local-link-neighbors
-      let catchment-interventions sum-matrices [my-interventions] of catchment-link-neighbors
-      set intervention-counts sum-matrices (list intervention-counts local-interventions catchment-interventions)
+      if any? local-link-neighbors [
+        set intervention-counts intervention-counts matrix:+ sum-matrices [my-interventions] of local-link-neighbors
+      ]
+      if any? catchment-link-neighbors [
+        set intervention-counts intervention-counts matrix:+ sum-matrices [my-interventions] of catchment-link-neighbors
+      ]
     ]
   ]
   report matrix:get-row intervention-counts position ft farm-types

@@ -484,7 +484,7 @@ LUC values (better land).</note>
     <button x="10" y="617" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-holdings" width="185" sizeVersion="0">ask holdings [set hidden? not hidden?]</button>
     <button x="10" y="750" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-local-links" width="185" sizeVersion="0">ask local-links [ set hidden? not hidden? ]</button>
     <button x="10" y="788" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-catchment-links" width="185" sizeVersion="0">ask catchment-links [ set hidden? not hidden? ]</button>
-    <slider x="10" step="1" y="674" max="24" display="n-local-links" height="33" min="0" direction="Horizontal" default="4.0" variable="n-local-links" width="185" sizeVersion="0"></slider>
+    <slider x="10" step="1" y="674" max="24" display="n-local-links" height="33" min="0" direction="Horizontal" default="6.0" variable="n-local-links" width="185" sizeVersion="0"></slider>
     <slider x="10" step="1" y="712" max="24" display="n-catchment-links" height="33" min="0" direction="Horizontal" default="6.0" variable="n-catchment-links" width="185" sizeVersion="0"></slider>
     <chooser x="890" y="10" height="45" variable="scenario" current="0" display="scenario" width="180" sizeVersion="0">
       <choice type="string" value="default"></choice>
@@ -562,7 +562,7 @@ set-histogram-num-bars 10
 histogram [dsr] of farmers</update>
       </pen>
     </plot>
-    <switch x="10" y="10" height="33" on="false" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
+    <switch x="10" y="10" height="33" on="true" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
     <slider x="10" step="0.01" y="845" max="4" display="nudge-efficacy" height="33" min="0.25" direction="Horizontal" default="1.0" variable="nudge-efficacy" width="185" sizeVersion="0"></slider>
     <note x="38" y="879" backgroundDark="0" fontSize="12" width="59" markdown="true" height="25" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">medium</note>
     <note x="156" y="879" backgroundDark="0" fontSize="12" width="39" markdown="false" height="25" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">high</note>

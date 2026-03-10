@@ -363,7 +363,6 @@ end
 ;; 
 ;; holdings will either be all the eligible holdings on the farm or a single holding
 to make-farm-type-changes [potential-changes] 
-  if show-events? [ show "Entered make-farm-type-changes" ]
   let changes-to-make rnd:weighted-one-of-list potential-changes [ [p] -> last p ]
   if random-float 1 < last changes-to-make [
     let [holdings-to-change change-type current-farm-type new-farm-type] first changes-to-make
@@ -446,7 +445,6 @@ to make-management-changes [possible-changes]
     let [the-holding i-prob] change
     let [i-type prob] i-prob
     if random-float 1 < prob [
-      if show-events? [ show (word "Implementing " i-type " on " the-holding) ]
       ask the-holding [ do-intervention i-type ]
     ]
   ]

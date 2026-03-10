@@ -16,6 +16,13 @@
 ;  ]
 ;end
 
+to setup-random-geography-parameters
+  set luc-aggregation-steps 30
+  set number-of-farms 1000
+  set correlated-landuse? true
+  set landuse-aggregation-steps 4
+  set geography-seed new-seed
+end  
 
 ;; note that set-world-size kills all turtles so this must be done BEFORE any 
 ;; turtles are initialised

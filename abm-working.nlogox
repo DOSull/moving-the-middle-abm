@@ -141,16 +141,9 @@ patches-own [
 ;; MAIN LOOP i.e., setup and go
 ;; ----------------------------------------------------------------------------
 to setup
-  set geography-from-files? true
-  set max-dimension 330
-  set luc-aggregation-steps 30
-  set number-of-farms 1000
-  set correlated-landuse? true
-  set landuse-aggregation-steps 4
-  
   ;; Setup order is very sensitive to a number of interdependencies among the various
   ;; elements. So be VERY CAREFUL IF CHANGING THE SEQUENCE OF OPERATIONS in this procedure
-  ifelse reinitialise? or geography-from-files? [
+  ifelse reinitialise? [
     clear-all
   ]
   [
@@ -161,23 +154,25 @@ to setup
     clear-ticks
     setup-world-dimensions
   ]
+  set geography-from-files? true
+  set max-dimension 330
   set years-per-tick 5
   set hectares-per-patch 16
   set discount-rate 8
   set epsilon 1e-16
   set na-value -999
   set show-labels? false; true; 
-  set apply-suitability? true
 
-  set geography-seed new-seed
   set run-seed ifelse-value user-run-seed? [run-rng-seed] [new-seed]
-
-  setup-folders  ;; mtm-read-files.nls
-  if reinitialise? or geography-from-files? [
+  
+  set apply-suitability? true
+  
+  setup-folders
+  if reinitialise? [
     if geography-from-files? [
       set spatial-data-folder join-list (list spatial-data-folder region) pathdir:get-separator
     ]
-    carefully 
+    carefully
     [ setup-world-dimensions ] 
     [ user-message "Problem setting up world-dimensions" stop ]
 
@@ -470,15 +465,15 @@ end
 ;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ;; DEALINGS IN THE SOFTWARE.]]></code>
   <widgets>
-    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="1003" showTickCounter="true" patchSize="3.0" fontSize="7" wrappingAllowedY="false" width="422" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="137" minPxcor="0"></view>
-    <switch x="10" y="270" height="33" on="false" variable="reinitialise?" display="reinitialise?" width="185" sizeVersion="0"></switch>
-    <button x="10" y="346" height="33" disableUntilTicks="true" forever="false" kind="Observer" display="reset" width="90" sizeVersion="0">restore-initial-values
+    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="994" showTickCounter="true" patchSize="3.0" fontSize="7" wrappingAllowedY="false" width="559" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="184" minPxcor="0"></view>
+    <switch x="10" y="275" height="33" on="false" variable="reinitialise?" display="reinitialise?" width="185" sizeVersion="0"></switch>
+    <button x="10" y="351" height="33" disableUntilTicks="true" forever="false" kind="Observer" display="reset" width="90" sizeVersion="0">restore-initial-values
 </button>
-    <button x="10" y="308" height="33" disableUntilTicks="false" forever="false" kind="Observer" width="90" sizeVersion="0">setup</button>
-    <button x="10" y="384" height="33" disableUntilTicks="false" forever="false" kind="Observer" width="90" sizeVersion="0">reset-rng</button>
-    <button x="105" y="308" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="step" width="90" sizeVersion="0">go</button>
-    <button x="105" y="346" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="step-10" width="90" sizeVersion="0">repeat 10 [go]</button>
-    <button x="105" y="384" height="33" disableUntilTicks="false" forever="true" kind="Observer" width="90" sizeVersion="0">go</button>
+    <button x="10" y="313" height="33" disableUntilTicks="false" forever="false" kind="Observer" width="90" sizeVersion="0">setup</button>
+    <button x="10" y="389" height="33" disableUntilTicks="false" forever="false" kind="Observer" width="90" sizeVersion="0">reset-rng</button>
+    <button x="105" y="313" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="step" width="90" sizeVersion="0">go</button>
+    <button x="105" y="351" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="step-10" width="90" sizeVersion="0">repeat 10 [go]</button>
+    <button x="105" y="389" height="33" disableUntilTicks="false" forever="true" kind="Observer" width="90" sizeVersion="0">go</button>
     <switch x="10" y="816" height="33" on="true" variable="show-landuse?" display="show-landuse?" width="185" sizeVersion="0"></switch>
     <note x="10" y="849" backgroundDark="0" fontSize="11" width="185" markdown="true" height="36" textColorDark="-1" textColorLight="-16777216" backgroundLight="0"><![CDATA[&nbsp;&nbsp;&nbsp;**Crop** Purple **Dairy** Blue
   **Forest** Green &nbsp;&nbsp;&nbsp;**SNB** Brown]]></note>
@@ -495,25 +490,24 @@ LUC values (better land).</note>
     <button x="10" y="778" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="toggle-catchment-links" width="185" sizeVersion="0">ask catchment-links [ set hidden? not hidden? ]</button>
     <slider x="890" step="1" y="261" max="24" display="n-local-links" height="33" min="0" direction="Horizontal" default="6.0" variable="n-local-links" width="185" sizeVersion="0"></slider>
     <slider x="890" step="1" y="299" max="24" display="n-catchment-links" height="33" min="0" direction="Horizontal" default="6.0" variable="n-catchment-links" width="185" sizeVersion="0"></slider>
-    <chooser x="10" y="10" height="45" variable="scenario" current="0" display="scenario" width="185" sizeVersion="0">
+    <chooser x="10" y="142" height="45" variable="scenario" current="0" display="scenario" width="185" sizeVersion="0">
       <choice type="string" value="default"></choice>
       <choice type="string" value="luc-dependent"></choice>
       <choice type="string" value="null-market"></choice>
     </chooser>
-    <chooser x="10" y="60" height="45" variable="region" current="0" display="region" width="185" sizeVersion="0">
+    <chooser x="10" y="192" height="45" variable="region" current="0" display="region" width="185" sizeVersion="0">
       <choice type="string" value="Oreti"></choice>
       <choice type="string" value="Waihou-Piako"></choice>
       <choice type="string" value="Rangitaiki"></choice>
     </chooser>
-    <input x="10" multiline="false" y="422" height="60" variable="run-rng-seed" type="number" width="185" sizeVersion="0">1.0</input>
-    <switch x="10" y="487" height="33" on="true" variable="user-run-seed?" display="user-run-seed?" width="185" sizeVersion="0"></switch>
-    <monitor x="10" precision="0" y="525" height="45" fontSize="11" display="run-seed" width="185" sizeVersion="0">word run-seed
+    <input x="10" multiline="false" y="427" height="60" variable="run-rng-seed" type="number" width="185" sizeVersion="0">1.0</input>
+    <switch x="10" y="492" height="33" on="true" variable="user-run-seed?" display="user-run-seed?" width="185" sizeVersion="0"></switch>
+    <monitor x="10" precision="0" y="530" height="45" fontSize="11" display="run-seed" width="185" sizeVersion="0">word run-seed
 ;; this is a workaround per
 ;; https://github.com/NetLogo/NetLogo/issues/2562#issuecomment-3353992160</monitor>
     <output x="890" y="684" height="322" fontSize="11" width="185"></output>
-    <input x="10" multiline="false" y="110" height="60" variable="experiment-name" type="string" width="185" sizeVersion="0">scratch</input>
-    <button x="10" y="175" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="output-results" width="185" sizeVersion="0">output-results</button>
-    <note x="10" y="208" backgroundDark="0" fontSize="11" width="185" markdown="true" height="56" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**experiment-name** should be subfolder of **output-results** folder</note>
+    <input x="10" multiline="false" y="10" height="60" variable="experiment-name" type="string" width="185" sizeVersion="0">scratch</input>
+    <button x="10" y="75" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="output-results" width="185" sizeVersion="0">output-results</button>
     <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="$ Total" y="10" xMin="0.0" height="322" legend="true" xMax="10.0" yMin="0.0" xAxis="Time" display="Income-costs" width="225" sizeVersion="0">
       <setup></setup>
       <update></update>
@@ -560,6 +554,8 @@ histogram [dsr] of farmers</update>
     <note x="890" y="44" backgroundDark="0" fontSize="12" width="34" markdown="false" height="25" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">low</note>
     <note x="890" y="64" backgroundDark="0" fontSize="11" width="185" markdown="true" height="101" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Note** nudge-efficacy controls the slope parameter of an S-curve and is non-linear in its effects. Small changes at the low end of the range may lead to large changes.</note>
     <note x="890" y="666" backgroundDark="0" fontSize="12" width="180" markdown="true" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Interventions**</note>
+    <note x="10" y="108" backgroundDark="0" fontSize="11" width="185" markdown="true" height="34" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**experiment-name** is a subfolder of **output-results** folder</note>
+    <note x="10" y="238" backgroundDark="0" fontSize="11" width="185" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Note** to pick new region, reload model from **File - Recent Files**</note>
   </widgets>
   <info>## WHAT IS IT?
 

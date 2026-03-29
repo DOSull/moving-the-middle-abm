@@ -401,9 +401,12 @@ to-report get-intervention-options
     let option get-poll-of-available-interventions
     if length option > 0 [
       let ft farm-type
+      ;; option is [intervention poll-weight]
+      ;; associated network nudge is the poll-weight
       let probability [get-adoption-probability first option] of myself
+      let network-nudge last option
       let nudge table:get table:get table:get intervention-properties "nudge" ft first option
-      set probability precision (get-nudged-probability probability nudge) 4
+      set probability precision (get-nudged-probability probability (nudge + network-nudge)) 4
       set option (list self (list first option probability))
       set options lput option options
     ]
@@ -416,8 +419,9 @@ end
 to-report get-poll-of-available-interventions
   let avail matrix:get-row avail-interventions 0
   if sum avail = 0 [ report [] ]
-  let weights (map [[x y] -> (1 + x) * y] get-count-network-interventions my-farmer farm-type avail)
-;  show weights
+  let weights (map [[x y] -> x * y] get-fraction-network-interventions my-farmer farm-type avail)
+  ;; show weights
+  ;; returns a single list [intervention poll-weight]
   report rnd:weighted-one-of-list (map list interventions weights) [p -> last p]
 end
 
@@ -435,6 +439,27 @@ to-report get-count-network-interventions [f ft]
     ]
   ]
   report matrix:get-row intervention-counts position ft farm-types
+end
+
+to-report get-fraction-network-interventions [f ft]
+  let intervention-counts nobody
+  let denominator 0
+  ask f [
+    set intervention-counts my-interventions
+    set denominator denominator + count my-holdings
+    if include-networks? [
+      if any? local-link-neighbors [
+        set intervention-counts intervention-counts matrix:+ sum-matrices [my-interventions] of local-link-neighbors
+        set denominator denominator + count local-link-neighbors
+      ]
+      if any? catchment-link-neighbors [
+        set intervention-counts intervention-counts matrix:+ sum-matrices [my-interventions] of catchment-link-neighbors
+        set denominator denominator + count catchment-link-neighbors
+      ]
+    ]
+  ]
+  let intervention-fractions intervention-counts matrix:* (1 / denominator)
+  report matrix:get-row intervention-fractions position ft farm-types
 end
 
 

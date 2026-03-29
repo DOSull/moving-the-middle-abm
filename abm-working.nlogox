@@ -465,7 +465,7 @@ end
 ;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ;; DEALINGS IN THE SOFTWARE.]]></code>
   <widgets>
-    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="994" showTickCounter="true" patchSize="3.0" fontSize="7" wrappingAllowedY="false" width="559" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="184" minPxcor="0"></view>
+    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="994" showTickCounter="true" patchSize="3.0" fontSize="7" wrappingAllowedY="false" width="418" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="137" minPxcor="0"></view>
     <input x="10" multiline="false" y="10" height="60" variable="experiment-name" type="string" width="185" sizeVersion="0">scratch</input>
     <button x="10" y="75" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="output-results" width="185" sizeVersion="0">output-results</button>
     <note x="10" y="108" backgroundDark="0" fontSize="11" width="185" markdown="true" height="34" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**experiment-name** is a subfolder of **output-results** folder</note>
@@ -506,18 +506,18 @@ end
     <switch x="10" y="940" height="33" on="true" variable="show-luc-codes?" display="show-luc-codes?" width="185" sizeVersion="0"></switch>
     <note x="10" y="973" backgroundDark="0" fontSize="11" width="185" markdown="false" height="40" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">More intense colours are lower
 LUC values (better land).</note>
-    <slider x="890" step="0.01" y="10" max="4" display="nudge-efficacy" height="33" min="0.25" direction="Horizontal" default="1.0" variable="nudge-efficacy" width="185" sizeVersion="0"></slider>
-    <note x="890" y="44" backgroundDark="0" fontSize="12" width="34" markdown="false" height="25" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">low</note>
-    <note x="918" y="44" backgroundDark="0" fontSize="12" width="59" markdown="true" height="25" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">medium</note>
-    <note x="1036" y="44" backgroundDark="0" fontSize="12" width="39" markdown="false" height="25" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">high</note>
-    <note x="890" y="64" backgroundDark="0" fontSize="11" width="185" markdown="true" height="101" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Note** nudge-efficacy controls the slope parameter of an S-curve and is non-linear in its effects. Small changes at the low end of the range may lead to large changes.</note>
-    <switch x="890" y="175" height="33" on="false" variable="landuse-change-on-succession?" display="landuse-change-on-succession?" width="185" sizeVersion="0"></switch>
-    <switch x="890" y="223" height="33" on="false" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
+    <switch x="890" y="10" height="33" on="false" variable="include-networks?" display="include-networks?" width="185" sizeVersion="0"></switch>
+    <slider x="890" step="1" y="48" max="24" display="n-local-links" height="33" min="0" direction="Horizontal" default="6.0" variable="n-local-links" width="185" sizeVersion="0"></slider>
+    <slider x="890" step="1" y="86" max="24" display="n-catchment-links" height="33" min="0" direction="Horizontal" default="6.0" variable="n-catchment-links" width="185" sizeVersion="0"></slider>
+    <note x="890" y="163" backgroundDark="0" fontSize="12" width="34" markdown="false" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">low</note>
+    <note x="918" y="163" backgroundDark="0" fontSize="12" width="59" markdown="true" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">medium</note>
+    <note x="1036" y="163" backgroundDark="0" fontSize="12" width="39" markdown="false" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">high</note>
+    <slider x="890" step="0.01" y="183" max="4" display="nudge-efficacy" height="33" min="0.0" direction="Horizontal" default="0.49" variable="nudge-efficacy" width="185" sizeVersion="0"></slider>
+    <note x="890" y="219" backgroundDark="0" fontSize="11" width="185" markdown="true" height="104" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Note** nudge-efficacy is slope of S-curve with non-linear effects: small changes at low values can cause big changes. Nudge may be policy or network driven.</note>
+    <slider x="890" step="0.1" y="390" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="3.0" variable="interest-rate" units="%" width="185" sizeVersion="0"></slider>
+    <slider x="890" step="5" y="428" max="30" display="mortgage-term" height="33" min="5" direction="Horizontal" default="20.0" variable="mortgage-term" units="years" width="185" sizeVersion="0"></slider>
+    <switch x="890" y="347" height="33" on="false" variable="landuse-change-on-succession?" display="landuse-change-on-succession?" width="185" sizeVersion="0"></switch>
     <note x="890" y="666" backgroundDark="0" fontSize="12" width="180" markdown="true" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Interventions**</note>
-    <slider x="890" step="1" y="261" max="24" display="n-local-links" height="33" min="0" direction="Horizontal" default="6.0" variable="n-local-links" width="185" sizeVersion="0"></slider>
-    <slider x="890" step="1" y="299" max="24" display="n-catchment-links" height="33" min="0" direction="Horizontal" default="6.0" variable="n-catchment-links" width="185" sizeVersion="0"></slider>
-    <slider x="890" step="0.1" y="347" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="3.0" variable="interest-rate" units="%" width="185" sizeVersion="0"></slider>
-    <slider x="890" step="5" y="385" max="30" display="mortgage-term" height="33" min="5" direction="Horizontal" default="20.0" variable="mortgage-term" units="years" width="185" sizeVersion="0"></slider>
     <output x="890" y="684" height="322" fontSize="11" width="185"></output>
     <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="$ Total" y="10" xMin="0.0" height="322" legend="true" xMax="10.0" yMin="0.0" xAxis="Time" display="Income-costs" width="225" sizeVersion="0">
       <setup></setup>

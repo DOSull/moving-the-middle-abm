@@ -570,6 +570,8 @@ to-report get-farmer-status
     (ifelse-value debt-free? ["TRUE"] ["FALSE"])
     dsr
     count my-holdings
+    count local-link-neighbors
+    count catchment-link-neighbors
     matrix:get-row sum-matrices [my-interventions] of my-holdings 0
   )
 end
@@ -592,6 +594,8 @@ to-report get-farmer-csv-header
     "debt_free"
     "debt_service_ratio"
     "n_holdings"
+    "n_local_links"
+    "n_catchment_links"
     interventions
   )
 end

@@ -480,7 +480,7 @@ end
       <choice type="string" value="Rangitaiki"></choice>
     </chooser>
     <note x="10" y="238" backgroundDark="0" fontSize="11" width="185" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Note** to pick new region, reload model from **File - Recent Files**</note>
-    <switch x="10" y="275" height="33" on="false" variable="reinitialise?" display="reinitialise?" width="185" sizeVersion="0"></switch>
+    <switch x="10" y="275" height="33" on="true" variable="reinitialise?" display="reinitialise?" width="185" sizeVersion="0"></switch>
     <button x="10" y="313" height="33" disableUntilTicks="false" forever="false" kind="Observer" width="90" sizeVersion="0">setup</button>
     <button x="105" y="313" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="step" width="90" sizeVersion="0">go</button>
     <button x="10" y="351" height="33" disableUntilTicks="true" forever="false" kind="Observer" display="reset" width="90" sizeVersion="0">restore-initial-values</button>

@@ -77,6 +77,7 @@ to make-farmer-local-links
   ;; make twice as many as we need to choose from
   let n-options n-local-links * 2  
   let locals other (turtle-set [the-owner] of patch-set flatten-list [neighbors4] of the-land)
+  set locals locals with [not member? self [link-neighbors] of myself]
   let r 0
   ifelse any? locals
   [ set r max [distance myself] of locals + 5 ]
@@ -84,7 +85,7 @@ to make-farmer-local-links
   ;; if we didn't get enough then widen the search until we do
   if count locals < n-options [
     while [count locals < n-options] [
-      set locals other (turtle-set locals farmers in-radius r)
+      set locals other (turtle-set locals farmers in-radius r with [not member? self [link-neighbors] of myself])
       set r r + 5
     ]
   ]

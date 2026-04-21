@@ -152,7 +152,6 @@ to setup
     clear-all-plots
     clear-drawing
     clear-ticks
-    setup-world-dimensions
   ]
   set geography-from-files? true
   set max-dimension 330
@@ -190,7 +189,9 @@ to setup
   make-matrix-copies-of-some-data
 
   carefully 
-  [ setup-geography ] 
+  [ setup-world-dimensions
+    setup-geography
+  ] 
   [ user-message "Problem setting up geography" stop ]
 
   setup-results-tables   ;; see mtm-results.nls
@@ -471,7 +472,8 @@ end
     <note x="10" y="108" backgroundDark="0" fontSize="11" width="185" markdown="true" height="34" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**experiment-name** is a subfolder of **output-results** folder</note>
     <chooser x="10" y="142" height="45" variable="scenario" current="0" display="scenario" width="185" sizeVersion="0">
       <choice type="string" value="default"></choice>
-      <choice type="string" value="no-landuse-change"></choice>
+      <choice type="string" value="luc-dependent"></choice>
+      <choice type="string" value="null-market"></choice>
     </chooser>
     <chooser x="10" y="192" height="45" variable="region" current="2" display="region" width="185" sizeVersion="0">
       <choice type="string" value="Oreti"></choice>

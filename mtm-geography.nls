@@ -30,6 +30,8 @@ to setup-world-dimensions
   let cell-size 3
   let ncols 270
   let nrows 400
+  let xll 0
+  let yll 0
   let raster-pixel-resolution 3 ;; i.e. the patch cellsize in the NetLogo view
   ;; if initialising from geospatial data we override some of these defaults
   if geography-from-files? [
@@ -48,8 +50,8 @@ to setup-world-dimensions
       file-open join-list (list spatial-data-folder "luc.asc") pathdir:get-separator
       set ncols read-from-string item 1 split-string file-read-line " "
       set nrows read-from-string item 1 split-string file-read-line " "
-      let skip file-read-line
-      set skip file-read-line
+      set xll read-from-string item 1 split-string file-read-line " "
+      set yll read-from-string item 1 split-string file-read-line " "
       set raster-pixel-resolution read-from-string item 1 split-string file-read-line " "
       file-close
     ]
@@ -73,6 +75,7 @@ to setup-world-dimensions
     join-string (list "  NetLogo window:" x y) " "
   ) "\n"
   resize-world item 0 x item 1 x item 0 y item 1 y
+  gis:set-world-envelope (list xll (xll + x-extent) yll (yll + y-extent))
   print (word "Setting model dimensions to " x " by " y )
   set-patch-size cell-size * max-dimension / max (list world-width world-height)
 end

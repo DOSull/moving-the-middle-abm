@@ -1,0 +1,5 @@
+,SNB,Dairy,Forest,Crop
+SNB,1,0,0,0
+Dairy,0,1,0,0
+Forest,0,0,1,0
+Crop,0,0,0,1

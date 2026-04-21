@@ -465,22 +465,21 @@ end
 ;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ;; DEALINGS IN THE SOFTWARE.]]></code>
   <widgets>
-    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="994" showTickCounter="true" patchSize="3.0" fontSize="7" wrappingAllowedY="false" width="418" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="137" minPxcor="0"></view>
+    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="994" showTickCounter="true" patchSize="3.2890365448504983" fontSize="7" wrappingAllowedY="false" width="517" tickCounterLabel="Year" maxPycor="300" updateMode="1" maxPxcor="155" minPxcor="0"></view>
     <input x="10" multiline="false" y="10" height="60" variable="experiment-name" type="string" width="185" sizeVersion="0">scratch</input>
     <button x="10" y="75" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="output-results" width="185" sizeVersion="0">output-results</button>
     <note x="10" y="108" backgroundDark="0" fontSize="11" width="185" markdown="true" height="34" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**experiment-name** is a subfolder of **output-results** folder</note>
     <chooser x="10" y="142" height="45" variable="scenario" current="0" display="scenario" width="185" sizeVersion="0">
       <choice type="string" value="default"></choice>
-      <choice type="string" value="luc-dependent"></choice>
-      <choice type="string" value="null-market"></choice>
+      <choice type="string" value="no-landuse-change"></choice>
     </chooser>
-    <chooser x="10" y="192" height="45" variable="region" current="0" display="region" width="185" sizeVersion="0">
+    <chooser x="10" y="192" height="45" variable="region" current="2" display="region" width="185" sizeVersion="0">
       <choice type="string" value="Oreti"></choice>
       <choice type="string" value="Waihou-Piako"></choice>
       <choice type="string" value="Rangitaiki"></choice>
     </chooser>
     <note x="10" y="238" backgroundDark="0" fontSize="11" width="185" markdown="true" height="32" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Note** to pick new region, reload model from **File - Recent Files**</note>
-    <switch x="10" y="275" height="33" on="true" variable="reinitialise?" display="reinitialise?" width="185" sizeVersion="0"></switch>
+    <switch x="10" y="275" height="33" on="false" variable="reinitialise?" display="reinitialise?" width="185" sizeVersion="0"></switch>
     <button x="10" y="313" height="33" disableUntilTicks="false" forever="false" kind="Observer" width="90" sizeVersion="0">setup</button>
     <button x="105" y="313" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="step" width="90" sizeVersion="0">go</button>
     <button x="10" y="351" height="33" disableUntilTicks="true" forever="false" kind="Observer" display="reset" width="90" sizeVersion="0">restore-initial-values</button>

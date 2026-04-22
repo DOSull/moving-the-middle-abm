@@ -167,14 +167,10 @@ to setup
   set apply-suitability? true
   
   setup-folders
+  if geography-from-files? [ ;; which is hard-coded true!
+    set spatial-data-folder join-list (list spatial-data-folder region) pathdir:get-separator
+  ]
   if reinitialise? [
-    if geography-from-files? [
-      set spatial-data-folder join-list (list spatial-data-folder region) pathdir:get-separator
-    ]
-    carefully
-    [ setup-world-dimensions ] 
-    [ user-message "Problem setting up world-dimensions" stop ]
-
     carefully 
     [ setup-farmer-parameters ]  
     [ user-message "Problem setting up farmer parameters" stop ]
@@ -188,8 +184,8 @@ to setup
   [ user-message "Problem setting up economic parameters" stop ]
   make-matrix-copies-of-some-data
 
-  carefully 
-  [ setup-world-dimensions
+  carefully [ 
+    setup-world-dimensions
     setup-geography
   ] 
   [ user-message "Problem setting up geography" stop ]

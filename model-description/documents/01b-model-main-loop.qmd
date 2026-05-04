@@ -3,6 +3,7 @@ title: "Model main loop"
 subtitle: "MtM ABM description"
 author: "David O'Sullivan"
 date: 19 February 2025
+date-modified: 4 May 2026
 lightbox: true
 format:
   html:
@@ -43,7 +44,7 @@ flowchart TB
   T --> Z
   click B "01c-farmer-aging-and-succession.html" "Click for details"
   click C "02-calculation-of-holding-income.html" "Click for details"
-  click E "03-farmer-decisions-general.html" "Click for details"
+  click E "03a-farmer-decisions-general.html" "Click for details"
 ```
 
 ::: {.callout-note collapse="true"}

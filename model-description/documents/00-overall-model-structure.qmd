@@ -3,7 +3,7 @@ title: "Overall model structure"
 subtitle: "MtM ABM description"
 author: "David O'Sullivan"
 date: 19 February 2025
-date-modified: 17 October 2025
+date-modified: 1 May 2026
 lightbox: true
 filters: 
   - nutshell
@@ -25,41 +25,48 @@ knitr:
 ---
 
 ## The model interface
-The easiest place to start is with an overview of what the model looks like. At time of writing (mid-October 2025) the GUI appears as below (click on the image for a closer look):
+The easiest place to start is with an overview of what the model looks like. At time of writing (May 2026) the GUI appears as below (click on the image for a closer look):
 
-![](abm-working-interface.png)
+![](abm-working-interface-3.png)
 
-### Column 1
-Controls on the left-hand side are primarily starting and running the model and controlling display of visual elements.
+### 1. Initialise and run model
+Controls on the left-hand side are primarily selecting the scenario and/or region, starting and resetting the model, and controlling display of visual elements.
 
-### Column 2
-The map area shows land use capability (LUC; more intense colours are better land) and [land use](#land-use) according to the following key:
+### 2. Map display
+The map area shows the modelled catchment, with land use capability (LUC; more intense colours are better land) and [land use](#land-use) encoded according to the following key:
 
 + [**Greens**]{style='color:green;'} Forest
 + [**Blues**]{style='color:dodgerblue;'} Dairy
-+ [**Oranges**]{style='color:orange'} Sheep and beef (SNB)
++ [**Oranges**]{style='color:darkorange'} Sheep and beef (SNB)
 + [**Magentas**]{style='color:magenta'} Crops
+
+Also shown are various model _agents_:
 
 [Farms](#farms) are delineated in black and their current profit is shown by a circle scaled by the level of profit. If 'in the black' the circle is coloured to match dominant land use on the farm. If the farm is losing money ('in the red') the circle is coloured red. If profit is zero then the circle is replaced with a small 'x'. This happens when an indebted farm has to apply all of gross profits to servicing debt.
 
 [Holdings](#holdings) are delineated in grey and shown by squares scaled and coloured in the same way as farms.
 
-[Farmers](#farmers) are shown as 'person' icons, with no additional information symbolised.
+[Farmers](#farmers) are shown as 'person' icons, coloured black where the farmer is a long-time family-owner (i.e. the farm has been inherited), or yellow if the farmer did not inherit the farm.
 
-### Column 3
-Controls immediately to the right of the map area mostly affect model initialisation, in particular (i) allowing choice between a random map, or initialisation from GIS data (shown above), and (ii) allowing for initialisation from controlled [random number seeds](https://en.wikipedia.org/wiki/Random_seed) to allow for repeatability of results and exploration of the details of any findings. For GIS initialisation a `region` is chosen from a drop-down list. For initialisation of 'market' settings a `scenario` is chosen from a drop-down list. More details on the requirements for these options are provided elsewhere in the documentation.
+### 3. Model parameters
+Most model parameters are included in a set of files (described on [this page](00b-model-files.qmd)). Controls immediately to the right of the map area are as follows:
 
-One other important setting is controlled by a 'slider': `sigmoid-slope` controls the rate of change of probabilities of adoption of interventions in response to push and pull factors. Adjusting this setting is intended to allow for greater or lesser effectiveness of nudges. This is uncalibrated at present. A potential extension of the model would allow different levels of this control for different 'nudge' or market effects.
++ `include-networks?`, `n-local-links`, and `n-catchment-links` determine if the network connections of farmers influence their decisions concerning adoption of management interventions, and if so how large are those networks.
++ `nudge-efficacy` controls how influential are the choices of other farmers, or policy interventions on farmer decisions. It can be thought of as a measure of farmer 'suggestibility'.
++ `landuse-change-on-succession?` If **On** when a farmer is succeeded by a new entrant the new farmer considers a change in (all of farm) land use if any of the farm's holdings are losing money.
++ `interest-rate` and `mortgage-term` control calculation of the rates at which farmers can pay off debt.
 
-### Column 4
-The column of controls on the right of the model provides some tracking plots (overall income and costs, overall land on which different interventions have been adopted, overall land in different land uses, aggregate environmental impacts, age and debt profiles of farmers), and also some high level controls as follows:
+The **Interventions** display shows which management interventions are being modelled in this run given initialisation from the files in the current scenario folder.
 
-+ `landuse-change-on-succession?`: If **On** when a farmer is succeeded by a new entrant the new farmer considers a change in (all of farm) land use if any of the farm's holdings are losing money.
-+ `prioritise-forestry?`: If **On** when a holding is unprofitable _only_ forestry is considered as new land use; other land uses are also considered if this option is **Off**.
-+ `apply-severity-of-losses?`: If **On** losses occurring across more of the farm (by area) make whole of farm conversion of land use less unlikely.
-+ `apply-suitability?`: If **On** suitability of LUC of holdings is taken into account when land use change is undertaken; if **Off** land use change disregards LUC.
-+ `include-debt?` and `interest-rate`: If `include-debt?` is _On_ then farm debt accrues and has various impacts on farmer behaviour.
+### 4. Model status displays
+This column presents several plots showing current model status:
 
++ **Income-costs** income, costs, debt, debt payments aggregated across all farms.
++ **Interventions** shows the total area of all farms on which various management interventions have been adopted.
++ **Landuse composition** shows the landuse composition by model grid cells (16ha) in terms of the four broad farm types, crops, dairy, sheep and beef, and forestry.
++ **Environmental metrics** shows total aggregate outputs across all farms for the various modelled environmental impacts.
++ **Farmer ages** shows the distribution of farmer ages (this is mostly a check to make sure it is not changing much).
++ **debt** is histogram showing the distribution of farmer debt-service ratios (total debt servicing costs to estimated value of farm).
 
 ::: {.callout-note collapse="true"}
 #### Update History
@@ -69,6 +76,7 @@ The column of controls on the right of the model provides some tracking plots (o
 | 2025-02-19 | Initial post.
 | 2025-08-05 | Original page broken out into 3 - overview, elements, files.
 | 2025-10-17 | Updating to include debt aspects.
+| 2026-05-01 | Modified to latest GUI appearance.
 
 :::
 

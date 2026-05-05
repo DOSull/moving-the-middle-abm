@@ -3,7 +3,7 @@ title: "Farmer aging and succession"
 subtitle: "MtM ABM description"
 author: "David O'Sullivan"
 date: 19 February 2025
-date-modified: 22 October 2025
+date-modified: 5 May 2026
 lightbox: true
 filters:
   - nutshell
@@ -38,12 +38,12 @@ p_{\mathrm{exit}} = \left\{
                             1 & \text{if age} \geq 91
   \end{array}
 \right.
-$$
+$$ {#eq-age-exit-probability}
 
 This means that farmers are not guaranteed to exit until they are 90, reflecting the surprising numbers of older farmers in survey data.
 
 ## Age of farmers at model initialisation
-The age of farmers at model initialisation is drawn from a [beta-binomial distribution](https://en.wikipedia.org/wiki/Beta-binomial_distribution), with $n=70$, $\alpha=5$, and $\beta=4$, and ages then offset by adding 20 (so that 20 is the youngest possible age). An example distribution for 250 farmers is shown below, with the red line showing the associated probability density function.
+The age of farmers at model initialisation is drawn from a [beta-binomial distribution](https://en.wikipedia.org/wiki/Beta-binomial_distribution), with $n=70$, $\alpha=5$, and $\beta=4$, and then offset by adding 20 (so that 20 is the youngest possible age). An example distribution for 1000 farmers is shown below, with the red line showing the associated probability density function.
 
 ```{r}
 #| echo: false
@@ -54,7 +54,7 @@ library(tidyr)
 
 set.seed(1)
 
-get_age_df <- function(num_farmers = 250,
+get_age_df <- function(num_farmers = 1000,
                        age_range = 70,
                        alpha = 5,
                        beta = 4, 
@@ -96,10 +96,10 @@ This distribution might appear to skew older than the model age initialisation, 
 #| echo: false
 ages_all <- 
   ages_init |> 
-  select(Age, exp_n) |> 
-  left_join(ages_succession |> select(Age, exp_n), 
+  select(Age, pdf) |> 
+  left_join(ages_succession |> select(Age, pdf), 
             by = join_by(Age)) |> 
-  rename(Initial = exp_n.x, Succession = exp_n.y) |> 
+  rename(Initial = pdf.x, Succession = pdf.y) |> 
   mutate(Succession = if_else(is.na(Succession), 0, Succession)) |> 
   pivot_longer(c(Initial, Succession))
 
@@ -111,12 +111,19 @@ ggplot(ages_all) +
   theme(legend.title = element_blank())
 ```
 
-In any case, this parameterisation keeps the farmer age distribution fairly stable over time. 
+In any case, this parameterisation keeps the farmer age distribution stable over time. 
 
 More detailed fitting and analysis of these (hard-coded) parameter settings around farmer ages would be desirable if farmer age is considered a critical variable influencing outcomes.
 
+## Entrant farmers and debt
+With equal probability a new farmer inherits from the current farmer or is a new entrant to the market. 
+
+If the farm is inherited then the debt situation of the farmer is also inherited and the current loan, debt outstanding, etc. are unchanged.
+
+If the farm is not inherited, then the new entrant must take on debt to purchase the farm for its estimated value (see [Estimated value](02a-debt.qmd#estimated-value)), and takes on a mortgage for between 20% and 80% of the estimated value of the farm. The 20-80% mortgage amount is evenly distributed, with any fraction of the farm's value being equally likely.
+
 ## Entrant farmers and landuse change
-A new farmer will consider whole-farm landuse change (see [Farmer decisions about land use](04-farmer-decisions-land-use.qmd) for details) **under conditions to be determined but related to recent profitability and the debt status of the incoming farmer**. This pathway to land use is more likely to lead to land use change at the whole farm level than the more piecemeal changes that tend to be made by incumbent farmers.
+A new farmer will consider whole-farm landuse change (see [Farmer aging and succession](01c-farmer-aging-and-succession.qmd) for details) if the farm is currently loss-making. This pathway to land use is more likely to lead to land use change at the whole farm level than the more piecemeal changes that tend to be made by incumbent farmers. However new entrant farmers _do not_ consider conversion to forestry.
 
 ::: {.callout-note collapse="true"}
 #### Update History
@@ -125,5 +132,7 @@ A new farmer will consider whole-farm landuse change (see [Farmer decisions abou
 |:-          |:------
 | 2025-02-19 | Initial post. 
 | 2025-10-17 | Updated to reflect changing in aging by 5 years per tick.
+| 2026-05-04 | Minor detail edits (n = 1000 in the histograms plots).
+| 2026-05-05 | Added new entrant farmers and debt
 
 :::

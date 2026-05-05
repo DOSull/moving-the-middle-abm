@@ -277,10 +277,10 @@ to do-constrained-change
   ;; would consider holding-level changes
   ;; would consider some ('tactical' / easy) interventions
   make-farm-type-changes get-limited-holdings-landuse-change-options my-holdings false
-  if any? my-holdings with [any-interventions-left-to-do?] [
-    let potential-changes get-intervention-options
-    if length potential-changes > 0 [ make-management-changes potential-changes ]
-  ]
+;  if any? my-holdings with [any-interventions-left-to-do?] [
+;    let potential-changes get-intervention-options
+;    if length potential-changes > 0 [ make-management-changes potential-changes ]
+;  ]
 end
 
 to do-optimisation
@@ -416,7 +416,7 @@ to-report get-intervention-options
 end
 
 
-;; holding reporter
+;; HOLDING reporter because avail-interventions is holding attribute
 to-report get-poll-of-available-interventions
   let avail matrix:get-row avail-interventions 0
   if sum avail = 0 [ report [] ]
@@ -574,6 +574,8 @@ to-report get-farmer-status
     count local-link-neighbors
     count catchment-link-neighbors
     matrix:get-row sum-matrices [my-interventions] of my-holdings 0
+    xcor
+    ycor
   )
 end
 
@@ -598,6 +600,8 @@ to-report get-farmer-csv-header
     "n_local_links"
     "n_catchment_links"
     interventions
+    "x"
+    "y"
   )
 end
 

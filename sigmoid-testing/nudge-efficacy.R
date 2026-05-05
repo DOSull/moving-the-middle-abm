@@ -17,9 +17,17 @@ nudge_threshold <- Vectorize(
 df <- expand_grid(
   `Initial probability` = 1:100 / 100,
   Efficacy = 0:50 / 25,
-  Nudge = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1)) |>
+  Nudge = c(-1, -0.8, -0.6, -0.5, -0.4, -0.3,-0.4, -0.1, 0, 
+            0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1)) |> 
   mutate(`Nudged probability` = nudge_threshold(`Initial probability`, Efficacy, Nudge),
          `Probability multiplier` = `Nudged probability` / `Initial probability`)
+
+ggplot(df |> filter(Efficacy == 2, (`Initial probability` * 10) %% 1 == 0)) +
+  geom_line(aes(x = Nudge, y = `Nudged probability`, group = `Initial probability`)) +
+  annotate("label", label = 1:9 / 10, x = 0, y = 1:9 / 10) +
+  coord_cartesian(xlim = c(-1, 1), ylim = 0:1, expand = FALSE) +
+  theme_bw()
+
 
 ggplot(data = df, aes(x = `Initial probability`, y = Efficacy, z = `Nudged probability`)) +
   geom_tile(aes(fill = `Nudged probability`)) +
@@ -45,5 +53,3 @@ ggplot(data = df |> filter((Efficacy * 10) %% 1 == 0),
   theme(legend.position = c(0.85, 0.15))
 
 ggsave("/Users/david/Documents/work/mwlr-moving-the-middle/abm/sigmoid-testing/nudge-efficacy-2.png", dpi = 300)
-
-

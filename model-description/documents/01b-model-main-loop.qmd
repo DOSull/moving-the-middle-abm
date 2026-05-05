@@ -3,6 +3,7 @@ title: "Model main loop"
 subtitle: "MtM ABM description"
 author: "David O'Sullivan"
 date: 19 February 2025
+date-modified: 5 May 2026
 lightbox: true
 format:
   html:
@@ -33,16 +34,19 @@ flowchart TB
   A((START))
   B[<span style='color:red;'>Age farmers and<br>replace any that exit</span>]
   C[<span style='color:red;'>Update income, costs, and<br>profit of holdings and farms</span>]
+  D[<span style='color:red;'>Make debt payments, determine debt service ratio</span>]
   E[<span style='color:red;'>Farmer decision making</span>]
   T[Update map and plots]
   Z((END))
   A --> B
   B --> C
-  C --> E
+  C --> D
+  D --> E
   E --> T
   T --> Z
   click B "01c-farmer-aging-and-succession.html" "Click for details"
-  click C "02-calculation-of-holding-income.html" "Click for details"
+  click C "02-holding-income-and-costs.html" "Click for details"
+  click D "02a-debt.html" "Click for details"
   click E "03a-farmer-decisions-general.html" "Click for details"
 ```
 
@@ -52,5 +56,6 @@ flowchart TB
 | Date       | Changes
 |:-          |:------
 | 2025-02-19 | Initial post.                       
+| 2026-05-05 | Added debt service calculation step.
 
 :::

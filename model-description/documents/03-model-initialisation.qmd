@@ -1,0 +1,90 @@
+---
+title: "Model initialisation"
+subtitle: "MtM ABM description"
+author: "David O'Sullivan"
+date: 19 February 2025
+date-modified: 17 October 2025
+lightbox: true
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-title: "Contents"
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+    mermaid:
+      theme: neutral
+knitr:
+  opts_chunk:
+    warning: false
+    message: false
+    # echo: false
+    R.options:
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+The steps in model initialisation are shown in the flow chart below. An alternative random initialisation mode can be enabled by changing the global variable `geography-from-files?` to `false`, and is similar to this sequence, but not documented here since it is unlikely to be used now that the model structure has stabilised.
+
+```{mermaid}
+flowchart TB
+  A((START))
+  B[Read land uses and<br>interventions from files]
+  %% C{Geography<br>from GIS<br>files?}
+  D[Read LUC<br>from <span style='font-family:monospace;'>luc.asc</span>]
+  E[Read farms<br>from <span style='font-family:monospace;'>parcels.shp</span>]
+  F[Initialise farmers<br>one per farm]
+  G[Read land use from<br><span style='font-family:monospace;'>landuse.asc</span> and assign<br>to farms]
+  H[Setup farmer networks]
+  I[Partition farms by<br>LUC into holdings]
+  %% J[Setup LUC<br>on land]
+  %% K[Partition land<br>into farms]
+  %% L[Initialise farmers<br>one per farm]
+  %% M[Partition farms by<br>LUC into holdings]
+  %% N[Setup farmer networks]
+  %% O[Partition farms by<br>LUC into holdings]
+  P[Initialise market<br>settings from files]
+  Q[Run one<br>'burn-in' cycle]
+  R[Store settings<br>for rapid reset]
+  S((END))
+  A --> B
+  %% B --> C
+  %% C -->|Yes| D
+  B --> D
+  D --> E
+  E --> F
+  F --> G
+  G --> H
+  H --> I
+  I --> P
+  %% C -->|No| J
+  %% J --> K
+  %% K --> L
+  %% L --> M
+  %% M --> N
+  %% N --> O
+  %% O --> P
+  P --> Q
+  Q --> R
+  R --> S
+  %% classDef pink fill:#fcc
+  %% classDef blue fill:#cdf
+  %% class D,E,G pink
+  %% class J,K,M blue
+```
+
+An important detail is that initialisation completes with a 'burn-in' run of a single cycle of the model. This means that the starting state of the model will not necessarily match _exactly_ the data contained in the initialisation files (because some farms might change landuse during burn-in), but will reflect one tick of model evolution. Using a random seed, this step is guaranteed to be the same every time so that repeatability is still attained. A single 'burn-in' step is needed to generate plausible prior year income and costs which the model requires to run.
+
+**It is important to note that there are tricky sequencing issues in the setup which make the associated code rather 'fragile' with some apparently unproblematic changes likely to break the model!** (Where known, these are noted in code comments.)
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date       | Changes
+|:-          |:------
+| 2025-02-19 | Initial post.
+| 2025-08-05 | Made differences between random and GIS initialisation clearer.
+| 2025-10-17 | Some blocks with overflow labels fixed.
+| 2026-05-05 | Changed to reflect removal of random initialisation option (unless re-enabled in code).
+
+:::

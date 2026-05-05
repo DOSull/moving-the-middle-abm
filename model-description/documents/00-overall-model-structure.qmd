@@ -1,11 +1,11 @@
 ---
 title: "Overall model structure"
-subtitle: "MtM ABM description"
+subtitle: "The model GUI"
 author: "David O'Sullivan"
 date: 19 February 2025
 date-modified: 1 May 2026
 lightbox: true
-filters: 
+filters:
   - nutshell
 format:
   html:
@@ -16,11 +16,11 @@ format:
     html-math-method: katex
     embed-resources: true
 knitr:
-  opts_chunk: 
+  opts_chunk:
     warning: false
     message: false
     # echo: false
-    R.options: 
+    R.options:
       knitr.table.html.attr: "quarto-disable-processing=true"
 ---
 
@@ -49,7 +49,7 @@ Also shown are various model _agents_:
 [Farmers](#farmers) are shown as 'person' icons, coloured black where the farmer is a long-time family-owner (i.e. the farm has been inherited), or yellow if the farmer did not inherit the farm.
 
 ### 3. Model parameters
-Most model parameters are included in a set of files (described on [this page](00b-model-files.qmd)). Controls immediately to the right of the map area are as follows:
+Most model parameters are included in a set of files (described on [this page](02-model-files.qmd)). Controls immediately to the right of the map area are as follows:
 
 + `include-networks?`, `n-local-links`, and `n-catchment-links` determine if the network connections of farmers influence their decisions concerning adoption of management interventions, and if so how large are those networks.
 + `nudge-efficacy` controls how influential are the choices of other farmers, or policy interventions on farmer decisions. It can be thought of as a measure of farmer 'suggestibility'.

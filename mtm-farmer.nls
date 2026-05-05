@@ -605,6 +605,9 @@ to-report get-farmer-csv-header
   )
 end
 
+to output-local-neighbors [fname]
+  csv:to-file fname fput (list "from" "to") map [ij -> [who] of [both-ends] of ij] sort local-links
+end
 
 ;; The MIT License (MIT)
 ;;

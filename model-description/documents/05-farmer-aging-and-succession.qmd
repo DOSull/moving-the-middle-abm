@@ -1,0 +1,138 @@
+---
+title: "Farmer aging and succession"
+subtitle: "MtM ABM description"
+author: "David O'Sullivan"
+date: 19 February 2025
+date-modified: 5 May 2026
+lightbox: true
+filters:
+  - nutshell
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-title: "Contents"
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+    mermaid:
+      theme: neutral
+knitr:
+  opts_chunk:
+    warning: false
+    message: false
+    # echo: false
+    R.options:
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+## Farmer aging
+Farmers age by five years per model tick (specified by hard-coded global `years-per-tick`).
+
+After aging, a farmer is tested for exiting the industry (or retiring or dying, or however we want to think about it). They exit with a probability given by
+
+$$
+p_{\mathrm{exit}} = \left\{
+  \begin{array}{cl}
+    \frac{5}{91-\mathrm{age}} & \text{if age} \lt  91 \\
+                            1 & \text{if age} \geq 91
+  \end{array}
+\right.
+$$ {#eq-age-exit-probability}
+
+This means that farmers are not guaranteed to exit until they are 90, reflecting the surprising numbers of older farmers in survey data.
+
+## Age of farmers at model initialisation
+The age of farmers at model initialisation is drawn from a [beta-binomial distribution](https://en.wikipedia.org/wiki/Beta-binomial_distribution), with $n=70$, $\alpha=5$, and $\beta=4$, and then offset by adding 20 (so that 20 is the youngest possible age). An example distribution for 1000 farmers is shown below, with the red line showing the associated probability density function.
+
+```{r}
+#| echo: false
+library(extraDistr)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+set.seed(1)
+
+get_age_df <- function(num_farmers = 1000,
+                       age_range = 70,
+                       alpha = 5,
+                       beta = 4,
+                       min_age = 20) {
+  age_draw <- data.frame(Age = 20 + rbbinom(num_farmers, age_range, alpha, beta)) |>
+    count(Age)
+  data.frame(Age = min_age + 0:age_range) |>
+    left_join(age_draw) |>
+    mutate(n = if_else(is.na(n), 0, n),
+           pdf = dbbinom(0:age_range, age_range, alpha, beta),
+           exp_n = pdf * num_farmers) |>
+    rename(`Number of farmers` = n)
+}
+
+ages_init <- get_age_df()
+ggplot(ages_init) +
+  geom_col(aes(x = Age, y = `Number of farmers`), fill = "grey") +
+  geom_line(aes(x = Age, y = exp_n), colour = "red") +
+  theme_minimal()
+```
+
+This distribution has been roughly matched to survey evidence of farmer ages (it has not been fitted, just matched approximately by eye).
+
+## Age of new farmers
+Incoming farmer ages are also drawn from a beta-binomial distribution with $n=45$, $\alpha=4$, $\alpha=2$ again offset so that the youngest farmers are 20.
+
+```{r}
+#| echo: false
+ages_succession <- get_age_df(age_range = 45, alpha = 4, beta = 2)
+ggplot(ages_succession) +
+  geom_col(aes(x = Age, y = `Number of farmers`), fill = "grey") +
+  geom_line(aes(x = Age, y = exp_n), colour = "red") +
+  theme_minimal()
+```
+
+This distribution might appear to skew older than the model age initialisation, but note that the age range of the two distributions is different with the succession distribution topping out at 65 years as is clearer in the direct comparison of the probability density functions below.
+
+```{r}
+#| echo: false
+ages_all <-
+  ages_init |>
+  select(Age, pdf) |>
+  left_join(ages_succession |> select(Age, pdf),
+            by = join_by(Age)) |>
+  rename(Initial = pdf.x, Succession = pdf.y) |>
+  mutate(Succession = if_else(is.na(Succession), 0, Succession)) |>
+  pivot_longer(c(Initial, Succession))
+
+ggplot(ages_all) +
+  geom_ribbon(aes(x = Age, ymax = value, ymin = 0, fill = name, group = name),
+            alpha = 0.5, colour = NA) +
+  ylab('Probability density') +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+```
+
+In any case, this parameterisation keeps the farmer age distribution stable over time.
+
+More detailed fitting and analysis of these (hard-coded) parameter settings around farmer ages would be desirable if farmer age is considered a critical variable influencing outcomes.
+
+## Entrant farmers and debt
+With equal probability a new farmer inherits from the current farmer or is a new entrant to the market.
+
+If the farm is inherited then the debt situation of the farmer is also inherited and the current loan, debt outstanding, etc. are unchanged.
+
+If the farm is not inherited, then the new entrant must take on debt to purchase the farm for its estimated value (see [Estimated value](07-debt.qmd#estimated-value)), and takes on a mortgage for between 20% and 80% of the estimated value of the farm. The 20-80% mortgage amount is evenly distributed, with any fraction of the farm's value being equally likely.
+
+## Entrant farmers and landuse change
+A new farmer will consider whole-farm landuse change (see [Farmer aging and succession](05-farmer-aging-and-succession.qmd) for details) if the farm is currently loss-making. This pathway to land use is more likely to lead to land use change at the whole farm level than the more piecemeal changes that tend to be made by incumbent farmers. However new entrant farmers _do not_ consider conversion to forestry.
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date       | Changes
+|:-          |:------
+| 2025-02-19 | Initial post.
+| 2025-10-17 | Updated to reflect changing in aging by 5 years per tick.
+| 2026-05-04 | Minor detail edits (n = 1000 in the histograms plots).
+| 2026-05-05 | Added new entrant farmers and debt
+
+:::

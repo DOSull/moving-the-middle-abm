@@ -1,6 +1,6 @@
 ---
 title: "Model initialisation"
-subtitle: "MtM ABM description"
+subtitle: "More complicated than you might think"
 author: "David O'Sullivan"
 date: 19 February 2025
 date-modified: 17 October 2025

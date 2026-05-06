@@ -1,6 +1,6 @@
 ---
 title: "Holding income and costs"
-subtitle: "MtM ABM description"
+subtitle: "Farm profit and loss is the key driver of change"
 author: "David O'Sullivan"
 date: 2 July 2024
 date-modified: 5 May 2026

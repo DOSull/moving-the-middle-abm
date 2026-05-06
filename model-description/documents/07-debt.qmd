@@ -1,6 +1,6 @@
 ---
 title: "Debt calculations"
-subtitle: "MtM ABM description"
+subtitle: "Farmer indebtedness is central to their decision making"
 author: "David O'Sullivan"
 date: 5 May 2026
 lightbox: true

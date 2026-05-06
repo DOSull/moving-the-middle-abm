@@ -1,6 +1,6 @@
 ---
 title: "Survival mode"
-subtitle: "MtM ABM description"
+subtitle: "Struggling farmers consider land use changes"
 author: David O'Sullivan
 date: 18 October 2025
 date-modified: 5 May 2026

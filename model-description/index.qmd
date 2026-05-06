@@ -12,7 +12,7 @@ listing:
   sort: filename
   sort-ui: false
   filter-ui: false
-  fields: [title]
+  fields: [title, subtitle]
 lightbox: true
 format:
   html:

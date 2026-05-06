@@ -1,6 +1,6 @@
 ---
 title: "Farmer aging and succession"
-subtitle: "MtM ABM description"
+subtitle: "As they age farmers are more likely to exit the market"
 author: "David O'Sullivan"
 date: 19 February 2025
 date-modified: 5 May 2026

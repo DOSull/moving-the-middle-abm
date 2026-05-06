@@ -1,6 +1,6 @@
 ---
 title: "Model main loop"
-subtitle: "MtM ABM description"
+subtitle: "The sequence followed every model tick"
 author: "David O'Sullivan"
 date: 19 February 2025
 date-modified: 5 May 2026

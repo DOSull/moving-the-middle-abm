@@ -1,6 +1,6 @@
 ---
 title: "Farmer decision making"
-subtitle: "MtM ABM description"
+subtitle: "Four choices depending on indebtedness"
 author: David O'Sullivan
 date: 18 October 2025
 date-modified: 5 May 2026

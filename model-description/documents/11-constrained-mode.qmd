@@ -1,6 +1,6 @@
 ---
 title: "Constrained mode"
-subtitle: "MtM ABM description"
+subtitle: "Farmers who could be doing better consider forestry"
 author: "David O'Sullivan"
 date: 18 October 2025
 date-modified: 5 May 2026

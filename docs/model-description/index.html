@@ -4096,7 +4096,7 @@ vertical-align: -.125em;
     }
 
     const options = {
-      valueNames: ['listing-title',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-title-sort'] }],
+      valueNames: ['listing-title','listing-subtitle',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-title-sort'] }],
       
       searchColumns: ["listing-date","listing-title","listing-author"],
     };
@@ -4305,7 +4305,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../model-description/documents/09-exit-market-succession.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Farmer exit market (succession)</span></a>
+ <span class="menu-text">Exit market</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -4429,6 +4429,10 @@ window.Quarto = {
 Title
 </th>
 
+<th>
+Subtitle
+</th>
+
 </tr>
 </thead>
 <tbody class="list">
@@ -4437,12 +4441,18 @@ Title
 <td>
 <a href="../model-description/documents/00-overall-model-structure.html" class="title listing-title">Overall model structure</a>
 </td>
+<td>
+<span class="listing-subtitle">The model GUI</span>
+</td>
 
 </tr>
 
 <tr data-index="1" data-listing-date-sort="1739876400000" data-listing-file-modified-sort="1778021538382" data-listing-date-modified-sort="1777809600000" data-listing-reading-time-sort="7" data-listing-word-count-sort="1361" data-listing-title-sort="Model elements" data-listing-filename-sort="01-model-elements.qmd">
 <td>
 <a href="../model-description/documents/01-model-elements.html" class="title listing-title">Model elements</a>
+</td>
+<td>
+<span class="listing-subtitle">A high-level overview</span>
 </td>
 
 </tr>
@@ -4451,75 +4461,108 @@ Title
 <td>
 <a href="../model-description/documents/02-model-files.html" class="title listing-title">Organisation of folders and files</a>
 </td>
+<td>
+<span class="listing-subtitle">The model parameter and code files</span>
+</td>
 
 </tr>
 
-<tr data-index="3" data-listing-date-sort="1739876400000" data-listing-file-modified-sort="1778021538383" data-listing-date-modified-sort="1760612400000" data-listing-reading-time-sort="3" data-listing-word-count-sort="449" data-listing-title-sort="Model initialisation" data-listing-filename-sort="03-model-initialisation.qmd">
+<tr data-index="3" data-listing-date-sort="1739876400000" data-listing-file-modified-sort="1778028870787" data-listing-date-modified-sort="1760612400000" data-listing-reading-time-sort="3" data-listing-word-count-sort="449" data-listing-title-sort="Model initialisation" data-listing-filename-sort="03-model-initialisation.qmd">
 <td>
 <a href="../model-description/documents/03-model-initialisation.html" class="title listing-title">Model initialisation</a>
 </td>
+<td>
+<span class="listing-subtitle">More complicated than you might think</span>
+</td>
 
 </tr>
 
-<tr data-index="4" data-listing-date-sort="1739876400000" data-listing-file-modified-sort="1778021538389" data-listing-date-modified-sort="1777896000000" data-listing-reading-time-sort="1" data-listing-word-count-sort="181" data-listing-title-sort="Model main loop" data-listing-filename-sort="04-model-main-loop.qmd">
+<tr data-index="4" data-listing-date-sort="1739876400000" data-listing-file-modified-sort="1778028908336" data-listing-date-modified-sort="1777896000000" data-listing-reading-time-sort="1" data-listing-word-count-sort="157" data-listing-title-sort="Model main loop" data-listing-filename-sort="04-model-main-loop.qmd">
 <td>
 <a href="../model-description/documents/04-model-main-loop.html" class="title listing-title">Model main loop</a>
 </td>
+<td>
+<span class="listing-subtitle">The sequence followed every model tick</span>
+</td>
 
 </tr>
 
-<tr data-index="5" data-listing-date-sort="1739876400000" data-listing-file-modified-sort="1778021538389" data-listing-date-modified-sort="1777896000000" data-listing-reading-time-sort="5" data-listing-word-count-sort="888" data-listing-title-sort="Farmer aging and succession" data-listing-filename-sort="05-farmer-aging-and-succession.qmd">
+<tr data-index="5" data-listing-date-sort="1739876400000" data-listing-file-modified-sort="1778028944431" data-listing-date-modified-sort="1777896000000" data-listing-reading-time-sort="5" data-listing-word-count-sort="874" data-listing-title-sort="Farmer aging and succession" data-listing-filename-sort="05-farmer-aging-and-succession.qmd">
 <td>
 <a href="../model-description/documents/05-farmer-aging-and-succession.html" class="title listing-title">Farmer aging and succession</a>
 </td>
+<td>
+<span class="listing-subtitle">As they age farmers are more likely to exit the market</span>
+</td>
 
 </tr>
 
-<tr data-index="6" data-listing-date-sort="1719835200000" data-listing-file-modified-sort="1778021538392" data-listing-date-modified-sort="1777896000000" data-listing-reading-time-sort="8" data-listing-word-count-sort="1553" data-listing-title-sort="Holding income and costs" data-listing-filename-sort="06-holding-income-and-costs.qmd">
+<tr data-index="6" data-listing-date-sort="1719835200000" data-listing-file-modified-sort="1778028981627" data-listing-date-modified-sort="1777896000000" data-listing-reading-time-sort="8" data-listing-word-count-sort="1522" data-listing-title-sort="Holding income and costs" data-listing-filename-sort="06-holding-income-and-costs.qmd">
 <td>
 <a href="../model-description/documents/06-holding-income-and-costs.html" class="title listing-title">Holding income and costs</a>
 </td>
+<td>
+<span class="listing-subtitle">Farm profit and loss is the key driver of change</span>
+</td>
 
 </tr>
 
-<tr data-index="7" data-listing-date-sort="1777896000000" data-listing-file-modified-sort="1778021538386" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="3" data-listing-word-count-sort="432" data-listing-title-sort="Debt calculations" data-listing-filename-sort="07-debt.qmd">
+<tr data-index="7" data-listing-date-sort="1777896000000" data-listing-file-modified-sort="1778029009611" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="3" data-listing-word-count-sort="429" data-listing-title-sort="Debt calculations" data-listing-filename-sort="07-debt.qmd">
 <td>
 <a href="../model-description/documents/07-debt.html" class="title listing-title">Debt calculations</a>
 </td>
+<td>
+<span class="listing-subtitle">Farmer indebtedness is central to their decision making</span>
+</td>
 
 </tr>
 
-<tr data-index="8" data-listing-date-sort="1760698800000" data-listing-file-modified-sort="1778021538387" data-listing-date-modified-sort="1777896000000" data-listing-reading-time-sort="2" data-listing-word-count-sort="281" data-listing-title-sort="Farmer decision making" data-listing-filename-sort="08-farmer-decisions-general.qmd">
+<tr data-index="8" data-listing-date-sort="1760698800000" data-listing-file-modified-sort="1778029043382" data-listing-date-modified-sort="1777896000000" data-listing-reading-time-sort="2" data-listing-word-count-sort="258" data-listing-title-sort="Farmer decision making" data-listing-filename-sort="08-farmer-decisions-general.qmd">
 <td>
 <a href="../model-description/documents/08-farmer-decisions-general.html" class="title listing-title">Farmer decision making</a>
 </td>
-
-</tr>
-
-<tr data-index="9" data-listing-date-sort="1760698800000" data-listing-file-modified-sort="1778021538389" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="90" data-listing-title-sort="Farmer exit market (succession)" data-listing-filename-sort="09-exit-market-succession.qmd">
 <td>
-<a href="../model-description/documents/09-exit-market-succession.html" class="title listing-title">Farmer exit market (succession)</a>
+<span class="listing-subtitle">Four choices depending on indebtedness</span>
 </td>
 
 </tr>
 
-<tr data-index="10" data-listing-date-sort="1760698800000" data-listing-file-modified-sort="1778021538387" data-listing-date-modified-sort="1777896000000" data-listing-reading-time-sort="2" data-listing-word-count-sort="208" data-listing-title-sort="Survival mode" data-listing-filename-sort="10-survival-mode.qmd">
+<tr data-index="9" data-listing-date-sort="1760698800000" data-listing-file-modified-sort="1778029068056" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="67" data-listing-title-sort="Exit market" data-listing-filename-sort="09-exit-market-succession.qmd">
+<td>
+<a href="../model-description/documents/09-exit-market-succession.html" class="title listing-title">Exit market</a>
+</td>
+<td>
+<span class="listing-subtitle">Farmers in severe debt exit the market</span>
+</td>
+
+</tr>
+
+<tr data-index="10" data-listing-date-sort="1760698800000" data-listing-file-modified-sort="1778029085195" data-listing-date-modified-sort="1777896000000" data-listing-reading-time-sort="2" data-listing-word-count-sort="207" data-listing-title-sort="Survival mode" data-listing-filename-sort="10-survival-mode.qmd">
 <td>
 <a href="../model-description/documents/10-survival-mode.html" class="title listing-title">Survival mode</a>
 </td>
-
-</tr>
-
-<tr data-index="11" data-listing-date-sort="1760698800000" data-listing-file-modified-sort="1778021538389" data-listing-date-modified-sort="1777896000000" data-listing-reading-time-sort="1" data-listing-word-count-sort="194" data-listing-title-sort="Constrained mode" data-listing-filename-sort="11-constrained-mode.qmd">
 <td>
-<a href="../model-description/documents/11-constrained-mode.html" class="title listing-title">Constrained mode</a>
+<span class="listing-subtitle">Struggling farmers consider land use changes</span>
 </td>
 
 </tr>
 
-<tr data-index="12" data-listing-date-sort="1760698800000" data-listing-file-modified-sort="1778021538387" data-listing-date-modified-sort="1777896000000" data-listing-reading-time-sort="5" data-listing-word-count-sort="822" data-listing-title-sort="Optimisation mode" data-listing-filename-sort="12-optimisation-mode.qmd">
+<tr data-index="11" data-listing-date-sort="1760698800000" data-listing-file-modified-sort="1778029119755" data-listing-date-modified-sort="1777896000000" data-listing-reading-time-sort="1" data-listing-word-count-sort="171" data-listing-title-sort="Constrained mode" data-listing-filename-sort="11-constrained-mode.qmd">
+<td>
+<a href="../model-description/documents/11-constrained-mode.html" class="title listing-title">Constrained mode</a>
+</td>
+<td>
+<span class="listing-subtitle">Farmers who could be doing better consider forestry</span>
+</td>
+
+</tr>
+
+<tr data-index="12" data-listing-date-sort="1760698800000" data-listing-file-modified-sort="1778029149119" data-listing-date-modified-sort="1777896000000" data-listing-reading-time-sort="5" data-listing-word-count-sort="812" data-listing-title-sort="Optimisation mode" data-listing-filename-sort="12-optimisation-mode.qmd">
 <td>
 <a href="../model-description/documents/12-optimisation-mode.html" class="title listing-title">Optimisation mode</a>
+</td>
+<td>
+<span class="listing-subtitle">When they are doing well, farmers consider new practices</span>
 </td>
 
 </tr>

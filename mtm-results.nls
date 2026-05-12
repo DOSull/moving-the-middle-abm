@@ -132,7 +132,7 @@ to-report results-base-filename
     str-replace item 0  split-string item 0 dt-elements "." ":" "-"   ;;        "02:14:00.360" -> "02-14-00"
     item 1 dt-elements                                                ;;        "pm"
   ) "-"                                                               ;;        "2025-Aug-21-02-14-00-pm"
-  report (word output-data-folder "/" experiment-name "/results-" dt)
+  report (word output-data-folder "/" experiment-name "-results-" dt)
 end
 
 

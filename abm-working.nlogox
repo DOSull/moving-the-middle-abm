@@ -463,9 +463,9 @@ end
 ;; DEALINGS IN THE SOFTWARE.]]></code>
   <widgets>
     <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="994" showTickCounter="true" patchSize="3.0" fontSize="7" wrappingAllowedY="false" width="559" tickCounterLabel="Year" maxPycor="329" updateMode="1" maxPxcor="184" minPxcor="0"></view>
-    <input x="10" multiline="false" y="10" height="60" variable="experiment-name" type="string" width="185" sizeVersion="0">Waihou-Test-12May26</input>
+    <input x="10" multiline="false" y="10" height="60" variable="experiment-name" type="string" width="185" sizeVersion="0">adam</input>
     <button x="10" y="75" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="output-results" width="185" sizeVersion="0">output-results</button>
-    <note x="10" y="108" backgroundDark="0" fontSize="11" width="185" markdown="true" height="34" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**experiment-name** is a subfolder of **output-results** folder</note>
+    <note x="10" y="108" backgroundDark="0" fontSize="11" width="185" markdown="true" height="40" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**experiment-name** will be prefix of output csv in **output** folder</note>
     <chooser x="10" y="142" height="45" variable="scenario" current="0" display="scenario" width="185" sizeVersion="0">
       <choice type="string" value="default"></choice>
       <choice type="string" value="no-landuse-change"></choice>

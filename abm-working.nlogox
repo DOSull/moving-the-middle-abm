@@ -466,7 +466,7 @@ end
     <input x="10" multiline="false" y="10" height="60" variable="experiment-name" type="string" width="185" sizeVersion="0">Waihou-Test-12May26</input>
     <button x="10" y="75" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="output-results" width="185" sizeVersion="0">output-results</button>
     <note x="10" y="108" backgroundDark="0" fontSize="11" width="185" markdown="true" height="34" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**experiment-name** is a subfolder of **output-results** folder</note>
-    <chooser x="10" y="142" height="45" variable="scenario" current="9" display="scenario" width="185" sizeVersion="0">
+    <chooser x="10" y="142" height="45" variable="scenario" current="0" display="scenario" width="185" sizeVersion="0">
       <choice type="string" value="default"></choice>
       <choice type="string" value="no-landuse-change"></choice>
       <choice type="string" value="low-uptake"></choice>
@@ -518,7 +518,7 @@ LUC values (better land).</note>
     <note x="1036" y="163" backgroundDark="0" fontSize="12" width="39" markdown="false" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">high</note>
     <slider x="890" step="0.01" y="183" max="4" display="nudge-efficacy" height="33" min="0.0" direction="Horizontal" default="1.0" variable="nudge-efficacy" width="185" sizeVersion="0"></slider>
     <note x="890" y="219" backgroundDark="0" fontSize="11" width="185" markdown="true" height="104" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Note** nudge-efficacy is slope of S-curve with non-linear effects: small changes at low values can cause big changes. Nudge may be policy or network driven.</note>
-    <slider x="890" step="0.1" y="390" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="10.0" variable="interest-rate" units="%" width="185" sizeVersion="0"></slider>
+    <slider x="890" step="0.1" y="390" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="3.0" variable="interest-rate" units="%" width="185" sizeVersion="0"></slider>
     <slider x="890" step="5" y="428" max="30" display="mortgage-term" height="33" min="5" direction="Horizontal" default="20.0" variable="mortgage-term" units="years" width="185" sizeVersion="0"></slider>
     <switch x="890" y="347" height="33" on="false" variable="landuse-change-on-succession?" display="landuse-change-on-succession?" width="185" sizeVersion="0"></switch>
     <note x="890" y="666" backgroundDark="0" fontSize="12" width="180" markdown="true" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Interventions**</note>

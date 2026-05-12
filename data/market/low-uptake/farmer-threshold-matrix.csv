@@ -1,0 +1,9 @@
+disposition,intervention,SNB,Dairy,Forest,Crop
+for_profit,Build_Wetland,0.058333333,0.0625,0.025,0.041666667
+for_profit,Riparian_Planting,0.058333333,0.0625,0.016666667,0.033333333
+for_profit,Clean_Races,0.016666667,0.058333333,0,0
+for_profit,Farm_Plan,0.058333333,0.070833333,0.033333333,0.05
+pro_environmental,Build_Wetland,0.116666667,0.125,0.05,0.083333333
+pro_environmental,Riparian_Planting,0.116666667,0.125,0.033333333,0.066666667
+pro_environmental,Clean_Races,0.033333333,0.116666667,0,0
+pro_environmental,Farm_Plan,0.116666667,0.141666667,0.066666667,0.1

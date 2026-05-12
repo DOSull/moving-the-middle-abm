@@ -1,0 +1,57 @@
+---
+title: "Constrained mode"
+subtitle: "Farmers who could be doing better consider forestry"
+author: "David O'Sullivan"
+date: 18 October 2025
+date-modified: 5 May 2026
+lightbox: true
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-title: "Contents"
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+    mermaid:
+      theme: neutral
+knitr:
+  opts_chunk:
+    warning: false
+    message: false
+    # echo: false
+    R.options:
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+## Constrained mode
+When the debt service ratio is greater than 0.25 but less than 0.5, farmers consider land use changes on holdings to _any_ other land use (not only forestry as in the survival mode). This is intended to convey a sense that they are more intent on remaining if 'proper' farming (not carbon farming), but that signficant change is a possibility.
+
+The landuse change decision is the same as in [survival mode](10-survival-mode.qmd) but any land use change is allowed (i.e., they may change to non-forestry uses).
+
+The decision sequence followed by farmers each time step is shown below.
+```{mermaid}
+flowchart TB
+  A((START))
+  G["<span style='font-family:monospace'>options</span> &larr; <span style='font-family:monospace'> #123;#125; </span>"]
+  J[Add all possible<br>holding conversions<br>to <span style="font-family:monospace;">options</span>]
+  K[Weighted draw a<br>holding from choices<br>in  <span style="font-family:monospace;">options</span>]
+  L[Convert chosen<br>holding with<br>given probability]
+  Z((END))
+  A --> G
+  G --> J
+  J --> K
+  K --> L
+  L --> Z
+```
+
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date | Changes
+|:-|:------
+| 2025-10-18 | Initial post.
+| 2026-05-05 | Added brief explanation of what landuse changes are considered.
+
+:::

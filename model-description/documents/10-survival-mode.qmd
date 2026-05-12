@@ -1,0 +1,60 @@
+---
+title: "Survival mode"
+subtitle: "Struggling farmers consider land use changes"
+author: David O'Sullivan
+date: 18 October 2025
+date-modified: 5 May 2026
+lightbox: true
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-title: "Contents"
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+    mermaid:
+      theme: neutral
+knitr:
+  opts_chunk:
+    warning: false
+    message: false
+    # echo: false
+    R.options:
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+## Survival mode
+When the debt service ratio is greater than 0.5, farmers focus on making money and do not consider any management interventions. This means that they prioritise conversion to forestry over other possible changes on the farm.
+
+They may consider conversion of a single holding to forestry (and only forestry). The list of possible land use changes is a series of triples
+
+    [affected-holding, new-land-use, probability]
+
+In this case, `affected-holding` will be all currently non-forestry holdings on the farm, and `new-land-use` will be `"Forest"` One of these options is randomly drawn with relative probability given by its `probability` from the `conversion-probabilities.csv`, file and if chosen it is implemented with that probability.
+
+```{mermaid}
+flowchart TB
+  A((START))
+  G["<span style='font-family:monospace'>options</span> &larr; <span style='font-family:monospace'> #123;#125; </span>"]
+  J[Add all possible<br>holdings for conversion<br>to forestry to <span style="font-family:monospace;">options</span>]
+  K[Weighted draw a<br>holding from choices<br>in  <span style="font-family:monospace;">options</span>]
+  L[Convert chosen<br>holding to forestry with<br>given probability]
+  Z((END))
+  A --> G
+  G --> J
+  J --> K
+  K --> L
+  L --> Z
+```
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date       | Changes
+|:-          |:--
+| 2025-10-18 | Initial post.
+| 2026-05-05 | Added brief explanation of what landuse changes are considered.
+
+:::
+

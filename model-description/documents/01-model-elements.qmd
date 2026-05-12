@@ -1,0 +1,125 @@
+---
+title: "Model elements"
+subtitle: "A high-level overview"
+author: "David O'Sullivan"
+date: 19 February 2025
+date-modified: 4 May 2026
+lightbox: true
+filters:
+  - nutshell
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-title: "Contents"
+    code-fold: true
+    html-math-method: katex
+    embed-resources: true
+knitr:
+  opts_chunk:
+    warning: false
+    message: false
+    # echo: false
+    R.options:
+      knitr.table.html.attr: "quarto-disable-processing=true"
+---
+
+### Scale
+Model grid cells represent 400&times;400 meter (16 hectare) areas. Model time steps represent 5 years of elapsed time. Note that although model time progresses in 5 year intervals, estimates of farm income, costs, profits, debt payments, etc. are annualised, i.e., they estimate what farms produce, spend, earn, and emit in a year.
+
+### Land use
+Each land grid cell in the model, and the aggregations into [holdings](#holdings) or [farms](#farms) has a land use, which is one of `"Crop"`, `"Dairy"`, `"Forest"`, or `"SNB"`.[^0] **Note:** Applied to grid cells representing the land in the model, land use is the `landuse` attribute. Applied to [farmers](#farmers), [farms](#farms), or [holdings](#holdings) it is `farm-type`.[^1] For holdings the two will always match exactly (all cells in a holding will be the same land use), but for farmers and farms not all associated cells need be in the same land use.
+
+[^0]: If required, this classification could be made more detailed, although some work would be required on visualization aspects of the model to accommodate the change.
+
+[^1]: The reason for this difference is an implementation detail in NetLogo. Agents (which farmers, farms, and holdings are) can always directly access attributes of the grid cells they are in. If the land use attribute had the same name both in grid cells and in the various agents, then accessing `landuse` would be ambiguous: does it refer to the agent's attribute or the grid cell's attribute? Naming the attribute differently resolves the ambiguity.
+
+The `farm-type` of a farm affects the [propensity of a farmer to adopt various interventions](12-optimisation-mode.qmd), [costs](06-holding-income-and-costs.qmd#costs), [yields](06-holding-income-and-costs.qmd#yields), and [emissions](06-holding-income-and-costs.qmd#emissions).
+
+### Management interventions
+A list `interventions` of potential management interventions or practices, such as e.g., `"Build_Wetland"`, `"Clean_Races"`, `"Farm_Plan"`, or `"Riparian_Planting"`. These have associated impacts on costs, yields and emissions as set out in the [`intervention-impacts.csv` file](02-model-files.qmd).
+
+### The land
+The land is represented by a square grid of cells (in NetLogo terminology 'patches'). Each grid cell represents 16 hectares. Each cell knows its owning [farmer](#farmers) (`the-ownder`) and the [holding](#holdings) (`holding-id`) and [farm](#farms) (`farm-id`) of which it is a part. Each cell also has a `landuse` attribute which is one of the [land uses](#land-use) represented in the model, and a `luc-code`. The `luc-code` is an integer between 1 and 8 (inclusive) recording the [land use capability (LUC)](https://ourenvironment.scinfo.org.nz/maps-and-tools/app/Land%20Capability/lri_luc_main) of the land. LUC affects what land uses are suited to that land (recorded in the `suitabilities.csv` file) and also impacts, costs, yields, emissions and other environmental outputs.
+
+### Farmers
+Farmers are the only active decision-making agents in the model even as other model elements (farms and holdings) are coded as 'agents' (everything in NetLogo is an agent[^2]).
+
+[^2]: Termed 'turtles' in NetLogo due to NetLogo's origins in the Logo programming language which introduced 'turtle graphics'. See Resnick M. 1994. _Turtles, Termites, and Traffic Jams: Explorations in Massively Parallel Microworlds_. Cambridge MA: MIT Press. Everything being an agent means that farms, holdings, and so on are also 'agents' albeit not in the sense implied by work programs such as the _Agents of Change_ RA in _Moving the Middle_.
+
+Farmers have the following attributes:
+
+#### Intrinsic characteristics
+These will not change as the model runs (although a farmer may exit when their `succession-stage` will increment, and these intrinsic characteristic will be reset).
+
++ `my-farm`: this farmer's [farm](#farms).
++ `my-holdings`: this farmer's [holdings](#holdings).
++ `the-land`: a list of grid cells that compose the farm.
++ `succession-stage`: 'which generation' of farmer in the model this one is on this farm. We don't spawn new farmers on succession, we just change their settings and increment this attribute. At model initialisation all farmers have `succession-stage` 0, and this number increments each time the farm changes hands.
++ `inherited?`: whether or not this farmer inherited the farm or not (family farms are likely to carry less debt).
++ `disposition`: one of e.g., `"for-profit"`, `"pro-social"`, `"pro-environmental"`. Farmers with different dispositions have different thresholds for adoption of [management interventions](#management-interventions).
++ `my-local-link-neighbors` and `my-catchment-link-neighbors`: other farmers connected to this one, that might influence their decisions.
+
+#### Changing characteristics
+These characteristics change as a result of farmer decisions, or the passage of time.
+
++ `age`: age in years. Affects likelihood of farmer leaving and being succeeded by a new farmer. See [Farmer aging and succession](05-farmer-aging-and-succession.qmd).
++ `farm-type`: one of the [land uses](#land-use) in the model, i.e. one of `"Crop"`, `"Dairy"`, `"Forest"`, or `"SNB"`. Most changes in  farm type happen slowly, one holding at a time.
++ `my-interventions`: a 1/0 matrix by landuse of which interventions have been adopted by this farmer.
+
+#### Debt related
+Farm indebtedness affects farmer decisions and is tracked in detail.
+
++ `loan-principal`: initial principal amount of any debt on the farm. Required so that changed in payments can be calculated if additional debt is taken on.
++ `loan-rate`: the interest rate on current loans.
++ `current-debt`: outstanding principal on loans.
++ `debt-payments`: the annual amount owing on loans.
++ `debt-maturity`: how long since the current loan principal was taken out (this is used to calculate `current-debt`).
++ `debt-free?`: is the farmer debt free?
++ `dsr`: _debt service ratio_ remains to be finalised. Currently the ratio of debt payments to current income of the farm.
+
+#### Farmer actions
+Key actions run by farmers include:
+
++ `age-and-succeed-farmer`: each model tick farmers age by one year, and with probability $\frac{1}{91-\mathrm{age}}$ exit the industry and are replaced by a new farmer that may be of different `disposition`, a different `age` (probably, but not necessarily, younger), and depending on the current farm circumstances will also consider all of farm land use change. See [Farmer aging and succession](05-farmer-aging-and-succession.qmd) for details. Succession may also be triggered when a farm's debt becomes unsustainable.
++ `get-all-of-farm-landuse-change-options` and `get-limited-holdings-landuse-change-options`: as detailed on [this page](10-survival-mode.qmd) farmers may decide to change the land use of a whole farm, or change the land use of individual holdings.
++ `make-farm-type-changes`: if a decision is taken to change land use on a farm or any of its holdings the farmer coordinates necessary updates to the model state.
++ `get-intervention-options` and `make-management-changes`: consider possible management interventions for adoption and implement them (or not) as detailed on [this page](12-optimisation-mode.qmd).
+
+### Farms
+Farms are the level at which income and costs are aggregated and (after any debt payments are made) the final profit earned by the owning farmer is determined. Farm attributes include:
+
++ `the-land`, `farm-type`, and `my-farmer`: are self-explanatory.
++ `current-income` and `current-costs`: these are aggregates of the corresponding variables of the farm's constituent holdings.
++ `current-profit`: the gross profit from the farm's constituent holdings (`current-income - current-costs`), minus any debt service payments.
+
+### Holdings
+Holdings are subfarm level units where management interventions and land use changes are implemented.
+
+Holdings have the following attributes:
+
++ `the-land`, `farm-type`, and `my-farmer`: are self-explanatory.
++ `my-farm`: the [farm](#farms) of which this holding is a part.
++ `landuse-luc-profile`: a cross tabulation of the number of grid cells (i.e., hectares) of land in the holding by land use and LUC. Since holdings are defined by land use and LUC only one entry in the table will be non-zero! However, as detailed in [Calculation of holding income](06-holding-income-and-costs.qmd) this allows (if desired) for extension to more complex holding structures&mdash;most likely with a range of LUC across a holding. A farmer can sum these matrices to get a picture of the overall composition of their farm.
++ `current-profit`, `current-income`, and `current-costs`: profit, income, and costs of the holding as detailed in [Calculation of holding income](06-holding-income-and-costs.qmd).
++ `my-interventions`: a list of boolean flags indicating which [management interventions](#management-interventions) have been adopted on this holding.
++ `avail-interventions`: a list of boolean flags indicating which [management interventions](#management-interventions) remain available to this holding for possible adoption.
++ `my-metrics`: the total of each of the environmental metrics (GHG emissions, nitrates, etc.) associated with this holding.
+
+Key actions run by holdings (at the behest of farmers!) are:
+
++ `change-holding-farm-type` and `do-intervention`: bookkeeping functions to pass changes in [land use](#land-use) down to grid cells and update the lists of adopted and available interventions.
++ `get-holding-income` and `get-holding-costs`: calculate holding income and costs as detailed in [Calculation of holding income](06-holding-income-and-costs.qmd)
+
+::: {.callout-note collapse="true"}
+#### Update History
+
+| Date       | Changes
+|:-          |:------
+| 2025-02-19 | Initial post.
+| 2025-08-05 | Split out to a separate model elements page.
+| 2025-10-22 | Updated for version including debt.
+| 2026-05-04 | Reorganised debt attributes to reflect association with famers, not farms.
+
+:::
+

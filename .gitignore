@@ -13,3 +13,4 @@ aag/
 data/spatial/scratch
 data/spatial/*/src
 data/output/scratch/*
+**/*.quarto_ipynb

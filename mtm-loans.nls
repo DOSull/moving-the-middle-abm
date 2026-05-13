@@ -11,8 +11,6 @@ end
 ;; reports princial amount based on the payment ($) of
 ;; at a given interest rate (%) and term (years)
 ;;
-;; this is required when setting inital indebtedness of
-;; farms based on a known debt-service-ratio
 ;to-report get-principal-from-payment [pmt i-rate loan-term]
 ;  let r i-rate / 100
 ;  ifelse r = 0 [

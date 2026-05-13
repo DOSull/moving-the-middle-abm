@@ -78,7 +78,6 @@ globals [
                              ;; at model initialisation, maximum rate of adoption by landuse, capital cost
                              ;; of intervention by landuse, and impact of interventions on costs/yields/env metrics
   base-thresholds            ;; farmer adoption probabilities for interventions by landuse and disposition
-  debt-service-ratios        ;; table of DSRs by landuse
   
   ;; data stored as matrices for use in calculations; rows - cols entries for LUC - farm-type respectively
   ;; rows order LUC1 to LUC8, cols ordered alphabetically by farm-type

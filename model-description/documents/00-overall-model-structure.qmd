@@ -65,8 +65,8 @@ This column presents several plots showing current model status:
 + **Interventions** shows the total area of all farms on which various management interventions have been adopted.
 + **Landuse composition** shows the landuse composition by model grid cells (16ha) in terms of the four broad farm types, crops, dairy, sheep and beef, and forestry.
 + **Environmental metrics** shows total aggregate outputs across all farms for the various modelled environmental impacts.
-+ **Farmer ages** shows the distribution of farmer ages (this is mostly a check to make sure it is not changing much).
-+ **debt** is histogram showing the distribution of farmer debt-service ratios (total debt servicing costs to estimated value of farm).
++ **Farmer age distribution** shows the distribution of farmer ages (this is mostly a check to make sure it is not changing much).
++ **Debt** is histogram showing the distribution of farmer debt asset ratios (total debt outstanding debt to estimated value of farm).
 
 ::: {.callout-note collapse="true"}
 #### Update History

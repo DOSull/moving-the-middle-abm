@@ -2,7 +2,7 @@
 title: "Exit market"
 subtitle: "Farmers in severe debt exit the market"
 author: David O'Sullivan
-date: 18 October 2025
+date: 13 May 2026
 lightbox: true
 format:
   html:
@@ -25,15 +25,16 @@ knitr:
 
 &nbsp;
 
-When under high debt stress (debt service ratio &geq;1) farmers will exit the market, and are succeeded by a new farmer. The new farmer is initialised exactly as occurs under [age driven succession](05-farmer-aging-and-succession.qmd).
+When under high debt stress (debt asset ratio &geq;1) farmers will exit the market, and are succeeded by a new farmer. The new farmer is initialised exactly as occurs under [age driven succession](05-farmer-aging-and-succession.qmd).
 
 ::: {.callout-note collapse="true"}
 #### Update History
 
 | Date       | Changes
 |:-          |:--
-| 2025-10-18 | Changing to account for DSR-baed decision loop.
 | 2024-12-19 | Initial post.
+| 2025-10-18 | Changing to account for DSR-baed decision loop.
+| 2026-05-13 | Changed DSR to DAR.
 
 :::
 

@@ -3,7 +3,7 @@ title: "Optimisation mode"
 subtitle: "When they are doing well, farmers consider new practices"
 author: "David O'Sullivan"
 date: 18 October 2025
-date-modified: 5 May 2026
+date-modified: 13 May 2026
 lightbox: true
 format:
   html:
@@ -25,7 +25,7 @@ knitr:
 ---
 
 ## Optimisation mode
-When the debt service ratio is below 0.25, farmers are in a position to consider changed management practices. They do this following the sequence shown below.
+When the debt asset ratio is below 0.25, farmers are in a position to consider changed management practices. They do this following the sequence shown below.
 
 ```{mermaid}
 flowchart TB
@@ -142,5 +142,6 @@ ggplot(data = df |> filter(Nudge > 0),
 |:-|:------
 | 2025-10-18 | Initial post.
 | 2026-05-05 | Added material on link neighbours (peers) and nudge.
+| 2026-05-13 | Changed DSR to DAR.
 
 :::

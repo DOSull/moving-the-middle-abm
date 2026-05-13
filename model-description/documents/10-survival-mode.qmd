@@ -3,7 +3,7 @@ title: "Survival mode"
 subtitle: "Struggling farmers consider land use changes"
 author: David O'Sullivan
 date: 18 October 2025
-date-modified: 5 May 2026
+date-modified: 13 May 2026
 lightbox: true
 format:
   html:
@@ -25,7 +25,7 @@ knitr:
 ---
 
 ## Survival mode
-When the debt service ratio is greater than 0.5, farmers focus on making money and do not consider any management interventions. This means that they prioritise conversion to forestry over other possible changes on the farm.
+When the debt asset ratio is greater than 0.5, farmers focus on making money and do not consider any management interventions. This means that they prioritise conversion to forestry over other possible changes on the farm.
 
 They may consider conversion of a single holding to forestry (and only forestry). The list of possible land use changes is a series of triples
 
@@ -55,6 +55,7 @@ flowchart TB
 |:-          |:--
 | 2025-10-18 | Initial post.
 | 2026-05-05 | Added brief explanation of what landuse changes are considered.
+| 2026-05-13 | Changed DSR to DAR
 
 :::
 

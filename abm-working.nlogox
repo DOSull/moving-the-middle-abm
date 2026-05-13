@@ -249,17 +249,17 @@ to go
     ask farmers [
       (
         ifelse
-        dsr >= 1 [ ;; severely distressed - exit?
+        debt-asset-ratio >= 1 [ ;; severely distressed - exit?
           ;; think about this further - 
           ;; it's quite unlikely that anyone gets here
           succeed-farmer
         ]
-        dsr >= 0.5 [ ;; survival mode
+        debt-asset-ratio >= 0.5 [ ;; survival mode
           ;; do not consider any interventions
           ;; landuse change? would consider holding-level changes
           do-survival 
         ]
-        dsr >= 0.25 [ ;; limited options
+        debt-asset-ratio >= 0.25 [ ;; limited options
           ;; would consider holding-level changes
           ;; would consider some ('tactical' / easy) interventions
           do-constrained-change
@@ -373,7 +373,7 @@ to store-initial-values
     set debt-payments-0 debt-payments
     set debt-maturity-0 debt-maturity
     set debt-free-0? debt-free?
-    set dsr-0 dsr
+    set debt-asset-ratio-0 debt-asset-ratio
   ]
 end
 
@@ -419,7 +419,7 @@ to restore-initial-values
     set debt-payments debt-payments-0
     set debt-maturity debt-maturity-0
     set debt-free? debt-free-0?
-    set dsr dsr-0
+    set debt-asset-ratio debt-asset-ratio-0
     set color table:get table:get colour-key "farmer" inherited?
   ]
   redraw-farms-and-holdings
@@ -539,7 +539,7 @@ LUC values (better land).</note>
       <setup></setup>
       <update></update>
     </plot>
-    <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="684" xMin="20.0" height="322" legend="false" xMax="90.0" yMin="0.0" xAxis="Age" display="farmer ages" width="225" sizeVersion="0">
+    <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="684" xMin="20.0" height="322" legend="false" xMax="90.0" yMin="0.0" xAxis="Age" display="Farmer age distribution" width="225" sizeVersion="0">
       <setup></setup>
       <update></update>
       <pen interval="1.0" mode="1" display="default" color="-16777216" legend="true">
@@ -549,14 +549,14 @@ set-histogram-num-bars 14
 histogram [age] of farmers</update>
       </pen>
     </plot>
-    <plot x="1315" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="684" xMin="0.0" height="322" legend="false" xMax="1.0" yMin="0.0" xAxis="Debt service ratio" display="debt" width="225" sizeVersion="0">
+    <plot x="1315" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="684" xMin="0.0" height="322" legend="false" xMax="1.0" yMin="0.0" xAxis="Debt asset ratio" display="Debt" width="225" sizeVersion="0">
       <setup></setup>
       <update></update>
       <pen interval="1.0" mode="1" display="default" color="-16777216" legend="true">
         <setup></setup>
         <update>set-plot-x-range 0 1
 set-histogram-num-bars 10
-histogram [dsr] of farmers</update>
+histogram [debt-asset-ratio] of farmers</update>
       </pen>
     </plot>
   </widgets>

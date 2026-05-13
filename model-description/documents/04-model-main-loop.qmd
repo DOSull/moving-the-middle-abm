@@ -3,7 +3,7 @@ title: "Model main loop"
 subtitle: "The sequence followed every model tick"
 author: "David O'Sullivan"
 date: 19 February 2025
-date-modified: 5 May 2026
+date-modified: 13 May 2026
 lightbox: true
 format:
   html:
@@ -34,7 +34,7 @@ flowchart TB
   A((START))
   B[<span style='color:red;'>Age farmers and<br>replace any that exit</span>]
   C[<span style='color:red;'>Update income, costs, and<br>profit of holdings and farms</span>]
-  D[<span style='color:red;'>Make debt payments, determine debt service ratio</span>]
+  D[<span style='color:red;'>Make debt payments, determine debt asset ratio</span>]
   E[<span style='color:red;'>Farmer decision making</span>]
   T[Update map and plots]
   Z((END))
@@ -57,5 +57,6 @@ flowchart TB
 |:-          |:------
 | 2025-02-19 | Initial post.
 | 2026-05-05 | Added debt service calculation step.
+| 2026-05-13 | Changed debt service ratio to debt asset ratio.
 
 :::

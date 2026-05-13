@@ -16,7 +16,7 @@ farmers-own [
   debt-payments
   debt-maturity
   debt-free?
-  dsr
+  debt-asset-ratio
   
   farm-type-0      ;; initial values stored to allow easy reset
   disposition-0
@@ -30,7 +30,7 @@ farmers-own [
   debt-payments-0
   debt-maturity-0
   debt-free-0?
-  dsr-0
+  debt-asset-ratio-0
 ]
 
 
@@ -209,7 +209,7 @@ to finalise-profit [burn-in-step?]
     ]
   ]
 ;  set dsr precision (debt-payments / current-income) 3 ;; change denominator to est-value?
-  set dsr precision (current-debt / [get-estimated-farm-value] of my-farm) 3 ;; change denominator to est-value?
+  set debt-asset-ratio precision (current-debt / [get-estimated-farm-value] of my-farm) 3 ;; change denominator to est-value?
 end
 
 ;; update the debt payments variable reflecting changed interest rates if needed
@@ -569,7 +569,7 @@ to-report get-farmer-status
     debt-payments
     (ifelse-value debt-maturity = nobody ["NA"] [debt-maturity])
     (ifelse-value debt-free? ["TRUE"] ["FALSE"])
-    dsr
+    debt-asset-ratio
     count my-holdings
     count local-link-neighbors
     count catchment-link-neighbors
@@ -595,7 +595,7 @@ to-report get-farmer-csv-header
     "debt_payments"
     "debt_maturity"
     "debt_free"
-    "debt_service_ratio"
+    "debt_asset_ratio"
     "n_holdings"
     "n_local_links"
     "n_catchment_links"

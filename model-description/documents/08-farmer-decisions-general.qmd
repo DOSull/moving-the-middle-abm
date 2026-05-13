@@ -3,7 +3,7 @@ title: "Farmer decision making"
 subtitle: "Four choices depending on indebtedness"
 author: David O'Sullivan
 date: 18 October 2025
-date-modified: 5 May 2026
+date-modified: 13 May 2026
 lightbox: true
 format:
   html:
@@ -33,10 +33,10 @@ flowchart TB
   B[Age farmers and<br>replace any that exit]
   C[Update income, costs, and<br>profit of holdings and farms]
   E[/For each<br>farmer.../]
-  F[Debt-service ratio DSR &larr;<br>current debt / <br> estimated value]
-  G1{DSR &geq;<br>1.00 ?}
-  G2{DSR &geq;<br>0.50 ?}
-  G3{DSR &geq;<br>0.25 ?}
+  F[Debt-asset ratio DAR &larr;<br>current debt / <br> estimated value]
+  G1{DAR &geq;<br>1.00 ?}
+  G2{DAR &geq;<br>0.50 ?}
+  G3{DAR &geq;<br>0.25 ?}
   H1[<span style='color:red;'>Exit<br>market]
   H2[<span style='color:red;'>Survival<br>mode</span>]
   H3[<span style='color:red;'>Constrained<br>mode</span>]
@@ -66,15 +66,15 @@ flowchart TB
   click H4 "12-optimisation-mode.html" "Click for details"
 ```
 
-The 'break values' in the debt service ratio that result in each behaviour are subject to change.
+The 'break values' in the debt asset ratio that result in each behaviour are subject to change.
 
 ::: {.callout-note collapse="true"}
 #### Update History
 
 | Date       | Changes
 |:-          |:--
-| 2025-10-18 | Changing to account for DSR-baed decision loop.
 | 2024-12-19 | Initial post.
-
+| 2025-10-18 | Changing to account for DSR-baed decision loop.
+| 2026-05-13 | Changed DSR to DAR (debt asset ratio).
 :::
 

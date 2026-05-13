@@ -3,7 +3,7 @@ title: "Model elements"
 subtitle: "A high-level overview"
 author: "David O'Sullivan"
 date: 19 February 2025
-date-modified: 4 May 2026
+date-modified: 13 May 2026
 lightbox: true
 filters:
   - nutshell
@@ -76,7 +76,7 @@ Farm indebtedness affects farmer decisions and is tracked in detail.
 + `debt-payments`: the annual amount owing on loans.
 + `debt-maturity`: how long since the current loan principal was taken out (this is used to calculate `current-debt`).
 + `debt-free?`: is the farmer debt free?
-+ `dsr`: _debt service ratio_ remains to be finalised. Currently the ratio of debt payments to current income of the farm.
++ `debt-asset-ratio`: _debt asset ratio_ remains to be finalised. Currently the ratio of outstanding debts to estimated value of the farm.
 
 #### Farmer actions
 Key actions run by farmers include:
@@ -120,6 +120,7 @@ Key actions run by holdings (at the behest of farmers!) are:
 | 2025-08-05 | Split out to a separate model elements page.
 | 2025-10-22 | Updated for version including debt.
 | 2026-05-04 | Reorganised debt attributes to reflect association with famers, not farms.
+| 2026-05-13 | Changed debt service ratio to debt asset ratio.
 
 :::
 

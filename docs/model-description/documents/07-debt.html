@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="David O’Sullivan">
-<meta name="dcterms.date" content="2026-05-05">
+<meta name="dcterms.date" content="2026-05-13">
 
 <title>Debt calculations – MtM ABM documentation</title>
 <style>
@@ -4056,7 +4056,7 @@ window.Quarto = {
   <li><a href="#parameters-controlling-debt" id="toc-parameters-controlling-debt" class="nav-link active" data-scroll-target="#parameters-controlling-debt">Parameters controlling debt</a></li>
   <li><a href="#basic-debt-calculations" id="toc-basic-debt-calculations" class="nav-link" data-scroll-target="#basic-debt-calculations">Basic debt calculations</a></li>
   <li><a href="#debt-income-and-costs" id="toc-debt-income-and-costs" class="nav-link" data-scroll-target="#debt-income-and-costs">Debt, income, and costs</a></li>
-  <li><a href="#debt-service-ratio-dsr" id="toc-debt-service-ratio-dsr" class="nav-link" data-scroll-target="#debt-service-ratio-dsr">Debt service ratio (DSR)</a>
+  <li><a href="#debt-asset-ratio-dar" id="toc-debt-asset-ratio-dar" class="nav-link" data-scroll-target="#debt-asset-ratio-dar">Debt asset ratio (DAR)</a>
   <ul>
   <li><a href="#estimated-value" id="toc-estimated-value" class="nav-link" data-scroll-target="#estimated-value">Estimated value</a></li>
   </ul></li>
@@ -4086,7 +4086,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">May 5, 2026</p>
+      <p class="date">May 13, 2026</p>
     </div>
   </div>
   
@@ -4101,7 +4101,7 @@ window.Quarto = {
 <section id="parameters-controlling-debt" class="level2">
 <h2 class="anchored" data-anchor-id="parameters-controlling-debt">Parameters controlling debt</h2>
 <p>The model parameters affecting debt are <code>interest-rate</code> and <code>mortgage-term</code>. These are annualised rates, although calculations are carried out with respect to the 5 year model time step.</p>
-<p>The farmer parameters associated with debt are <code>loan-principal</code>, <code>loan-rate</code>, <code>current-debt</code>, <code>debt-payments</code>, <code>debt-maturity</code>, and <code>debt-free?</code>. Together these allow calculation of the <code>dsr</code> (debt service ratio) parameter.</p>
+<p>The farmer parameters associated with debt are <code>loan-principal</code>, <code>loan-rate</code>, <code>current-debt</code>, <code>debt-payments</code>, <code>debt-maturity</code>, and <code>debt-free?</code>. Together these allow calculation of the <code>debt-asset-ratio</code> (debt service ratio) parameter.</p>
 </section>
 <section id="basic-debt-calculations" class="level2">
 <h2 class="anchored" data-anchor-id="basic-debt-calculations">Basic debt calculations</h2>
@@ -4122,9 +4122,9 @@ D = P\left[R^N-\frac{R^T(R^N-1)}{R^T-1}\right]
 <p>If debt repayments exceed current profit, then the loan is refinanced by adding the deficit to the current outstanding debt calculated from eqn.<a href="#eq-outstanding-debt" class="quarto-xref">2</a>. Similarly, when a management intervention is undertaken the associated capital cost (found in the <code>intervention-details.csv</code> file) is added to the current outstanding debt, and refinanced at the current interest rate with the same end date as the existing loan.</p>
 <p>If current profit exceeds debt repayments, then net ‘final’ profit is set to the current profit minus the debt repayments.</p>
 </section>
-<section id="debt-service-ratio-dsr" class="level2">
-<h2 class="anchored" data-anchor-id="debt-service-ratio-dsr">Debt service ratio (DSR)</h2>
-<p>A farmer’s debt service ratio is the ratio of debt repayments to the estimated value of the farm.</p>
+<section id="debt-asset-ratio-dar" class="level2">
+<h2 class="anchored" data-anchor-id="debt-asset-ratio-dar">Debt asset ratio (DAR)</h2>
+<p>A farmer’s debt asset ratio is the ratio of outstanding debt to the estimated value of the farm.</p>
 <section id="estimated-value" class="level3">
 <h3 class="anchored" data-anchor-id="estimated-value">Estimated value</h3>
 <p>The farm’s estimated value is based on current profit (before debt repayments), and is a simple multiplier based on the reciprocal of a hard-coded <em>discount rate</em>, currently set to 8% so that farm’s are valued at 12.5 times their current profit. Discount rate could be made a variable model parameter if this is deemed useful.</p>
@@ -4151,6 +4151,10 @@ D = P\left[R^N-\frac{R^T(R^N-1)}{R^T-1}\right]
 <tr class="odd">
 <td style="text-align: left;">2026-05-05</td>
 <td style="text-align: left;">Initial post.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2026-05-13</td>
+<td style="text-align: left;">Corrected debt service ratio to debt asset ratio.</td>
 </tr>
 </tbody>
 </table>

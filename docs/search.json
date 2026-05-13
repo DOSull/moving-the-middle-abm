@@ -241,7 +241,7 @@
     "href": "model-description/documents/07-debt.html",
     "title": "Debt calculations",
     "section": "",
-    "text": "The model parameters affecting debt are interest-rate and mortgage-term. These are annualised rates, although calculations are carried out with respect to the 5 year model time step.\nThe farmer parameters associated with debt are loan-principal, loan-rate, current-debt, debt-payments, debt-maturity, and debt-free?. Together these allow calculation of the debt-asset-ratio (debt asset ratio) parameter.",
+    "text": "The model parameters affecting debt are interest-rate and mortgage-term. These are annualised rates, although calculations are carried out with respect to the 5 year model time step.\nThe farmer parameters associated with debt are loan-principal, loan-rate, current-debt, debt-payments, debt-maturity, and debt-free?. Together these allow calculation of the debt-asset-ratio parameter.",
     "crumbs": [
       "Documents",
       "Debt calculations"
@@ -252,7 +252,7 @@
     "href": "model-description/documents/07-debt.html#parameters-controlling-debt",
     "title": "Debt calculations",
     "section": "",
-    "text": "The model parameters affecting debt are interest-rate and mortgage-term. These are annualised rates, although calculations are carried out with respect to the 5 year model time step.\nThe farmer parameters associated with debt are loan-principal, loan-rate, current-debt, debt-payments, debt-maturity, and debt-free?. Together these allow calculation of the debt-asset-ratio (debt asset ratio) parameter.",
+    "text": "The model parameters affecting debt are interest-rate and mortgage-term. These are annualised rates, although calculations are carried out with respect to the 5 year model time step.\nThe farmer parameters associated with debt are loan-principal, loan-rate, current-debt, debt-payments, debt-maturity, and debt-free?. Together these allow calculation of the debt-asset-ratio parameter.",
     "crumbs": [
       "Documents",
       "Debt calculations"

@@ -32,7 +32,7 @@ library(ggplot2)
 ## Parameters controlling debt
 The model parameters affecting debt are `interest-rate` and `mortgage-term`. These are annualised rates, although calculations are carried out with respect to the 5 year model time step.
 
-The farmer parameters associated with debt are `loan-principal`, `loan-rate`, `current-debt`, `debt-payments`, `debt-maturity`, and `debt-free?`. Together these allow calculation of the `debt-asset-ratio` (debt asset ratio) parameter.
+The farmer parameters associated with debt are `loan-principal`, `loan-rate`, `current-debt`, `debt-payments`, `debt-maturity`, and `debt-free?`. Together these allow calculation of the `debt-asset-ratio` parameter.
 
 ## Basic debt calculations
 The equations governing loan-related calculations are as follows. The annual repayment $X$, on a loan of principal amount $P$, term $T$ years, at interest rate $r$ (expressed as a fraction), is given by

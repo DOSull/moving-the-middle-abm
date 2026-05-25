@@ -514,7 +514,7 @@ LUC values (better land).</note>
     <note x="890" y="163" backgroundDark="0" fontSize="12" width="34" markdown="false" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">low</note>
     <note x="918" y="163" backgroundDark="0" fontSize="12" width="59" markdown="true" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">medium</note>
     <note x="1036" y="163" backgroundDark="0" fontSize="12" width="39" markdown="false" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">high</note>
-    <slider x="890" step="0.01" y="183" max="4" display="nudge-efficacy" height="33" min="0.0" direction="Horizontal" default="1.0" variable="nudge-efficacy" width="185" sizeVersion="0"></slider>
+    <slider x="890" step="0.01" y="183" max="4" display="nudge-efficacy" height="33" min="0.01" direction="Horizontal" default="1.0" variable="nudge-efficacy" width="185" sizeVersion="0"></slider>
     <note x="890" y="219" backgroundDark="0" fontSize="11" width="185" markdown="true" height="104" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Note** nudge-efficacy is slope of S-curve with non-linear effects: small changes at low values can cause big changes. Nudge may be policy or network driven.</note>
     <slider x="890" step="0.1" y="390" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="3.0" variable="interest-rate" units="%" width="185" sizeVersion="0"></slider>
     <slider x="890" step="5" y="428" max="30" display="mortgage-term" height="33" min="5" direction="Horizontal" default="20.0" variable="mortgage-term" units="years" width="185" sizeVersion="0"></slider>

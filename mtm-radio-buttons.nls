@@ -9,19 +9,21 @@ globals [
   selection
   radio-buttons-panel
   radio-buttons-on-off-switch
+  button-labels
   radio-buttons-list
   hidden-turtles
 ]
 
-to setup-buttons [#list #switch]
+to setup-buttons [#list #labels #switch]
   set selection #list
   set radio-buttons-on-off-switch #switch
+  set button-labels #labels
   setup-radio-buttons-panel
   hide-panel
 end
 
 to setup-radio-buttons-panel
-  let #aspect 0.5 * length (runresult selection)
+  let #aspect 0.25 * length (runresult selection)
   let #width world-width / 3
   let #width-fraction 1 - (#width / world-width)
   let #height #aspect * #width
@@ -62,7 +64,7 @@ to setup-radio-buttons [#x1 #x2 #y1 #y2]
         set breed radio-button-labels
         setxy #x - #space / 2 #y - #space * i
         set size 0
-        set label (word "button " i)
+        set label runresult (word "item " i " " button-labels)
       ]
     ]
   ]

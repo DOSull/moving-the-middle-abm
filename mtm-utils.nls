@@ -134,12 +134,12 @@ to-report matrix-column-products [m]
   )
 end
 
-; convenience function to get single row matrix from a list
+; convenience function to get single row matrix from a list of values
 to-report row-matrix [lst]
   report matrix:from-row-list (list lst)
 end
 
-;; convenience function to get single column matrix from a list
+;; convenience function to get single column matrix from a list of values
 to-report col-matrix [lst]
   report matrix:from-column-list (list lst)
 end

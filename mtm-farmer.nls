@@ -542,7 +542,13 @@ end
 ;; this or a wrapper for this could include farmer demography 'shifts'
 ;; or social/geographic network shifts
 to-report get-adoption-probability [i-type]
-  report table:get (table:get (table:get base-thresholds disposition) i-type) farm-type
+  let i position i-type interventions
+  ifelse item i interventions-selection = 0 [
+    report 0
+  ]
+  [
+    report table:get (table:get (table:get base-thresholds disposition) i-type) farm-type
+  ]
 end
 
 

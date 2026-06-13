@@ -13,6 +13,7 @@
   "mtm-results.nls"
   "mtm-tables.nls"
   "mtm-profile.nls"        ;; profiling stuff goes here
+  "mtm-radio-buttons.nls"
 ]
 
 extensions [
@@ -65,6 +66,7 @@ globals [
 
   farm-types                 ;; list of named farm types - likely fixed at 4: Crop Dairy Forestry SNB
   interventions              ;; list of named management interventions - more likely to change over time
+  interventions-selection
   dispositions               ;; list of farmer dispositions
   
   apply-suitability?         ;; moved from a slider and set true
@@ -124,6 +126,7 @@ breed [loans loan]
 patches-own [
   temp-id                 ;; used during setup to assign to farmers / assemble farms
   region-id               ;; generic variable for labelling any time we are clustering/regionalising patches
+  temp-colour
   farm-id                 ;; farm-id supercedes temp-id after clean up of empty farms etc. during set up
                           ;; NOTE: farm-id is not the same as [who] of the-owner farmer
   holding-id              ;; sub farm level id partitioning farms into areas for possible landuse conversion
@@ -190,6 +193,9 @@ to setup
   [ user-message "Problem setting up geography" stop ]
 
   setup-results-tables   ;; see mtm-results.nls
+  set interventions-selection n-values length interventions [i -> 1]
+  setup-buttons "interventions-selection" "select-interventions?"
+  apply-interventions-selection
   burn-in-step
 end
 
@@ -217,7 +223,6 @@ to burn-in-step
   setup-model-plots      ;; mtm-plots.nls
   restore-initial-values ;; restore so that resetting is exactly the same
 end
-
 
 ;; core model loop
 to go
@@ -427,10 +432,27 @@ to restore-initial-values
   update-model-plots false
   reset-ticks
   set ticks-since-reset 0
-  tick
+;  tick
   reset-rng
 ;  set run-seed ifelse-value user-run-seed? [run-rng-seed] [new-seed]
 ;  random-seed run-seed
+end
+
+to apply-interventions-selection
+  ;; set all excluded interventions to 0
+  let m-selection matrix:from-row-list (list interventions-selection)
+  ;; note we do these as list operations to avoid using the random number generator
+  foreach sort holdings [ h ->
+    ask h [ set my-interventions (matrix:map * m-selection my-interventions) ]
+  ]
+  foreach sort farmers [ f ->
+    ask f [
+      let zeros matrix:make-constant length farm-types length interventions 0
+      set my-interventions sum-matrices map [h -> [get-my-interventions-matrix] of h] sort my-holdings
+    ]
+  ]
+  ;; set all propensities to adopt said interventions to 0
+  ;; this happens in mtm-farmer-nls:get-adoption-probability
 end
 
 to reset-rng
@@ -461,7 +483,7 @@ end
 ;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ;; DEALINGS IN THE SOFTWARE.]]></code>
   <widgets>
-    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="994" showTickCounter="true" patchSize="3.0" fontSize="7" wrappingAllowedY="false" width="559" tickCounterLabel="5 year period" maxPycor="329" updateMode="1" maxPxcor="184" minPxcor="0"></view>
+    <view x="201" wrappingAllowedX="false" y="10" frameRate="30.0" minPycor="0" height="994" showTickCounter="true" patchSize="3.0" fontSize="12" wrappingAllowedY="false" width="559" tickCounterLabel="5 year period" maxPycor="329" updateMode="1" maxPxcor="184" minPxcor="0"></view>
     <input x="10" multiline="false" y="10" height="60" variable="experiment-name" type="string" width="185" sizeVersion="0"></input>
     <button x="10" y="75" height="33" disableUntilTicks="false" forever="false" kind="Observer" display="output-results" width="185" sizeVersion="0">output-results</button>
     <note x="10" y="108" backgroundDark="0" fontSize="11" width="185" markdown="true" height="40" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**experiment-name** will be prefix of output csv in **output** folder</note>
@@ -490,7 +512,7 @@ end
     <button x="10" y="389" height="33" disableUntilTicks="false" forever="false" kind="Observer" width="90" sizeVersion="0">reset-rng</button>
     <button x="105" y="389" height="33" disableUntilTicks="false" forever="true" kind="Observer" width="90" sizeVersion="0">go</button>
     <input x="10" multiline="false" y="427" height="60" variable="run-rng-seed" type="number" width="185" sizeVersion="0">1.0</input>
-    <switch x="10" y="492" height="33" on="false" variable="user-run-seed?" display="user-run-seed?" width="185" sizeVersion="0"></switch>
+    <switch x="10" y="492" height="33" on="true" variable="user-run-seed?" display="user-run-seed?" width="185" sizeVersion="0"></switch>
     <monitor x="10" precision="0" y="530" height="45" fontSize="11" display="run-seed" width="185" sizeVersion="0">word run-seed
 ;; this is a workaround per
 ;; https://github.com/NetLogo/NetLogo/issues/2562#issuecomment-3353992160</monitor>
@@ -557,6 +579,9 @@ set-histogram-num-bars 10
 histogram [debt-asset-ratio] of farmers with [not debt-free?]</update>
       </pen>
     </plot>
+    <switch x="889" y="569" height="33" on="false" variable="select-interventions?" display="select-interventions?" width="143" sizeVersion="0"></switch>
+    <button x="888" y="608" height="40" disableUntilTicks="false" forever="false" kind="Observer" width="149" display="select-interventions">change-buttons</button>
+    <note x="891" y="532" backgroundDark="0" fontSize="12" width="167" markdown="true" height="35" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">This is working at least in part. But ignore it for now!</note>
   </widgets>
   <info>## WHAT IS IT?
 

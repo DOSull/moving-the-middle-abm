@@ -167,6 +167,13 @@ to-report get-my-interventions-list
   report slice-by-ones interventions (matrix:get-row my-interventions 0)
 end
 
+to-report get-my-interventions-matrix
+  let m matrix:make-constant length farm-types length interventions 0
+  let i position farm-type farm-types
+  matrix:set-row m i matrix:get-row my-interventions 0
+  report m
+end
+
 ;; reports available-interventions as a list of intervention-type names for 
 ;; convenience -- a holding reporter
 to-report get-available-interventions-list

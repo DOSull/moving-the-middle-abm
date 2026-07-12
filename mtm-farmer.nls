@@ -46,7 +46,7 @@ to initialise-farmer
   set disposition get-disposition
   set succession-stage 0
   set my-interventions matrix:make-constant (length farm-types) (length interventions) 0
-  set inherited? one-of [true false]
+  set inherited? random-float 1 < 0.05 ;; one-of [true false]
   set color table:get table:get colour-key "farmer" inherited?
 end
 
@@ -122,7 +122,7 @@ to age-and-succeed-farmer
 end
 
 to succeed-farmer
-  set inherited? one-of [true false]
+  set inherited? random-float 1 < 0.05 ;; one-of [true false]
   ;; note that it's possible the new farmer will be older than the previous
   ;; even if they inherit - perhaps they are a cousin or sibling or...
   ;; this avoids complex logic handling different ages of succession etc.
@@ -176,7 +176,7 @@ end
 to buy-farm
   let est-value [get-estimated-farm-value] of my-farm
   ;; set up loan
-  set loan-principal round (est-value * (0.2 + random-float 0.6))
+  set loan-principal round (est-value * (0.65 + random-normal 0 0.05))
   set loan-rate interest-rate
   set debt-payments get-loan-repayments loan-principal loan-rate mortgage-term
   set current-debt loan-principal
@@ -421,9 +421,14 @@ to-report get-poll-of-available-interventions
   let avail matrix:get-row avail-interventions 0
   if sum avail = 0 [ report [] ]
   let weights (map [[x y] -> x * y] get-fraction-network-interventions my-farmer farm-type avail)
-  ;; show weights
-  ;; returns a single list [intervention poll-weight]
-  report rnd:weighted-one-of-list (map list interventions weights) [p -> last p]
+  ifelse sum weights = 0 [
+    ; pick one of the allowed/available interventions at random
+    report one-of map [i -> (list i 0)] slice-by-ones interventions avail
+  ]
+  [
+    ;; returns a single list [intervention poll-weight]
+    report rnd:weighted-one-of-list (map list interventions weights) [p -> last p]
+  ]
 end
 
 to-report get-count-network-interventions [f ft]

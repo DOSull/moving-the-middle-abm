@@ -34,7 +34,7 @@ to initialise-holding
   set my-farm [my-farm] of my-farmer
   move-to approximate-centroid the-land
   set shape "square 3"
-  set hidden? false
+  set hidden? true
   set label farm-type
   set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
   set metrics-details table:make
@@ -64,7 +64,8 @@ to change-holding-farm-type [#farm-type]
   set landuse-luc-profile get-landuse-luc-profile the-land
   set my-interventions (matrix:map * get-possible-interventions my-interventions) 
   set avail-interventions matrix:map [x -> ifelse-value x < 1 [0] [1]] 
-                          (get-possible-interventions matrix:- my-interventions) 
+                          (get-possible-interventions matrix:- my-interventions)
+  colour-patches the-land show-landuse?
 end
 
 ;; reports a column matrix from the column sums of current landuse-luc-profile matrix

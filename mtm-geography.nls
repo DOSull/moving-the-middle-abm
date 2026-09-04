@@ -99,7 +99,9 @@ to setup-geography
     setup-landuse-from-gis-data
     setup-farmer-networks
     setup-farms
+    set farm-spacing sqrt (count patches / count farms)
     setup-holdings
+    set holding-spacing sqrt (count patches / count holdings)
     initialise-farmer-debt
     initialise-interventions
   ]
@@ -111,7 +113,9 @@ to setup-geography
     setup-random-landuse
     setup-farmer-networks
     setup-farms
+    set farm-spacing sqrt (count patches / count farms)
     setup-holdings
+    set holding-spacing sqrt (count patches / count holdings)
     initialise-farmer-debt
     initialise-interventions
   ]

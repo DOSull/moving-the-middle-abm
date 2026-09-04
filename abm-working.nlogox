@@ -110,6 +110,8 @@ globals [
   
   ;; colour settings - these can be changed in one place, see mtm-render::setup-key-colours procedure
   colour-key                 ;; table of colour settings
+  farm-spacing
+  holding-spacing
 ]
 
 undirected-link-breed [catchment-links catchment-link]
@@ -215,8 +217,9 @@ to burn-in-step
     finalise-profit
   ]
   reset-ticks
-  ask farms [redraw-farm]
-  ask holdings [redraw-holding]
+  redraw-farms-and-holdings
+;  ask farms [redraw-farm]
+;  ask holdings [redraw-holding]
   update-model-results
   set ticks-since-reset ticks-since-reset + 1
   tick
@@ -567,7 +570,7 @@ set-histogram-num-bars 14
 histogram [age] of farmers</update>
       </pen>
     </plot>
-    <plot x="1315" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="684" xMin="0.0" height="322" legend="false" xMax="1.0" yMin="0.0" xAxis="Debt asset ratio" display="Debt" width="225" sizeVersion="0">
+    <plot x="1315" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="Count" y="684" xMin="0.0" height="322" legend="false" xMax="1.0" yMin="0.0" xAxis="Debt service ratio" display="Debt" width="225" sizeVersion="0">
       <setup></setup>
       <update></update>
       <pen interval="1.0" mode="1" display="default" color="-16777216" legend="true">
@@ -581,7 +584,7 @@ histogram [debt-service-ratio] of farmers ;; with [not debt-free?]</update>
     <button x="888" y="608" height="40" disableUntilTicks="false" forever="false" kind="Observer" width="149" display="select-interventions">change-buttons</button>
     <note x="891" y="532" backgroundDark="0" fontSize="12" width="167" markdown="true" height="35" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">This is working at least in part. But ignore it for now!</note>
     <slider x="890" step="5" y="468" max="30" display="mortgage-term" height="33" min="5" direction="Horizontal" default="20.0" variable="mortgage-term" units="years" width="185" sizeVersion="0"></slider>
-    <slider x="890" step="0.1" y="430" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="6.0" variable="interest-rate" units="%" width="185" sizeVersion="0"></slider>
+    <slider x="890" step="0.1" y="430" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="3.5" variable="interest-rate" units="%" width="185" sizeVersion="0"></slider>
     <switch x="890" y="347" height="33" on="true" variable="landuse-change-on-succession?" display="landuse-change-on-succession?" width="185" sizeVersion="0"></switch>
     <slider x="890" step="0.1" y="392" max="10" display="base-rate" height="33" min="0.1" direction="Horizontal" default="3.5" variable="base-rate" width="185" sizeVersion="0"></slider>
   </widgets>

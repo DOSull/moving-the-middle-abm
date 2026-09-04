@@ -26,7 +26,7 @@ to initialise-farm
   ;; will be called by the farmer who is 'myself' in this context
   set my-farmer myself
   set shape "circle 3"
-  set hidden? false
+  set hidden? true
   set label farm-type
   set label-color ifelse-value show-labels? [table:get colour-key "label"] [[0 0 0 0]]
   set my-metrics table:make

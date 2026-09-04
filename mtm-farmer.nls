@@ -153,7 +153,7 @@ to set-initial-farmer-debt
     table:get table:get dsr-parameters farm-type "shape"
     (1 / table:get table:get dsr-parameters farm-type "scale"))
   set debt-service-ratio debt-service-ratio * payments-multiplier base-rate interest-rate mortgage-term 
-  set debt-payments debt-service-ratio * sum [get-gross-income] of my-holdings
+  set debt-payments debt-service-ratio * sum [get-gross-income] of my-holdings ;; calculable at tick 0
   set loan-principal get-principal-from-payment debt-payments interest-rate mortgage-term
   set loan-rate interest-rate
 end
@@ -180,7 +180,7 @@ end
 ;; update the debt payments variable reflecting changed interest rates if needed
 to set-debt-payments-owing
   if interest-rate != loan-rate [ 
-    set debt-payments get-loan-repayments loan-principal interest-rate mortgage-term
+    set debt-payments debt-payments * payments-multiplier loan-rate interest-rate mortgage-term
     set loan-rate interest-rate
   ] 
   ;; otherwise debt-payments are unchanged

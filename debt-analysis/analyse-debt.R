@@ -4,16 +4,30 @@ library(here)
 
 folder <- str_glue("{here()}/debt-analysis")
 
-df1 <- read.csv(str_glue("{folder}/farmers-default.csv")) |>
-    left_join(read.csv(str_glue("{folder}/farms-default.csv")), keep = FALSE) |>
-    mutate(model = "20-80% mortgage, 50% inheritance")
+# df1 <- read.csv(str_glue("{folder}/farmers-default.csv")) |>
+#     left_join(read.csv(str_glue("{folder}/farms-default.csv")), keep = FALSE) |>
+#     mutate(model = "20-80% mortgage, 50% inheritance")
+
+# df2 <- read.csv(
+#     str_glue("{folder}/farmers-low-inheritance-high-mortgage.csv")) |>
+#     left_join(
+#         read.csv(str_glue("{folder}/farms-low-inheritance-high-mortgage.csv")), 
+#         keep = FALSE) |>
+#     mutate(model = "65% avg mortgage, 5% inheritance")
+
+df1 <- read.csv(
+    str_glue("{folder}/farmers-low-discount.csv")) |>
+    left_join(
+        read.csv(str_glue("{folder}/farms-low-discount.csv")), 
+        keep = FALSE) |>
+    mutate(model = "low discount")
 
 df2 <- read.csv(
-    str_glue("{folder}/farmers-low-inheritance-high-mortgage.csv")) |>
+    str_glue("{folder}/farmers-low-discount-dairy-premium.csv")) |>
     left_join(
-        read.csv(str_glue("{folder}/farms-low-inheritance-high-mortgage.csv")), 
+        read.csv(str_glue("{folder}/farms-low-discount-dairy-premium.csv")), 
         keep = FALSE) |>
-    mutate(model = "65% avg mortgage, 5% inheritance")
+    mutate(model = "low discount dairy premium")
 
 cuts <- c(-1, 0.01, 0.25, 0.5, 0.75, 1, 2, 3, 5, 8, 100) * 1e6
 labels = c(
@@ -46,8 +60,8 @@ ggplot(debt_by_sector) +
     ylab("Debt payments as % income") +
     guides(fill = "none") +
     theme_minimal()
-ggsave(str_glue("{folder}/debt-by-sector.png"), dpi = 600,
-       width = 7, height = 5)
+# ggsave(str_glue("{folder}/debt-by-sector.png"), dpi = 600,
+#        width = 7, height = 5)
 
 ggplot(df) +
     geom_bar(
@@ -63,5 +77,5 @@ ggplot(df) +
     facet_wrap(~ model) +
     guides(fill = "none") +
     theme_minimal()
-ggsave(str_glue("{folder}/debt-levels.png"), dpi = 600, 
-       width = 9, height = 5)
+# ggsave(str_glue("{folder}/debt-levels.png"), dpi = 600, 
+#        width = 9, height = 5)

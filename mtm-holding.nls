@@ -58,9 +58,9 @@ to initialise-holding-interventions
 end
 
 ;; does the book keeping if the farm-type is changed
-to change-holding-farm-type [ft]
-  set farm-type ft
-  ask the-land [set landuse ft]
+to change-holding-farm-type [#farm-type]
+  set farm-type #farm-type
+  ask the-land [set landuse #farm-type]
   set landuse-luc-profile get-landuse-luc-profile the-land
   set my-interventions (matrix:map * get-possible-interventions my-interventions) 
   set avail-interventions matrix:map [x -> ifelse-value x < 1 [0] [1]] 
@@ -86,9 +86,9 @@ end
 ;; changing. Run during initialisation and only altered if such changes in landuse 
 ;; are undertaken.
 ;; not a holding reporter but usually run on the-land of holding turtles
-to-report get-landuse-luc-profile [poly]
-  let luc-i map [x -> position [luc-code] of x range-from-to 1 9] sort poly
-  let lu-j  map [x -> position [landuse] of x farm-types] sort poly
+to-report get-landuse-luc-profile [#poly]
+  let luc-i map [x -> position [luc-code] of x range-from-to 1 9] sort #poly
+  let lu-j  map [x -> position [landuse] of x farm-types] sort #poly
   let nrow 8
   let ncol length farm-types
   let farm-profile matrix:make-constant nrow ncol 0
@@ -108,8 +108,8 @@ end
 
 ;; update my-interventions and available-interventions matrices
 ;; to reflect implementation of intervention i-type
-to do-intervention [i-type]
-  let col position i-type interventions
+to do-intervention [#i-type]
+  let col position #i-type interventions
   matrix:set my-interventions 0 col 1
   matrix:set avail-interventions 0 col 0
   ;; also update the interventions of the parent farmer
@@ -122,7 +122,7 @@ to do-intervention [i-type]
              table:get (
                table:get intervention-properties "capital_costs"
              ) farm-type 
-           ) i-type
+           ) #i-type
   ask my-farmer [ add-to-debt cost]
 end
 
@@ -136,27 +136,27 @@ end
 
 ;; tests if intervention is applicable by checking if the result is in
 ;; interventions table not a holding reporter but most often run by a holding turtle
-to-report is-applicable-to-landuse? [i-type]
-  report get-impact farm-type "costs" i-type != na-value
+to-report is-applicable-to-landuse? [#i-type]
+  report get-impact farm-type "costs" #i-type != na-value
 end
 
-to-report is-possible-on-this-holding? [i-type]
+to-report is-possible-on-this-holding? [#i-type]
   report random-float 1 < 
     table:get (
       table:get (
         table:get intervention-properties "max_proportion"
       ) farm-type
-    ) i-type
+    ) #i-type
 end
 
 ;; returns impact by farm-type, effect-type, and intervention-type
 ;; not a holding reporter but most often run by a holding turtle
-to-report get-impact [fm-type effect-type intervention-type]
+to-report get-impact [#farm-type #effect-type #intervention-type]
   report table:get (
            table:get (
-             table:get intervention-properties effect-type
-           ) fm-type
-         ) intervention-type
+             table:get intervention-properties #effect-type
+           ) #farm-type
+         ) #intervention-type
 end
 
 ;; reports my-interventions as a list of intervention-type names for convenience
@@ -222,11 +222,11 @@ to update-holding-env-metrics
   ]
 end
 
-to set-metric [metric]
+to set-metric [#metric]
   let value matrix-sum-elements (
-    matrix:map * landuse-luc-profile table:get metrics-details metric
+    matrix:map * landuse-luc-profile table:get metrics-details #metric
   )
-  table:put my-metrics metric precision value 3
+  table:put my-metrics #metric precision value 3
 end
 
 ;; ----------------------------------------------------------------------------
@@ -236,11 +236,11 @@ end
 ;; which it would be inefficient to reassemble on the fly and is updated rarely
 
 ;; holding reporter due to landuse-luc-profile
-to-report get-holding-income [include-variance?]
+to-report get-holding-income [#include-variance?]
   ;; calculation here is SUM [ LUC/LU * Yield * Impact of interventions * Prices ]
   ;; Yield component optionally includes variance
   ;; Multiplications are all element-wise except for last step * Prices
-  ifelse include-variance? [
+  ifelse #include-variance? [
     report round matrix-sum-elements (
       ( matrix:map [[a b c] -> a * b * c] 
           landuse-luc-profile
@@ -261,11 +261,11 @@ to-report get-holding-income [include-variance?]
 end
 
 ;; holding reporter due to landuse-luc-profile
-to-report get-holding-costs [include-variance?]
+to-report get-holding-costs [#include-variance?]
   ;; calculation here is
   ;; Cost of interventions + SUM [ LUC/LU * Costs + Taxes ]
   ;; Costs optionally include variance
-  ifelse include-variance? [
+  ifelse #include-variance? [
     report round ( 
       get-cost-impact-of-interventions + 
       matrix-sum-elements (
@@ -308,11 +308,11 @@ end
 ;; deviation downscaled by √n -- this is of course summed across n patches
 ;; so the overall deviation will be larger, but appropriately 'suppressed'
 ;; for the larger holding.
-to-report reduced-normal-deviate [mn sd n]
+to-report reduced-normal-deviate [#mean #sd #n]
   ( ifelse
-    n = 0 [ report 0 ] ;; n = 0 is meaningless
-    n = 1 [ report random-normal mn sd ]
-    [ report random-normal mn (sd / sqrt(n)) ]
+    #n = 0 [ report 0 ] ;; n = 0 is meaningless
+    #n = 1 [ report random-normal #mean #sd ]
+    [ report random-normal #mean (#sd / sqrt(#n)) ]
   )
 end
 
@@ -337,11 +337,11 @@ end
 ;; reports a matrix of emissions deviates suppressed by the number of patches
 ;; in accordance with the central limit theorem...
 ;; holding reporter due to landuse-luc-profile
-to-report get-holding-env-metric-incl-variance [metric]
+to-report get-holding-env-metric-incl-variance [#metric]
   report (
     matrix:map [[m s n] -> reduced-normal-deviate m s n] 
-                  table:get env-metric-means metric 
-                  table:get env-metric-sds metric 
+                  table:get env-metric-means #metric 
+                  table:get env-metric-sds #metric 
                   landuse-luc-profile
   )
 end
@@ -381,13 +381,13 @@ end
 ;; as above but for emissions
 ;;
 ;; holding reporter due to my-interventions
-to-report get-env-metric-impact-of-interventions [metric]
+to-report get-env-metric-impact-of-interventions [#metric]
   report matrix:transpose
     matrix-duplicate-cols (
       matrix-column-products (
       ( matrix:map [[a b] -> ifelse-value a = 0 [1] [b]]
         matrix-duplicate-cols matrix:transpose my-interventions length farm-types
-        table:get intervention-env-impacts metric)
+        table:get intervention-env-impacts #metric)
       )
     ) 8
 end
@@ -414,8 +414,8 @@ end
 ;;
 ;; DEBUG FILE OUTPUT
 ;; Note this preferred to using simpleR extension to avoid dependency on R installation
-to output-holdings-report [fname]
-  csv:to-file fname fput get-holding-csv-header map [h -> [get-holding-status] of h] sort holdings
+to output-holdings-report [#file]
+  csv:to-file #file fput get-holding-csv-header map [h -> [get-holding-status] of h] sort holdings
 end
 
 to-report get-holding-status

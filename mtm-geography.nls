@@ -369,14 +369,14 @@ end
 
 
 ;; returns approximate centroid of a patch-set
-to-report approximate-centroid [polygon]
+to-report approximate-centroid [#polygon]
   let centroid nobody
   with-local-randomness [
     random-seed 0
-    let mean-x mean [pxcor] of polygon
-    let mean-y mean [pycor] of polygon
+    let mean-x mean [pxcor] of #polygon
+    let mean-y mean [pycor] of #polygon
     ;; make sure it's actually a patch in the set
-    set centroid min-one-of polygon [distancexy mean-x mean-y]
+    set centroid min-one-of #polygon [distancexy mean-x mean-y]
   ]
   report centroid
 end
@@ -403,10 +403,10 @@ end
 ;; the region-id attribute and IS NOT merely the value of the supplied variable 
 ;; because patches that share a value of that variable but are not orthogonally 
 ;; connected are considered as distinct regions.
-to label-connected-regions [patch-sets region-id-reporter n4?]
+to label-connected-regions [#patch-sets #region-id-reporter #n4?]
   let first-id 0
-  foreach patch-sets [ ps ->
-    set first-id label-connected-region ps region-id-reporter first-id n4?
+  foreach #patch-sets [ ps ->
+    set first-id label-connected-region ps #region-id-reporter first-id #n4?
   ]
 end
 
@@ -414,27 +414,27 @@ end
 ;; starting from id0. Reports the 'id it got to' so that the calling context can 
 ;; continue on to label more patchsets starting from the next value. Implementation 
 ;; uses the nw:weak-component-clusters reporter
-to-report label-connected-region [pset region-id-reporter id0 n4?]
-  ask pset [ sprout-nodes 1 ]
+to-report label-connected-region [#pset #region-id-reporter #id0 #n4?]
+  ask #pset [ sprout-nodes 1 ]
   ask nodes [
-    ifelse n4? [
-      ask (nodes-on neighbors4) with [x1-var-matches-x2-var? self myself region-id-reporter] [
+    ifelse #n4? [
+      ask (nodes-on neighbors4) with [x1-var-matches-x2-var? self myself #region-id-reporter] [
         create-link-with myself
       ]
     ]
     [
-      ask (nodes-on neighbors) with [x1-var-matches-x2-var? self myself region-id-reporter] [
+      ask (nodes-on neighbors) with [x1-var-matches-x2-var? self myself #region-id-reporter] [
         create-link-with myself
       ]
     ]
   ]
   nw:set-context nodes links
   foreach nw:weak-component-clusters [ v ->
-    ask v [ set region-id id0 ]
-    set id0 id0 + 1
+    ask v [ set region-id #id0 ]
+    set #id0 #id0 + 1
   ]
   ask nodes [die]
-  report id0
+  report #id0
 end
 
 
@@ -443,32 +443,32 @@ end
 ;; some threshold value
 ;; var-getter  is an anonymous reporter like  [   p   -> [farm-id] of p ]
 ;; var-matcher is an anonymous procedure like [ [x y] -> ask x [set farm-id [farm-id] of y] ]
-to merge-singletons [pset var-getter var-matcher]
-  let singletons get-singletons pset var-getter
+to merge-singletons [#pset #var-getter #var-matcher]
+  let singletons get-singletons #pset #var-getter
   let any-change? true
   with-local-randomness [
     let n count singletons
     while [any? singletons and any-change?] [
       ;; every patch is a singleton, so pick one and 
       ;; assign all of them same values of variable
-      ifelse count pset = count singletons [
+      ifelse count #pset = count singletons [
         ask singletons [
           let p one-of singletons
           let others [ other singletons ] of p
           foreach sort others [ q ->
-            set-x1-var-to-x2-var p q var-matcher
+            set-x1-var-to-x2-var p q #var-matcher
           ]
         ]
       ]
       [
         ask singletons [
-          let non-singleton-neighbours neighbors4 with [member? self pset and not member? self singletons]
+          let non-singleton-neighbours neighbors4 with [member? self #pset and not member? self singletons]
           if any? non-singleton-neighbours [
-            set-x1-var-to-x2-var self one-of non-singleton-neighbours var-matcher
+            set-x1-var-to-x2-var self one-of non-singleton-neighbours #var-matcher
           ]
         ]
       ]
-      set singletons get-singletons pset var-getter
+      set singletons get-singletons #pset #var-getter
       set any-change? count singletons != n
       set n count singletons
     ]
@@ -483,8 +483,8 @@ end
 
 
 ;; this detects singleton members of pset with neighbors4 with matching values of var-getter
-to-report get-singletons [pset var-getter]
-  report pset with [not any? neighbors4 with [x1-var-matches-x2-var? self myself var-getter and member? self pset]]
+to-report get-singletons [#pset #var-getter]
+  report #pset with [not any? neighbors4 with [x1-var-matches-x2-var? self myself #var-getter and member? self #pset]]
 end
 
 

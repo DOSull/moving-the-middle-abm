@@ -1,0 +1,276 @@
+;; 
+;; Procedures and reporters to make reading tables from files easier
+;;
+
+;; reports a table initialised from a single header row like 
+;; this (spacing is for clarity):
+;;
+;; <IGNORED>, SNB, Dairy, Forest, Crop
+;; price    ,   5,   7.5,    157, 0.5
+;; 
+;; into a table with keys as in header row and values in the data row
+;; the name of the row of data is ignored
+;;
+to-report read-one-row-table [fname as-list?]
+  let tbl nobody
+  carefully [
+    print word "Reading parameters from " fname
+    file-open fname
+    let raw-headers but-first csv:from-row file-read-line
+    let headers sort raw-headers
+    let order get-order headers raw-headers
+    let values reorder but-first csv:from-row file-read-line order
+    ifelse as-list?
+    [ set tbl map [x -> replace-na x] values ]
+    [ set tbl table:from-list (map list headers map [x -> replace-na x] values) ]
+    file-close
+  ]
+  [
+    user-message word "ERROR: problem reading " fname
+    file-close
+  ]
+  report tbl 
+end
+
+
+;; reports a table of tables initialised from a multirow csv like
+;; this (spacing for clarity):
+;;
+;; <IGNORED>        , SNB, Dairy, Forest, Crop
+;; Build_Wetland    ,	0.7,  0.75,    0.3,  0.5
+;; Riparian_Planting,	0.7,  0.75,    0.2,  0.4
+;; Clean_Races      ,	0.2,   0.7,      0,    0
+;; Farm_Plan        ,	0.7,  0.85,    0.4,  0.6
+;; Join_ETS         ,	0.1,   0.1,	   0.9,  0.5
+;;
+;; table consists of row-tables indexed by row-name, then col-name:
+;; 
+;; table:get (table:get tbl ROWNAME) COLNAME
+;;
+to-report read-multi-row-table [fname as-lists?]
+  let tbl nobody
+  carefully [
+    set tbl table:make
+    print word "Reading parameters from " fname
+    file-open fname
+    let raw-headers but-first csv:from-row file-read-line
+    let headers sort raw-headers
+    let order get-order headers raw-headers
+    while [not file-at-end?] [
+      let data csv:from-row file-read-line
+      let varname first data
+      if not is-string? varname or first varname != "#" [
+        let values reorder but-first data order
+        ifelse as-lists?
+        [ table:put tbl varname map [x -> replace-na x] values ]
+        [ table:put tbl varname table:from-list (map list headers map [x -> replace-na x] values) ]
+      ]
+    ]
+    file-close
+  ]
+  [
+    user-message word "ERROR: problem reading " fname
+    file-close
+  ]
+  report tbl 
+end
+
+
+;; reports a table of tables initialised from a multirow csv like
+;; this (spacing for clarity):
+;;
+;; <IGNORED>        , SNB, Dairy, Forest, Crop
+;; Build_Wetland    ,	0.7,  0.75,    0.3,  0.5
+;; Riparian_Planting,	0.7,  0.75,    0.2,  0.4
+;; Clean_Races      ,	0.2,   0.7,      0,    0
+;; Farm_Plan        ,	0.7,  0.85,    0.4,  0.6
+;; Join_ETS         ,	0.1,   0.1,	   0.9,  0.5
+;;
+;; table consists of row-tables indexed by col-name, then row-name:
+;; 
+;; table:get (table:get tbl COLNAME) ROWNAME
+;;
+to-report read-multi-col-table [fname as-lists?]
+  report get-table-transpose read-multi-row-table fname as-lists? 
+end
+
+
+;; reports transpose of a two-level nested table of tables
+to-report get-table-transpose [tbl]
+  let tbl-t table:make
+  let rows table:keys tbl
+  let cols table:keys table:get tbl item 0 rows
+  foreach cols [ col ->
+    let values map [row -> table:get table:get tbl row col] rows
+    table:put tbl-t col table:from-list (map list rows values)
+  ]
+  report tbl-t
+end
+
+;; reads a table like
+;;
+;;       , SNB, Dairy, Forest, Crop
+;; SNB   ,   1,   0.1,    0.2,  0.1
+;; Dairy , 0.1,     1,    0.2,  0.1
+;; Forest, 0.1,   0.1,      1,  0.1
+;; Crop  , 0.1,   0.1,    0.2,    1
+;;
+;; into a table like
+;; 
+;; {{table: [
+;;    ["Crop"  {{table: [["Crop" 1] ["Dairy" 0.1] ["Forest" 0.2] ["SNB" 0.1]]}}] 
+;;    ["Dairy" {{table: [["Crop" 0.1] ["Dairy" 1] ["Forest" 0.2] ["SNB" 0.1]]}}]
+;;                          etc.
+;;
+;; implementation will force the same order on rows and columns so if converted
+;; to a matrix the lead diagonal will likely consist of all 1s (or perhaps 0s)
+;; depending on the application. If row and column names are not matched will fail.
+to-report read-transition-table [fname]
+  let xtab nobody
+  carefully [
+    set xtab table:make
+    let rows sort get-row-names fname 0
+    let raw-cols get-column-names fname 1
+    if rows != sort raw-cols [ stop ]
+    let order get-order raw-cols rows
+    print word "Reading parameters from " fname
+    let data reorder but-first csv:from-file fname order
+    foreach data [ row ->
+      let key item 0 row
+      let values but-first row
+      table:put xtab key table:from-list reorder (map list raw-cols values) order 
+    ]
+  ]
+  [
+    user-message (word "ERROR: problem reading " fname ". Check row and column headings match.")
+    file-close
+  ]
+  report xtab
+end
+
+
+;; reports a multi-level table initialised from a CSV like
+;;
+;; <IGNORED> , <IGNORED>,  SNB, Dairy, Forest, Crop
+;; Mean      ,         1, 3500,  9500,   4000, 3000
+;; SD        ,         1,  700,  1900,    800,  600
+;; Mean      ,         2, 2650,  8050,   4000, 2850
+;; SD        ,         2,  530,  1610,    800,  570
+;;
+;;                ~~~ and so on ~~~
+;; 
+;; The result will be a nested table:
+;;
+;; { "Mean": { 1: { "SNB": ..., "Dairy": ..., "Forest": ..., "Crop": ... }, 
+;;             2: { "SNB": ..., "Dairy": ..., "Forest": ..., "Crop": ... } }
+;; { "SD"  : { 1: { "SNB": ..., "Dairy": ..., "Forest": ..., "Crop": ... }, 
+;;             2: { "SNB": ..., "Dairy": ..., "Forest": ..., "Crop": ... } }
+;; 
+;; and so on. Columns 1 and 2 can contain arbitrary numbers of categories and
+;; be in any order. Both category labels must appear in every row (missing
+;; values will not be filled assuming a prior value).
+;; 
+;; The result is a table of two-way tables, accessed as e.g.:
+;;
+;; table:get table:get table:get "SNB" 1 "Mean"
+;;
+to-report read-three-way-table [fname as-lists?]
+  let tbl-top nobody
+  carefully [
+    set tbl-top table:make
+    print word "Reading parameters from " fname
+    let data but-first csv:from-file fname
+    let levels-1 remove-duplicates map [row -> item 0 row] data
+    let levels-2 remove-duplicates map [row -> item 1 row] data
+    file-open fname
+    let raw-cols but-first-n csv:from-row file-read-line 2
+    let cols sort raw-cols
+    let order get-order raw-cols cols
+    file-close
+    foreach levels-1 [ level-1 ->
+      let tbl-level-1 table:make
+      foreach levels-2 [ level-2 ->
+        let values reorder but-first-n item 0 filter [x -> item 0 x = level-1 and item 1 x = level-2] data 2 order
+        ifelse as-lists?
+        [ table:put tbl-level-1 level-2 map [x -> replace-na x] values ] 
+        [ table:put tbl-level-1 level-2 table:from-list (map list cols map [x -> replace-na x] values) ]
+      ]
+      table:put tbl-top level-1 tbl-level-1 
+    ]
+  ]
+  [
+    user-message word "ERROR: problem reading " fname
+    file-close
+  ]
+  report tbl-top
+end
+
+
+;; reports column names of a CSV file, skipping specified number of
+;; row-name columns
+to-report get-column-names [fname skip-columns]
+  let cols nobody
+  carefully [
+    file-open fname
+    set cols but-first-n csv:from-row file-read-line skip-columns 
+    file-close
+  ]
+  [
+    user-message word "ERROR: problem reading " fname
+    file-close
+  ]
+  report remove-duplicates cols
+end
+
+
+;; reports row-names of a CSV file from column at 0-indexed position
+to-report get-row-names [fname index]
+  let rows nobody
+  carefully [
+    let data but-first csv:from-file fname
+    set rows map [row -> item index row] data
+    file-close
+  ]
+  [
+    user-message word "ERROR: problem reading " fname
+    file-close
+  ]
+  report remove-duplicates rows
+end
+  
+
+;; replaces text "NA" with the (global) na-value
+to-report replace-na [x]
+  report ifelse-value x = "NA" [na-value] [x]
+end
+
+
+;; if x = y reports z, otherwise reports x unchanged
+to-report replace [x y z]
+  report ifelse-value x = y [z] [x]
+end 
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-25 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.
+

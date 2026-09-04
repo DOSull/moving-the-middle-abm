@@ -11,22 +11,22 @@
 ;; into a table with keys as in header row and values in the data row
 ;; the name of the row of data is ignored
 ;;
-to-report read-one-row-table [fname as-list?]
+to-report read-one-row-table [#file #as-list?]
   let tbl nobody
   carefully [
-    print word "Reading parameters from " fname
-    file-open fname
+    print word "Reading parameters from " #file
+    file-open #file
     let raw-headers but-first csv:from-row file-read-line
     let headers sort raw-headers
     let order get-order headers raw-headers
     let values reorder but-first csv:from-row file-read-line order
-    ifelse as-list?
+    ifelse #as-list?
     [ set tbl map [x -> replace-na x] values ]
     [ set tbl table:from-list (map list headers map [x -> replace-na x] values) ]
     file-close
   ]
   [
-    user-message word "ERROR: problem reading " fname
+    user-message word "ERROR: problem reading " #file
     file-close
   ]
   report tbl 
@@ -47,12 +47,12 @@ end
 ;; 
 ;; table:get (table:get tbl ROWNAME) COLNAME
 ;;
-to-report read-multi-row-table [fname as-lists?]
+to-report read-multi-row-table [#file #as-lists?]
   let tbl nobody
   carefully [
     set tbl table:make
-    print word "Reading parameters from " fname
-    file-open fname
+    print word "Reading parameters from " #file
+    file-open #file
     let raw-headers but-first csv:from-row file-read-line
     let headers sort raw-headers
     let order get-order headers raw-headers
@@ -61,7 +61,7 @@ to-report read-multi-row-table [fname as-lists?]
       let varname first data
       if not is-string? varname or first varname != "#" [
         let values reorder but-first data order
-        ifelse as-lists?
+        ifelse #as-lists?
         [ table:put tbl varname map [x -> replace-na x] values ]
         [ table:put tbl varname table:from-list (map list headers map [x -> replace-na x] values) ]
       ]
@@ -69,7 +69,7 @@ to-report read-multi-row-table [fname as-lists?]
     file-close
   ]
   [
-    user-message word "ERROR: problem reading " fname
+    user-message word "ERROR: problem reading " #file
     file-close
   ]
   report tbl 
@@ -96,15 +96,15 @@ end
 
 
 ;; reports transpose of a two-level nested table of tables
-to-report get-table-transpose [tbl]
-  let tbl-t table:make
-  let rows table:keys tbl
-  let cols table:keys table:get tbl item 0 rows
+to-report get-table-transpose [#table]
+  let table-t table:make
+  let rows table:keys #table
+  let cols table:keys table:get #table item 0 rows
   foreach cols [ col ->
-    let values map [row -> table:get table:get tbl row col] rows
-    table:put tbl-t col table:from-list (map list rows values)
+    let values map [row -> table:get table:get #table row col] rows
+    table:put table-t col table:from-list (map list rows values)
   ]
-  report tbl-t
+  report table-t
 end
 
 ;; reads a table like
@@ -125,16 +125,16 @@ end
 ;; implementation will force the same order on rows and columns so if converted
 ;; to a matrix the lead diagonal will likely consist of all 1s (or perhaps 0s)
 ;; depending on the application. If row and column names are not matched will fail.
-to-report read-transition-table [fname]
+to-report read-transition-table [#file]
   let xtab nobody
   carefully [
     set xtab table:make
-    let rows sort get-row-names fname 0
-    let raw-cols get-column-names fname 1
+    let rows sort get-row-names #file 0
+    let raw-cols get-column-names #file 1
     if rows != sort raw-cols [ stop ]
     let order get-order raw-cols rows
-    print word "Reading parameters from " fname
-    let data reorder but-first csv:from-file fname order
+    print word "Reading parameters from " #file
+    let data reorder but-first csv:from-file #file order
     foreach data [ row ->
       let key item 0 row
       let values but-first row
@@ -142,7 +142,7 @@ to-report read-transition-table [fname]
     ]
   ]
   [
-    user-message (word "ERROR: problem reading " fname ". Check row and column headings match.")
+    user-message (word "ERROR: problem reading " #file ". Check row and column headings match.")
     file-close
   ]
   report xtab
@@ -174,15 +174,15 @@ end
 ;;
 ;; table:get table:get table:get "SNB" 1 "Mean"
 ;;
-to-report read-three-way-table [fname as-lists?]
+to-report read-three-way-table [#file #as-lists?]
   let tbl-top nobody
   carefully [
     set tbl-top table:make
-    print word "Reading parameters from " fname
-    let data but-first csv:from-file fname
+    print word "Reading parameters from " #file
+    let data but-first csv:from-file #file
     let levels-1 remove-duplicates map [row -> item 0 row] data
     let levels-2 remove-duplicates map [row -> item 1 row] data
-    file-open fname
+    file-open #file
     let raw-cols but-first-n csv:from-row file-read-line 2
     let cols sort raw-cols
     let order get-order raw-cols cols
@@ -191,7 +191,7 @@ to-report read-three-way-table [fname as-lists?]
       let tbl-level-1 table:make
       foreach levels-2 [ level-2 ->
         let values reorder but-first-n item 0 filter [x -> item 0 x = level-1 and item 1 x = level-2] data 2 order
-        ifelse as-lists?
+        ifelse #as-lists?
         [ table:put tbl-level-1 level-2 map [x -> replace-na x] values ] 
         [ table:put tbl-level-1 level-2 table:from-list (map list cols map [x -> replace-na x] values) ]
       ]
@@ -199,7 +199,7 @@ to-report read-three-way-table [fname as-lists?]
     ]
   ]
   [
-    user-message word "ERROR: problem reading " fname
+    user-message word "ERROR: problem reading " #file
     file-close
   ]
   report tbl-top
@@ -208,15 +208,15 @@ end
 
 ;; reports column names of a CSV file, skipping specified number of
 ;; row-name columns
-to-report get-column-names [fname skip-columns]
+to-report get-column-names [#file #skip-columns]
   let cols nobody
   carefully [
-    file-open fname
-    set cols but-first-n csv:from-row file-read-line skip-columns 
+    file-open #file
+    set cols but-first-n csv:from-row file-read-line #skip-columns 
     file-close
   ]
   [
-    user-message word "ERROR: problem reading " fname
+    user-message word "ERROR: problem reading " #file
     file-close
   ]
   report remove-duplicates cols
@@ -224,15 +224,15 @@ end
 
 
 ;; reports row-names of a CSV file from column at 0-indexed position
-to-report get-row-names [fname index]
+to-report get-row-names [#file #index]
   let rows nobody
   carefully [
-    let data but-first csv:from-file fname
-    set rows map [row -> item index row] data
+    let data but-first csv:from-file #file
+    set rows map [row -> item #index row] data
     file-close
   ]
   [
-    user-message word "ERROR: problem reading " fname
+    user-message word "ERROR: problem reading " #file
     file-close
   ]
   report remove-duplicates rows
@@ -240,14 +240,14 @@ end
   
 
 ;; replaces text "NA" with the (global) na-value
-to-report replace-na [x]
-  report ifelse-value x = "NA" [na-value] [x]
+to-report replace-na [#x]
+  report ifelse-value #x = "NA" [na-value] [#x]
 end
 
 
 ;; if x = y reports z, otherwise reports x unchanged
-to-report replace [x y z]
-  report ifelse-value x = y [z] [x]
+to-report replace [#x #y #z]
+  report ifelse-value #x = #y [#z] [#x]
 end 
 
 

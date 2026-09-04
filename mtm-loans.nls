@@ -1,36 +1,42 @@
 ;; reports annual repayments on a loan of given principal 
 ;; amount ($), interest rate (%), and term (years)
-to-report get-loan-repayments [P i-rate loan-term]
-  if i-rate = 0 [ report round (P / loan-term) ]
-  let r i-rate / 100
+to-report get-loan-repayments [#principal #i-rate #loan-term]
+  if #i-rate = 0 [ report round (#principal / #loan-term) ]
+  let r #i-rate / 100
   let r-plus-1 r + 1
-  let X r-plus-1 ^ loan-term
-  report round (P * r * X / (X - 1))
+  let X r-plus-1 ^ #loan-term
+  report round (#principal * r * X / (X - 1))
 end
 
 ;; reports princial amount based on the payment ($) of
 ;; at a given interest rate (%) and term (years)
-;;
-;to-report get-principal-from-payment [pmt i-rate loan-term]
-;  let r i-rate / 100
-;  ifelse r = 0 [
-;    report round (pmt * loan-term)
-;  ]
-;  [
-;    let x (1 + r) ^ loan-term
-;    report round (pmt * (1 - (1 / x)) / r)
-;  ]
-;end
+to-report get-principal-from-payment [#payment #i-rate #loan-term]
+  let r #i-rate / 100
+  ifelse r = 0 [
+    report round (#payment * #loan-term)
+  ]
+  [
+    let x (1 + r) ^ #loan-term
+    report round (#payment * (1 - (1 / x)) / r)
+  ]
+end
 
 ;; reports principal outstanding on a loan of given
 ;; principal ($), interest rate (%), loan term (years) and
 ;; maturaity, i.e. years into paying off loan
-to-report get-principal-remaining [P i-rate loan-term m]
-  if m = nobody [ report 0 ]
-  if i-rate = 0 [ report round (P * (loan-term - m) / loan-term) ]
-  let r i-rate / 100
+to-report get-principal-remaining [#principal #i-rate #loan-term #maturity]
+  if #maturity = nobody [ report 0 ]
+  if #i-rate = 0 [ report round (#principal * (#loan-term - #maturity) / #loan-term) ]
+  let r #i-rate / 100
   let r-plus-1 r + 1
-  let X r-plus-1 ^ m
-  let Y r-plus-1 ^ loan-term
-  report P * (X - Y * (X - 1) / (Y - 1))
+  let X r-plus-1 ^ #maturity
+  let Y r-plus-1 ^ #loan-term
+  report #principal * (X - Y * (X - 1) / (Y - 1))
+end
+
+
+to-report payments-multiplier [#r0 #r1 #n]
+  let r0 #r0 / 100
+  let r1 #r1 / 100
+  report r1 * (r1 + 1) ^ #n * ((r0 + 1) ^ #n - 1) / ((r1 + 1) ^ #n - 1) / r0 / (r0 + 1) ^ #n 
 end

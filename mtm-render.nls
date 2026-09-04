@@ -11,18 +11,18 @@ end
 
 
 ;; colour in the map by landuse and LUC
-to colour-all-patches [colour-by-type?]
-  colour-patches farm-land colour-by-type?
+to colour-all-patches [#colour-by-type?]
+  colour-patches farm-land #colour-by-type?
 end
 
 
-to colour-patches [pset colour-by-type?]
+to colour-patches [#pset #colour-by-type?]
   with-local-randomness [
-    ifelse colour-by-type? and show-landuse? [
+    ifelse #colour-by-type? and show-landuse? [
       ifelse show-luc-codes? [
         foreach table:to-list table:get colour-key "farm-type-hues" [ farm-type-hue ->
           let [ft hue] farm-type-hue
-          ask pset with [landuse = ft] [
+          ask #pset with [landuse = ft] [
             set pcolor approximate-hsb hue (30 + 10 * (8 - luc-code)) (100 - degradation)
           ]
         ]
@@ -30,7 +30,7 @@ to colour-patches [pset colour-by-type?]
       [
         foreach table:to-list table:get colour-key "farm-type-hues" [ farm-type-hue ->
           let [ft hue] farm-type-hue
-          ask pset with [landuse = ft] [
+          ask #pset with [landuse = ft] [
             set pcolor approximate-hsb hue 100 (100 - degradation)
           ]
         ]
@@ -39,8 +39,8 @@ to colour-patches [pset colour-by-type?]
     [
       let pal table:get colour-key "LUC-palette"
       ifelse show-luc-codes?
-      [ ask pset [ set pcolor palette:scale-scheme "Sequential" pal 9 luc-code 9 0 ] ]
-      [ ask pset [ set pcolor green + 2 ] ]
+      [ ask #pset [ set pcolor palette:scale-scheme "Sequential" pal 9 luc-code 9 0 ] ]
+      [ ask #pset [ set pcolor green + 2 ] ]
     ]
   ]
 end

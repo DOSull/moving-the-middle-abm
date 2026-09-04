@@ -1,0 +1,112 @@
+breed [radio-buttons radio-button]
+breed [radio-button-labels radio-button-label]
+
+radio-buttons-own [
+  on-off
+]
+
+globals [
+  selection
+  radio-buttons-panel
+  radio-buttons-on-off-switch
+  button-labels
+  radio-buttons-list
+  hidden-turtles
+]
+
+to setup-buttons [#list #labels #switch]
+  set selection #list
+  set radio-buttons-on-off-switch #switch
+  set button-labels #labels
+  setup-radio-buttons-panel
+  hide-panel
+end
+
+to setup-radio-buttons-panel
+  let #aspect 0.25 * length (runresult selection)
+  let #width world-width / 3
+  let #width-fraction 1 - (#width / world-width)
+  let #height #aspect * #width
+  let #height-fraction 1 - (#height / world-height)
+  let #min-x min-pxcor + world-width * #width-fraction / 2
+  let #max-x max-pxcor - world-width * #width-fraction / 2
+  let #min-y min-pycor + world-height * 3 * #height-fraction / 4
+  let #max-y max-pycor - world-height * #height-fraction / 4
+  set radio-buttons-panel patches with [ 
+    pxcor > #min-x and pxcor < #max-x and 
+    pycor > #min-y and pycor < #max-y 
+  ]
+  set hidden-turtles turtle-set nobody
+  set hidden-turtles (turtle-set hidden-turtles (farms-on radio-buttons-panel) with [not hidden?])
+  set hidden-turtles (turtle-set hidden-turtles (farmers-on radio-buttons-panel) with [not hidden?])
+  set hidden-turtles (turtle-set hidden-turtles (holdings-on radio-buttons-panel) with [not hidden?])
+  setup-radio-buttons #min-x #max-x #min-y #max-y
+  ask radio-buttons-panel [ set temp-colour pcolor ]
+end
+
+to setup-radio-buttons [#x1 #x2 #y1 #y2]
+  set radio-buttons-list []
+  let #width #x2 - #x1
+  let #height #y2 - #y1
+  let #space #height / (length (runresult selection) + 1)
+  let #size #space * 0.8
+  let #x #x2 - #space
+  let #y #y2 - #space
+  foreach range length (runresult selection) [ i ->
+    create-radio-buttons 1 [
+      set radio-buttons-list lput self radio-buttons-list
+      set on-off item i (runresult selection)
+      set shape "circle"
+      set size #size
+      set color ifelse-value on-off = 1 [ green ] [ red ]
+      setxy #x #y - #space * i
+      hatch 1 [
+        set breed radio-button-labels
+        setxy #x - #space / 2 #y - #space * i
+        set size 0
+        set label runresult (word "item " i " " button-labels)
+      ]
+    ]
+  ]
+end
+
+to change-buttons
+  if runresult radio-buttons-on-off-switch [ 
+    show-panel
+    while [runresult radio-buttons-on-off-switch] [
+      if mouse-down? [
+        let mx mouse-xcor
+        let my mouse-ycor
+        let #button-clicked one-of (radio-buttons with [distancexy mx my < size * 0.5])
+        if #button-clicked != nobody [
+          ask #button-clicked [
+            set on-off 1 - on-off
+            run (word "set " selection " replace-item position self radio-buttons-list " selection " on-off")
+            set color ifelse-value on-off = 1 [ green ] [ red ]
+          ]
+        ]
+      ]
+      display
+      wait 0.2
+    ]
+  ]
+  hide-panel
+  clear-output
+  output-print join-list slice interventions matching-positions interventions-selection 1 "\n"
+end
+
+to show-panel
+  ask hidden-turtles [ set hidden? true ]
+  ask radio-buttons-panel [ set pcolor blue - 2 ]
+  ask radio-buttons [ set hidden? false ]
+  ask radio-button-labels [ set hidden? false ]
+  display
+end
+
+to hide-panel
+  ask hidden-turtles [ set hidden? false ]
+  ask radio-buttons-panel [ set pcolor temp-colour ]
+  ask radio-buttons [ set hidden? true ]
+  ask radio-button-labels [ set hidden? true ]
+  display
+end

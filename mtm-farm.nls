@@ -39,8 +39,8 @@ to update-farm-environmental-metrics
 end
 
 ;; note that this is also runnable by a holding...
-to-report is-in-breach? [metric]
-  report table:get my-metrics metric / count the-land > table:get (table:get env-metrics metric) "limit"
+to-report is-in-breach? [#metric]
+  report table:get my-metrics #metric / count the-land > table:get (table:get env-metrics #metric) "limit"
 end
 
 ;; calculates income and costs by summing holding contributions
@@ -56,17 +56,17 @@ end
 ;; NOTE: making est value dependent on interest rates tends to 
 ;; mean that aggregate loan payments are stable regardless of interest rates
 ;; because mortgages end up larger... this may need further consideration
-to-report get-estimated-farm-value
-  let est-profit sum [get-gross-return] of [my-holdings] of my-farmer
-  report round (est-profit * 100 / discount-rate)
-end
+;to-report get-estimated-farm-value
+;  let est-profit sum [get-gross-return] of [my-holdings] of my-farmer
+;  report round (est-profit * 100 / discount-rate)
+;end
 
 
 ;;
 ;; DEBUG FILE OUTPUT
 ;; Note this preferred to using simpleR extension to avoid dependency on R installation
-to output-farms-report [fname]
-  csv:to-file fname fput get-farm-csv-header map [h -> [get-farm-status] of h] sort farms
+to output-farms-report [#file]
+  csv:to-file #file fput get-farm-csv-header map [h -> [get-farm-status] of h] sort farms
 end
 
 to-report get-farm-status

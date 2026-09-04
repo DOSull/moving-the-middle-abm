@@ -14,3 +14,4 @@ data/spatial/scratch
 data/spatial/*/src
 data/output/scratch/*
 **/*.quarto_ipynb
+7.1/*

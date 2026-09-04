@@ -31,7 +31,6 @@ extensions [
 globals [
   years-per-tick             ;; probably 5 years per tick
   hectares-per-patch         ;; probably 16 ha. (40 acres) per cell
-  discount-rate
   
   geography-from-files?
   max-dimension
@@ -65,6 +64,7 @@ globals [
   not-farm-land              ;; and patches that are not - esp. important for GIS data
 
   farm-types                 ;; list of named farm types - likely fixed at 4: Crop Dairy Forestry SNB
+  dsr-parameters             ;; table of gamma distribution parameters by landuse for debt initialisation
   interventions              ;; list of named management interventions - more likely to change over time
   interventions-selection
   dispositions               ;; list of farmer dispositions
@@ -159,11 +159,11 @@ to setup
   set max-dimension 330
   set years-per-tick 5
   set hectares-per-patch 16
-  set discount-rate 8
   set epsilon 1e-16
   set na-value -999
   set show-labels? false; true; 
-
+  set base-rate 3.5
+  
   set run-seed ifelse-value user-run-seed? [run-rng-seed] [new-seed]
   
   set apply-suitability? true
@@ -178,6 +178,7 @@ to setup
     [ user-message "Problem setting up farmer parameters" stop ]
     set reinitialise? false
   ]
+  set dsr-parameters get-debt-service-ratio-parameters
   setup-colours ;; must come AFTER reading farmer parameters since it depends on farm types
   ask patches [ set pcolor table:get colour-key "background" ]
   
@@ -211,7 +212,7 @@ to burn-in-step
     update-farm-income-and-costs
   ]
   ask farmers [
-    finalise-profit true
+    finalise-profit
   ]
   reset-ticks
   ask farms [redraw-farm]
@@ -248,22 +249,22 @@ to go
       update-farm-income-and-costs
     ]
     ask farmers [
-      finalise-profit false
+      finalise-profit
     ]
     ask farmers [
       (
         ifelse
-        debt-asset-ratio >= 1 [ ;; severely distressed - exit?
+        debt-service-ratio >= 1 [ ;; severely distressed - exit?
           ;; think about this further - 
           ;; it's quite unlikely that anyone gets here
           succeed-farmer
         ]
-        debt-asset-ratio >= 0.5 [ ;; survival mode
+        debt-service-ratio >= 0.5 [ ;; survival mode
           ;; do not consider any interventions
           ;; landuse change? would consider holding-level changes
           do-survival 
         ]
-        debt-asset-ratio >= 0.25 [ ;; limited options
+        debt-service-ratio >= 0.25 [ ;; limited options
           ;; would consider holding-level changes
           ;; would consider some ('tactical' / easy) interventions
           do-constrained-change
@@ -373,11 +374,11 @@ to store-initial-values
     set inherited-0? inherited?
     set loan-principal-0 loan-principal
     set loan-rate-0 loan-rate
-    set current-debt-0 current-debt
+;    set current-debt-0 current-debt
     set debt-payments-0 debt-payments
-    set debt-maturity-0 debt-maturity
-    set debt-free-0? debt-free?
-    set debt-asset-ratio-0 debt-asset-ratio
+;    set debt-maturity-0 debt-maturity
+;    set debt-free-0? debt-free?
+    set debt-service-ratio-0 debt-service-ratio
   ]
 end
 
@@ -419,11 +420,11 @@ to restore-initial-values
     set inherited? inherited-0?
     set loan-principal loan-principal-0
     set loan-rate loan-rate-0
-    set current-debt current-debt-0
+;    set current-debt current-debt-0
     set debt-payments debt-payments-0
-    set debt-maturity debt-maturity-0
-    set debt-free? debt-free-0?
-    set debt-asset-ratio debt-asset-ratio-0
+;    set debt-maturity debt-maturity-0
+;    set debt-free? debt-free-0?
+    set debt-service-ratio debt-service-ratio-0
     set color table:get table:get colour-key "farmer" inherited?
   ]
   redraw-farms-and-holdings
@@ -538,9 +539,6 @@ LUC values (better land).</note>
     <note x="1036" y="163" backgroundDark="0" fontSize="12" width="39" markdown="false" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">high</note>
     <slider x="890" step="0.01" y="183" max="4" display="nudge-efficacy" height="33" min="0.01" direction="Horizontal" default="1.0" variable="nudge-efficacy" width="185" sizeVersion="0"></slider>
     <note x="890" y="219" backgroundDark="0" fontSize="11" width="185" markdown="true" height="104" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Note** nudge-efficacy is slope of S-curve with non-linear effects: small changes at low values can cause big changes. Nudge may be policy or network driven.</note>
-    <slider x="890" step="0.1" y="390" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="3.0" variable="interest-rate" units="%" width="185" sizeVersion="0"></slider>
-    <slider x="890" step="5" y="428" max="30" display="mortgage-term" height="33" min="5" direction="Horizontal" default="20.0" variable="mortgage-term" units="years" width="185" sizeVersion="0"></slider>
-    <switch x="890" y="347" height="33" on="false" variable="landuse-change-on-succession?" display="landuse-change-on-succession?" width="185" sizeVersion="0"></switch>
     <note x="890" y="666" backgroundDark="0" fontSize="12" width="180" markdown="true" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">**Interventions**</note>
     <output x="890" y="684" height="322" fontSize="11" width="185"></output>
     <plot x="1080" autoPlotX="true" yMax="10.0" autoPlotY="true" yAxis="$ Total" y="10" xMin="0.0" height="322" legend="true" xMax="10.0" yMin="0.0" xAxis="Time (5 yr periods)" display="Income-costs" width="225" sizeVersion="0">
@@ -576,12 +574,16 @@ histogram [age] of farmers</update>
         <setup></setup>
         <update>set-plot-x-range 0 1
 set-histogram-num-bars 10
-histogram [debt-asset-ratio] of farmers with [not debt-free?]</update>
+histogram [debt-service-ratio] of farmers ;; with [not debt-free?]</update>
       </pen>
     </plot>
     <switch x="889" y="569" height="33" on="false" variable="select-interventions?" display="select-interventions?" width="143" sizeVersion="0"></switch>
     <button x="888" y="608" height="40" disableUntilTicks="false" forever="false" kind="Observer" width="149" display="select-interventions">change-buttons</button>
     <note x="891" y="532" backgroundDark="0" fontSize="12" width="167" markdown="true" height="35" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">This is working at least in part. But ignore it for now!</note>
+    <slider x="890" step="5" y="468" max="30" display="mortgage-term" height="33" min="5" direction="Horizontal" default="20.0" variable="mortgage-term" units="years" width="185" sizeVersion="0"></slider>
+    <slider x="890" step="0.1" y="430" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="6.0" variable="interest-rate" units="%" width="185" sizeVersion="0"></slider>
+    <switch x="890" y="347" height="33" on="true" variable="landuse-change-on-succession?" display="landuse-change-on-succession?" width="185" sizeVersion="0"></switch>
+    <slider x="890" step="0.1" y="392" max="10" display="base-rate" height="33" min="0.1" direction="Horizontal" default="3.5" variable="base-rate" width="185" sizeVersion="0"></slider>
   </widgets>
   <info>## WHAT IS IT?
 

@@ -7,10 +7,10 @@ to profile-setup
 end
 
 
-to profile-go [n]
+to profile-go [#n]
   setup                  ;; set up the model
   profiler:start         ;; start profiling
-  repeat n [go]
+  repeat #n [go]
   profiler:stop          ;; stop profiling
   print profiler:report  ;; view the results
   profiler:reset         ;; clear the data

@@ -1,0 +1,148 @@
+;; ----------------------------------------------------------------------------
+;; Extensible model plots (which add pens based on data)
+;; ----------------------------------------------------------------------------
+
+;; Not all plots in the model will require this treatment - others can use the
+;; standard setup and updating triggered by ticks
+
+to setup-model-plots
+  show "Setting up model plots"
+  let pen-palette [ black red orange green sky blue violet magenta ]
+  setup-extensible-plot 
+    "Income-costs" 
+    (list "Income" "Costs" "Debt" "Debt-payments")
+    table:from-list (map list (list "Income" "Costs" "Debt" "Debt-payments") (list black red blue violet))
+  setup-extensible-plot 
+    "Interventions" 
+    interventions 
+    table:from-list (map list interventions first-n pen-palette (length interventions))
+  setup-extensible-plot 
+    "Landuse composition" 
+    farm-types 
+    table:get colour-key "farm-type" ;; use existing colour key for farm-type
+  let e-metrics sort table:keys env-metrics
+  setup-extensible-plot 
+    "Environmental metrics"
+    e-metrics
+    table:from-list (map list e-metrics first-n pen-palette (length e-metrics))
+end
+
+
+;; Sets up pens in the plot labelled 'plotname' with pen-names provided
+;; and colours to be pulled from the supplied look up table
+to setup-extensible-plot [plotname pen-names colours]
+  show (word "Setting up " plotname " plot")
+  set-current-plot plotname
+  foreach pen-names [ pen ->
+    create-temporary-plot-pen pen
+    set-plot-pen-color table:get colours pen
+  ]
+end
+
+
+;; update the model's extensible plots (only)
+to update-model-plots [with-pen-down?]
+  update-income-costs-plot with-pen-down?
+  update-interventions-plot with-pen-down?
+  update-landuse-plot with-pen-down?
+  update-metrics-plot with-pen-down?
+end
+
+
+;; update the interventions plot
+to update-income-costs-plot [with-pen-down?]
+  ifelse with-pen-down? [
+    set-current-plot "Income-costs"
+    set-current-plot-pen "Income"
+    plot sum [current-income] of farms
+    set-current-plot-pen "Costs"
+    plot sum [current-costs] of farms
+    set-current-plot-pen "Debt"
+    plot sum [current-debt] of farmers
+    set-current-plot-pen "Debt-payments"
+    plot sum [debt-payments] of farmers
+  ]
+  [
+    set-current-plot "Income-costs"
+    set-current-plot-pen "Income"
+    plot-pen-up
+    plot sum [current-income] of farms
+    plot-pen-down
+    set-current-plot-pen "Costs"
+    plot-pen-up
+    plot sum [current-costs] of farms
+    plot-pen-down
+    set-current-plot-pen "Debt"
+    plot-pen-up
+    plot sum [current-debt] of farmers
+    plot-pen-down
+    set-current-plot-pen "Debt-payments"
+    plot-pen-up
+    plot sum [debt-payments] of farmers
+    plot-pen-down
+  ]
+end
+
+
+;; update the interventions plot
+to update-interventions-plot [with-pen-down?]
+  set-current-plot "Interventions"
+  let prop-interventions map [v -> last v] table:values table:get results "intervention_props"
+  foreach range length prop-interventions [ i ->
+    set-current-plot-pen item i interventions
+    if not with-pen-down? [ plot-pen-up ]
+    plot item i prop-interventions
+    if not with-pen-down? [ plot-pen-down ]
+  ]
+end
+
+
+;; update the landuse plot
+to update-landuse-plot [with-pen-down?]
+  set-current-plot "Landuse composition"
+  foreach farm-types [ ft ->
+    set-current-plot-pen ft
+    if not with-pen-down? [ plot-pen-up ]
+    plot count farm-land with [landuse = ft]
+    if not with-pen-down? [ plot-pen-down ]
+  ]
+end
+
+
+;; update the metrics plot
+to update-metrics-plot [with-pen-down?]
+  let env-metrics-totals get-current-metrics
+  let e-metrics sort table:keys env-metrics
+  set-current-plot "Environmental metrics"
+  foreach range length e-metrics [ i ->
+    set-current-plot-pen item i e-metrics
+    if not with-pen-down? [ plot-pen-up ]
+    plot item i env-metrics-totals
+    if not with-pen-down? [ plot-pen-down ]
+  ]
+end
+
+
+;; The MIT License (MIT)
+;;
+;; Copyright (c) 2023-25 David O'Sullivan
+;;
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without restriction,
+;; including without limitation the rights to use, copy, modify, merge,
+;; publish, distribute, sublicense, and/or sell copies of the Software,
+;; and to  permit persons to whom the Software is furnished to do so,
+;; subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included
+;; in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+;; OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;; DEALINGS IN THE SOFTWARE.
+

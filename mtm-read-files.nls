@@ -86,6 +86,11 @@ to-report get-prices-time-series
 end
 
 
+to-report get-debt-service-ratio-parameters
+  report read-multi-col-table join-string (list market-data-folder "debt-parameters.csv") pathdir:get-separator false
+end
+
+
 ;; There is potential in matrix approaches for speeding up the calculations, perhaps even making them more 
 ;; 'sophisticated'. However some of this may come at the cost of 
 ;;
@@ -117,15 +122,15 @@ end
 
 ;; reports a two-way table indexed by row-names and col-names as a matrix
 ;; optionally 'post-processed' by applying a list of supplied anonymous functions
-to-report table-as-matrix [tbl row-names col-names modifiers]
+to-report table-as-matrix [#table #row-names #col-names #modifiers]
   let cols []
-  foreach row-names [ r ->
-    let col-table table:get tbl r
-    let values map [c -> table:get col-table c] col-names
+  foreach #row-names [ r ->
+    let col-table table:get #table r
+    let values map [c -> table:get col-table c] #col-names
     set cols lput values cols
   ]
   let mtx matrix:from-column-list cols
-  foreach modifiers [ m ->
+  foreach #modifiers [ m ->
     set mtx matrix:map [x -> (runresult m x)] mtx
   ]
   report mtx

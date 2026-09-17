@@ -163,8 +163,7 @@ to setup
   set hectares-per-patch 16
   set epsilon 1e-16
   set na-value -999
-  set show-labels? false; true; 
-  set base-rate 3.5
+  set show-labels? false; true;
   
   set run-seed ifelse-value user-run-seed? [run-rng-seed] [new-seed]
   
@@ -584,7 +583,7 @@ histogram [debt-service-ratio] of farmers ;; with [not debt-free?]</update>
     <button x="888" y="608" height="40" disableUntilTicks="false" forever="false" kind="Observer" width="149" display="select-interventions">change-buttons</button>
     <note x="891" y="532" backgroundDark="0" fontSize="12" width="167" markdown="true" height="35" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">This is working at least in part. But ignore it for now!</note>
     <slider x="890" step="5" y="468" max="30" display="mortgage-term" height="33" min="5" direction="Horizontal" default="20.0" variable="mortgage-term" units="years" width="185" sizeVersion="0"></slider>
-    <slider x="890" step="0.1" y="430" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="3.5" variable="interest-rate" units="%" width="185" sizeVersion="0"></slider>
+    <slider x="890" step="0.1" y="430" max="10" display="interest-rate" height="33" min="0" direction="Horizontal" default="3.9" variable="interest-rate" units="%" width="185" sizeVersion="0"></slider>
     <switch x="890" y="347" height="33" on="true" variable="landuse-change-on-succession?" display="landuse-change-on-succession?" width="185" sizeVersion="0"></switch>
     <slider x="890" step="0.1" y="392" max="10" display="base-rate" height="33" min="0.1" direction="Horizontal" default="3.5" variable="base-rate" width="185" sizeVersion="0"></slider>
   </widgets>
